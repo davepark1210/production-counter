@@ -126,7 +126,7 @@
     </div>
 
     <script>
-        const ws = new WebSocket('wss://your-project.onrender.com');
+        const ws = new WebSocket('wss://production-counter.onrender.com');
         ws.onmessage = (event) => {
             const { date, data } = JSON.parse(event.data);
             document.getElementById('dateDisplay').textContent = `Date: ${date}`;
