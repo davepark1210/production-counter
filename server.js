@@ -78,8 +78,8 @@ async function updateCount(facility, line, delta) {
 }
 
 // WebSocket server (Render uses same port for HTTP and WebSocket)
-const server = app.listen(85, () => {
-  console.log(`Server running at https://your-project.onrender.com`);
+const server = app.listen(10000, () => {
+  console.log(`Server running at https://production-counter.onrender.com/`);
 });
 const wss = new WebSocket.Server({ server });
 
