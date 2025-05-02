@@ -100,19 +100,26 @@ wss.on('connection', async (ws) => {
 async function getCurrentData() {
   const client = await pool.connect();
   try {
+    console.log('Fetching current data from database for date:', currentDate);
     const res = await client.query(
-      'SELECT Facility, Line, Count FROM ProductionCounts WHERE Date = $1',
+      'SELECT facility, line, count FROM ProductionCounts WHERE Date = $1',
       [currentDate]
     );
+    console.log('Database query result:', res.rows);
     const data = {};
     facilities.forEach(f => {
       data[f] = {};
       lines.forEach(l => {
-        const row = res.rows.find(r => r.Facility === f && r.Line === l);
+        const row = res.rows.find(r => r.facility === f && r.line === l);
         data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
+        console.log(`Count for ${f}, ${l}: ${data[f][l].count}`);
       });
     });
+    console.log('Constructed data:', data);
     return data;
+  } catch (err) {
+    console.error('Error in getCurrentData:', err);
+    throw err;
   } finally {
     client.release();
   }
