@@ -1,0 +1,131 @@
+const express = require('express');
+const WebSocket = require('ws');
+const { Pool } = require('pg');
+const app = express();
+
+// PostgreSQL configuration (Neon.tech)
+const pool = new Pool({
+  host: process.env.PGHOST || 'ep-falling-tree-a58of1lj-pooler.us-east-2.aws.neon.tech',
+  user: process.env.PGUSER || 'neondb_owner',
+  password: process.env.PGPASSWORD || 'npg_4Vw0dKkJeILi',
+  database: process.env.PGDATABASE || 'neondb',
+  port: process.env.PGPORT || 5432,
+  ssl: { rejectUnauthorized: false }
+});
+
+const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
+const lines = ['FTN', 'VV'];
+let currentDate = new Date().toISOString().split('T')[0];
+
+// Serve static files
+app.use(express.static('public'));
+
+// HTTP endpoints for ESP32
+app.post('/increment', async (req, res) => {
+  const { facility, line } = req.query;
+  if (!facilities.includes(facility) || !lines.includes(line)) {
+    return res.sendStatus(400);
+  }
+  try {
+    await updateCount(facility, line, 1);
+    broadcastUpdate();
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('Increment Error:', err);
+    res.sendStatus(500);
+  }
+});
+
+app.post('/decrement', async (req, res) => {
+  const { facility, line } = req.query;
+  if (!facilities.includes(facility) || !lines.includes(line)) {
+    return res.sendStatus(400);
+  }
+  try {
+    await updateCount(facility, line, -1);
+    broadcastUpdate();
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('Decrement Error:', err);
+    res.sendStatus(500);
+  }
+});
+
+// Update count in database
+async function updateCount(facility, line, delta) {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      'SELECT Count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
+      [currentDate, facility, line]
+    );
+    if (res.rows.length > 0) {
+      const newCount = Math.max(res.rows[0].count + delta, 0);
+      await client.query(
+        'UPDATE ProductionCounts SET Count = $1, Timestamp = NOW() WHERE Date = $2 AND Facility = $3 AND Line = $4',
+        [newCount, currentDate, facility, line]
+      );
+    } else {
+      const initialCount = delta > 0 ? delta : 0;
+      await client.query(
+        'INSERT INTO ProductionCounts (Date, Facility, Line, Count, Timestamp) VALUES ($1, $2, $3, $4, NOW())',
+        [currentDate, facility, line, initialCount]
+      );
+    }
+  } finally {
+    client.release();
+  }
+}
+
+// WebSocket server (Render uses same port for HTTP and WebSocket)
+const server = app.listen(85, () => {
+  console.log(`Server running at https://your-project.onrender.com`);
+});
+const wss = new WebSocket.Server({ server });
+
+wss.on('connection', async (ws) => {
+  const data = await getCurrentData();
+  ws.send(JSON.stringify({ date: currentDate, data }));
+});
+
+async function getCurrentData() {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      'SELECT Facility, Line, Count FROM ProductionCounts WHERE Date = $1',
+      [currentDate]
+    );
+    const data = {};
+    facilities.forEach(f => {
+      data[f] = {};
+      lines.forEach(l => {
+        const row = res.rows.find(r => r.Facility === f && r.Line === l);
+        data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
+      });
+    });
+    return data;
+  } finally {
+    client.release();
+  }
+}
+
+async function broadcastUpdate() {
+  const data = await getCurrentData();
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({ date: currentDate, data }));
+    }
+  });
+}
+
+// Midnight data dump
+setInterval(async () => {
+  const now = new Date();
+  if (now.getHours() === 0 && now.getMinutes() === 0) {
+    const fs = require('fs');
+    const data = await getCurrentData();
+    fs.writeFileSync(`production_${currentDate}.json`, JSON.stringify(data));
+    currentDate = new Date().toISOString().split('T')[0];
+    broadcastUpdate();
+  }
+}, 60000);
