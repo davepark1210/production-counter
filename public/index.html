@@ -1,133 +1,83 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Production Counter</title>
+    <title>Certified Center Production</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            background-color: #f0f0f0;
-            padding: 20px;
-            color: #333;
+        /* Custom Tailwind styles */
+        .facility-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        h1 {
-            text-align: center;
-            color: #007bff;
-            font-size: 3em;
-            margin-bottom: 20px;
+        .facility-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
-        #dateDisplay {
-            text-align: center;
-            font-size: 1.8em;
-            color: #555;
-            margin-bottom: 30px;
-        }
-        .facility-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 30px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .facility {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            text-align: center;
-        }
-        .facility h2 {
-            margin: 0 0 20px;
-            color: #007bff;
-            font-size: 2em;
-        }
-        .line {
-            margin: 20px 0;
-        }
-        .counter {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #333;
+        .gradient-header {
+            background: linear-gradient(90deg, #3b82f6, #1e40af);
         }
     </style>
 </head>
-<body>
-    <h1>Production Counter</h1>
-    <div id="dateDisplay"></div>
-    <div class="facility-container">
-        <div class="facility" id="Sellersburg_Certified_Center">
-            <h2>Sellersburg Certified Center</h2>
-            <div class="line">
-                <div>FTN: <span class="counter" id="Sellersburg_Certified_Center_FTN">0</span></div>
-            </div>
-            <div class="line">
-                <div>VV: <span class="counter" id="Sellersburg_Certified_Center_VV">0</span></div>
-            </div>
-        </div>
-        <div class="facility" id="Williamsport_Certified_Center">
-            <h2>Williamsport Certified Center</h2>
-            <div class="line">
-                <div>FTN: <span class="counter" id="Williamsport_Certified_Center_FTN">0</span></div>
-            </div>
-            <div class="line">
-                <div>VV: <span class="counter" id="Williamsport_Certified_Center_VV">0</span></div>
-            </div>
-        </div>
-        <div class="facility" id="North_Las_Vegas_Certified_Center">
-            <h2>North Las Vegas Certified Center</h2>
-            <div class="line">
-                <div>FTN: <span class="counter" id="North_Las_Vegas_Certified_Center_FTN">0</span></div>
-            </div>
-            <div class="line">
-                <div>VV: <span class="counter" id="North_Las_Vegas_Certified_Center_VV">0</span></div>
+<body class="bg-gray-100 font-sans text-gray-800 min-h-screen flex flex-col items-center p-6">
+    <header class="w-full max-w-5xl mb-8">
+        <h1 class="text-4xl font-bold text-white text-center py-6 rounded-lg gradient-header shadow-lg">
+            Certified Center Production
+        </h1>
+        <div id="dateDisplay" class="text-center text-xl text-gray-600 mt-4"></div>
+    </header>
+
+    <main class="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="facility-card bg-white p-6 rounded-xl shadow-md" id="Sellersburg_Certified_Center">
+            <h2 class="text-2xl font-semibold text-blue-600 mb-4">Sellersburg Certified Center</h2>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-medium text-gray-700">FTN:</span>
+                    <span class="counter text-3xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-medium text-gray-700">VV:</span>
+                    <span class="counter text-3xl font-bold text-gray-900" id="Sellersburg_Certified_Center_VV">0</span>
+                </div>
             </div>
         </div>
-    </div>
+
+        <div class="facility-card bg-white p-6 rounded-xl shadow-md" id="Williamsport_Certified_Center">
+            <h2 class="text-2xl font-semibold text-blue-600 mb-4">Williamsport Certified Center</h2>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-medium text-gray-700">FTN:</span>
+                    <span class="counter text-3xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-medium text-gray-700">VV:</span>
+                    <span class="counter text-3xl font-bold text-gray-900" id="Williamsport_Certified_Center_VV">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="facility-card bg-white p-6 rounded-xl shadow-md" id="North_Las_Vegas_Certified_Center">
+            <h2 class="text-2xl font-semibold text-blue-600 mb-4">North Las Vegas Certified Center</h2>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-medium text-gray-700">FTN:</span>
+                    <span class="counter text-3xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-lg font-medium text-gray-700">VV:</span>
+                    <span class="counter text-3xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_VV">0</span>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
         const ws = new WebSocket('wss://production-counter.onrender.com');
+        ws.onopen = () => {
+            console.log('WebSocket connection established');
+        };
         ws.onmessage = (event) => {
+            console.log('Received WebSocket message:', event.data);
             const { date, data } = JSON.parse(event.data);
             document.getElementById('dateDisplay').textContent = `Date: ${date}`;
             ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'].forEach(facility => {
@@ -136,6 +86,12 @@
                     document.getElementById(`${facility}_${line}`).textContent = count;
                 });
             });
+        };
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+        ws.onclose = () => {
+            console.log('WebSocket connection closed');
         };
     </script>
 </body>
