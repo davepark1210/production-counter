@@ -56,6 +56,7 @@ app.get('/getHourlyRates', async (req, res) => {
        ORDER BY facility, line, hour`,
       [currentDate]
     );
+    console.log('Hourly rates query result:', result.rows);
 
     const hourlyRates = {};
     facilities.forEach(f => {
@@ -64,10 +65,14 @@ app.get('/getHourlyRates', async (req, res) => {
         hourlyRates[f][l] = Array(24).fill(0); // 24 hours
         const facilityRates = result.rows.filter(row => row.facility === f && row.line === l);
         facilityRates.forEach(row => {
-          hourlyRates[f][l][parseInt(row.hour)] = parseInt(row.rate);
+          const hour = parseInt(row.hour);
+          const rate = parseInt(row.rate);
+          hourlyRates[f][l][hour] = rate;
+          console.log(`Hourly rate for ${f}, ${l}, hour ${hour}: ${rate}`);
         });
       });
     });
+    console.log('Constructed hourlyRates:', hourlyRates);
 
     res.json({ hourlyRates });
   } catch (err) {
@@ -202,6 +207,7 @@ async function getHourlyRates() {
        ORDER BY facility, line, hour`,
       [currentDate]
     );
+    console.log('Hourly rates query result:', result.rows);
 
     const hourlyRates = {};
     facilities.forEach(f => {
@@ -210,10 +216,14 @@ async function getHourlyRates() {
         hourlyRates[f][l] = Array(24).fill(0); // 24 hours
         const facilityRates = result.rows.filter(row => row.facility === f && row.line === l);
         facilityRates.forEach(row => {
-          hourlyRates[f][l][parseInt(row.hour)] = parseInt(row.rate);
+          const hour = parseInt(row.hour);
+          const rate = parseInt(row.rate);
+          hourlyRates[f][l][hour] = rate;
+          console.log(`Hourly rate for ${f}, ${l}, hour ${hour}: ${rate}`);
         });
       });
     });
+    console.log('Constructed hourlyRates:', hourlyRates);
 
     return hourlyRates;
   } catch (err) {
