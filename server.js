@@ -16,7 +16,7 @@ const pool = new Pool({
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'VV'];
-// Use UTC date to avoid timezone issues
+// Use UTC date to avoid timezone issues on the server
 let currentDate = new Date().toISOString().split('T')[0]; // e.g., "2025-05-02"
 let lastMilestone = 0;
 
