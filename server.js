@@ -18,7 +18,7 @@ const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Cent
 const lines = ['FTN', 'VV'];
 // Use UTC date to avoid timezone issues
 let currentDate = new Date().toISOString().split('T')[0]; // e.g., "2025-05-02"
-let lastMilestone = 0; // Track the last milestone to avoid duplicate notifications
+let lastMilestone = 0;
 
 // Serve static files
 app.use(express.static('public'));
@@ -169,13 +169,11 @@ app.post('/decrement', async (req, res) => {
 async function updateCount(facility, line, delta) {
   const client = await pool.connect();
   try {
-    // Log the event in ProductionEvents
     await client.query(
       'INSERT INTO ProductionEvents (date, facility, line, delta, timestamp) VALUES ($1, $2, $3, $4, NOW())',
       [currentDate, facility, line, delta]
     );
 
-    // Update the total count in ProductionCounts
     console.log(`Updating count for ${facility}, ${line}, delta: ${delta}`);
     const res = await client.query(
       'SELECT Count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
@@ -307,7 +305,6 @@ async function broadcastUpdate() {
   const hourlyRates = await getHourlyRates();
   const totalProduction = await getTotalDailyProduction();
   
-  // Check for production milestones (multiples of 100)
   const milestone = Math.floor(totalProduction / 100) * 100;
   let notification = null;
   if (milestone > lastMilestone && totalProduction >= milestone) {
@@ -338,7 +335,7 @@ setInterval(async () => {
     const data = await getCurrentData();
     await fs.writeFile(`production_${currentDate}.json`, JSON.stringify(data));
     currentDate = new Date().toISOString().split('T')[0];
-    lastMilestone = 0; // Reset milestone tracking for the new day
+    lastMilestone = 0;
     broadcastUpdate();
   }
 }, 60000);
