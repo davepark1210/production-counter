@@ -26,7 +26,7 @@
 </head>
 <body class="bg-gray-100 font-sans text-gray-800 min-h-screen flex flex-col items-center p-6">
     <header class="w-full max-w-5xl mb-8 flex items-center justify-center">
-        <img src="https://raw.githubusercontent.com/davepark1210/production-counter/main/Pepsi%20Service%20Advantage%20Logo_blacktype_square.png" alt="Pepsi Equipment Services Logo" class="logo">
+        <img src="https://raw.githubusercontent.com/davepark1210/production-counter/blob/351b3af4726d2e748a226b8868d56bc9df15f66c/Pepsi%20Service%20Advantage%20Logo_blacktype_square.png" alt="Pepsi Equipment Services Logo" class="logo">
         <h1 class="text-4xl font-bold text-white text-center py-6 rounded-lg gradient-header shadow-lg flex-1">
             Certified Center Production
         </h1>
@@ -139,27 +139,55 @@
         };
         ws.onmessage = (event) => {
             console.log('Received WebSocket message:', event.data);
-            const { date, data, hourlyRates } = JSON.parse(event.data);
+            let message;
+            try {
+                message = JSON.parse(event.data);
+            } catch (err) {
+                console.error('Failed to parse WebSocket message:', err);
+                return;
+            }
+
+            const { date, data, hourlyRates } = message;
+            if (!date || !data || !hourlyRates) {
+                console.error('Invalid WebSocket message structure:', message);
+                return;
+            }
+
             updateDateTime(date);
             const currentHour = new Date().getHours(); // Get current hour in local timezone
 
             ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'].forEach(facility => {
                 ['FTN', 'VV'].forEach(line => {
+                    if (!data[facility] || !data[facility][line] || !hourlyRates[facility] || !hourlyRates[facility][line]) {
+                        console.error(`Missing data for ${facility} ${line}:`, data[facility], hourlyRates[facility]);
+                        return;
+                    }
                     const count = data[facility][line].count;
-                    const rate = hourlyRates[facility][line][currentHour];
-                    document.getElementById(`${facility}_${line}`).textContent = count;
-                    document.getElementById(`${facility}_${line}_Rate`).textContent = `Units/Hour: ${rate}`;
+                    const rate = hourlyRates[facility][line][currentHour] || 0;
+                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate}`);
+                    const countElement = document.getElementById(`${facility}_${line}`);
+                    const rateElement = document.getElementById(`${facility}_${line}_Rate`);
+                    if (countElement && rateElement) {
+                        countElement.textContent = count;
+                        rateElement.textContent = `Units/Hour: ${rate}`;
+                    } else {
+                        console.error(`DOM elements not found for ${facility} ${line}`);
+                    }
                 });
             });
 
             // Update chart with hourly rates
-            productionChart.data.datasets[0].data = hourlyRates['Sellersburg_Certified_Center']['FTN'];
-            productionChart.data.datasets[1].data = hourlyRates['Sellersburg_Certified_Center']['VV'];
-            productionChart.data.datasets[2].data = hourlyRates['Williamsport_Certified_Center']['FTN'];
-            productionChart.data.datasets[3].data = hourlyRates['Williamsport_Certified_Center']['VV'];
-            productionChart.data.datasets[4].data = hourlyRates['North_Las_Vegas_Certified_Center']['FTN'];
-            productionChart.data.datasets[5].data = hourlyRates['North_Las_Vegas_Certified_Center']['VV'];
-            productionChart.update();
+            if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
+                productionChart.data.datasets[0].data = hourlyRates['Sellersburg_Certified_Center']['FTN'] || Array(24).fill(0);
+                productionChart.data.datasets[1].data = hourlyRates['Sellersburg_Certified_Center']['VV'] || Array(24).fill(0);
+                productionChart.data.datasets[2].data = hourlyRates['Williamsport_Certified_Center']['FTN'] || Array(24).fill(0);
+                productionChart.data.datasets[3].data = hourlyRates['Williamsport_Certified_Center']['VV'] || Array(24).fill(0);
+                productionChart.data.datasets[4].data = hourlyRates['North_Las_Vegas_Certified_Center']['FTN'] || Array(24).fill(0);
+                productionChart.data.datasets[5].data = hourlyRates['North_Las_Vegas_Certified_Center']['VV'] || Array(24).fill(0);
+                productionChart.update();
+            } else {
+                console.error('Incomplete hourly rates data:', hourlyRates);
+            }
         };
         ws.onerror = (error) => {
             console.error('WebSocket error:', error);
