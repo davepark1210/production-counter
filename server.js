@@ -213,7 +213,8 @@ wss.on('connection', async (ws) => {
   const data = await getCurrentData();
   const hourlyRates = await getHourlyRates();
   const totalProduction = await getTotalDailyProduction();
-  ws.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction }));
+  const peakProduction = await getPeakProduction();
+  ws.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction, peakProduction }));
 });
 
 async function getCurrentData() {
@@ -300,10 +301,54 @@ async function getTotalDailyProduction() {
   }
 }
 
+async function getPeakProduction() {
+  const client = await pool.connect();
+  try {
+    // Calculate peak production for all time
+    const allTimeResult = await client.query(
+      `SELECT facility, MAX(count) as peak_all_time
+       FROM ProductionCounts
+       GROUP BY facility`
+    );
+
+    // Calculate peak production for the last 7 days
+    const weekStart = new Date(currentDate);
+    weekStart.setDate(weekStart.getDate() - 7);
+    const weekStartDate = weekStart.toISOString().split('T')[0];
+
+    const weeklyResult = await client.query(
+      `SELECT facility, MAX(count) as peak_weekly
+       FROM ProductionCounts
+       WHERE Date >= $1 AND Date <= $2
+       GROUP BY facility`,
+      [weekStartDate, currentDate]
+    );
+
+    const peakProduction = {};
+    facilities.forEach(f => {
+      const allTimeRow = allTimeResult.rows.find(row => row.facility === f);
+      const weeklyRow = weeklyResult.rows.find(row => row.facility === f);
+      peakProduction[f] = {
+        peakAllTime: allTimeRow ? parseInt(allTimeRow.peak_all_time) : 0,
+        peakWeekly: weeklyRow ? parseInt(weeklyRow.peak_weekly) : 0
+      };
+    });
+
+    console.log('Peak production:', peakProduction);
+    return peakProduction;
+  } catch (err) {
+    console.error('GetPeakProduction Error:', err);
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 async function broadcastUpdate() {
   const data = await getCurrentData();
   const hourlyRates = await getHourlyRates();
   const totalProduction = await getTotalDailyProduction();
+  const peakProduction = await getPeakProduction();
   
   const milestone = Math.floor(totalProduction / 100) * 100;
   let notification = null;
@@ -317,6 +362,7 @@ async function broadcastUpdate() {
     data,
     hourlyRates,
     totalProduction,
+    peakProduction,
     notification
   };
   console.log('Broadcasting update:', JSON.stringify(message));
