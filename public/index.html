@@ -15,47 +15,121 @@
         .facility-card {
             transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
             border: 2px solid transparent;
-            background-image: linear-gradient(white, white), linear-gradient(45deg, #003087, #60a5fa);
-            background-clip: padding-box, border-box;
-            background-origin: border-box;
             border-radius: 12px;
-            opacity: 0;
-            animation: fadeIn 0.5s ease-in forwards;
-            animation-delay: calc(var(--delay) * 0.2s);
+            position: relative;
+            background: white;
+            border: 1px solid #d1d5db;
         }
         .facility-card:hover {
             transform: translateY(-8px) scale(1.03);
             box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15), 0 0 10px rgba(0, 87, 184, 0.3);
-            background-image: linear-gradient(#e6f0fa, #e6f0fa), linear-gradient(45deg, #003087, #60a5fa);
+            background: #e6f0fa;
+        }
+        .facility-card.top-performer {
+            background-color: rgba(255, 215, 0, 0.1);
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+        }
+        .facility-card.top-performer:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(255, 215, 0, 0.4), 0 0 15px rgba(255, 215, 0, 0.5);
+            background-color: rgba(255, 215, 0, 0.15);
+        }
+        .facility-card.second-place {
+            background-color: rgba(192, 192, 192, 0.1);
+            box-shadow: 0 0 8px rgba(192, 192, 192, 0.3);
+        }
+        .facility-card.second-place:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(192, 192, 192, 0.4), 0 0 15px rgba(192, 192, 192, 0.5);
+            background-color: rgba(192, 192, 192, 0.15);
+        }
+        .facility-card.third-place {
+            background-color: rgba(205, 127, 50, 0.1);
+            box-shadow: 0 0 8px rgba(205, 127, 50, 0.3);
+        }
+        .facility-card.third-place:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(205, 127, 50, 0.4), 0 0 15px rgba(205, 127, 50, 0.5);
+            background-color: rgba(205, 127, 50, 0.15);
+        }
+        .facility-card.rank-changed {
+            animation: pulse 1s ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .rank-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 1rem; /* Reduced size */
+            background: white;
+            border: 1px solid #d1d5db; /* Added subtle border */
+            border-radius: 50%;
+            padding: 2px; /* Reduced padding */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            transition: transform 0.2s ease;
+        }
+        .rank-icon:hover {
+            transform: scale(1.2);
         }
         .gradient-header {
             background: linear-gradient(90deg, #003087, #0057b8, #60a5fa);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             border-radius: 12px;
+            position: relative;
+            overflow: hidden;
         }
-        .logo {
-            height: 140px;
-            margin-top: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
+        .gradient-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 3s infinite;
         }
-        .logo:hover {
-            transform: scale(1.05);
+        @keyframes shimmer {
+            0% { left: -100%; }
+            50% { left: 100%; }
+            100% { left: 100%; }
         }
-        .toggle-button {
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 1rem;
+            position: relative;
+            width: 100%;
+        }
+        .header-logo {
+            height: 80px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-right: 1rem;
+        }
+        .header-title {
+            flex-grow: 1;
+            text-align: center;
+        }
+        .toggle-button, .reset-button {
             background-color: #0057b8;
             color: white;
-            padding: 0.75rem 1.5rem;
+            padding: 0.5rem 1rem;
             border-radius: 8px;
             transition: background-color 0.3s ease, transform 0.2s ease;
             font-weight: 600;
+            margin-left: 0.5rem;
         }
-        .toggle-button:hover {
+        .toggle-button:hover, .reset-button:hover {
             background-color: #003087;
             transform: scale(1.05);
         }
-        .toggle-button:focus {
+        .toggle-button:focus, .reset-button:focus {
             outline: none;
             ring: 2px solid #003087;
         }
@@ -67,6 +141,16 @@
             height: 28px;
             animation: spin 1s linear infinite;
             margin: 0 auto;
+        }
+        .date-loading-spinner {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #0057b8;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin-left: 0.5rem;
+            display: none;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -94,7 +178,7 @@
             border: 1px solid #d1d5db;
             background: linear-gradient(145deg, #f9fafb, #e5e7eb);
             border-radius: 12px;
-            padding: 1.5rem;
+            padding: 1rem;
         }
         select {
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -115,9 +199,33 @@
         .text-gray-700 {
             color: #374151;
         }
+        .facility-card h2 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            padding-right: 40px; /* Added padding to avoid overlap with icon */
+        }
         .counter {
             transition: transform 0.3s ease, color 0.3s ease;
             font-weight: 700;
+            position: relative;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+        }
+        .counter:hover .counter-tooltip {
+            visibility: visible;
+        }
+        .counter-tooltip {
+            visibility: hidden;
+            position: absolute;
+            top: -30px;
+            right: 0;
+            background-color: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 10;
         }
         .counter.update {
             transform: scale(1.1);
@@ -144,14 +252,44 @@
         .peak-metric {
             font-size: 0.95rem;
             color: #6b7280;
+            position: relative;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .progress-bar {
+            width: 100%;
+            background-color: #e5e7eb;
+            border-radius: 8px;
+            height: 10px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #003087, #60a5fa, #003087);
+            transition: width 0.5s ease-in-out;
+            border-radius: 8px;
+        }
+        .total-production {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e40af;
+            text-align: center;
+        }
+        .total-production span {
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+        .total-production span.update {
+            animation: highlight 0.5s ease-in-out;
+        }
+        @keyframes highlight {
+            0% { transform: scale(1); color: #1e40af; }
+            50% { transform: scale(1.1); color: #dc2626; }
+            100% { transform: scale(1); color: #1e40af; }
         }
         @media (max-width: 640px) {
             .facility-card h2 {
                 font-size: 1.5rem;
+                padding-right: 30px; /* Adjusted padding for smaller screens */
             }
             .counter {
                 font-size: 1.75rem;
@@ -162,105 +300,146 @@
             .text-sm {
                 font-size: 0.9rem;
             }
+            .header-container {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .header-logo {
+                height: 60px;
+            }
+            .header-title {
+                text-align: center;
+            }
+            .rank-icon {
+                top: 6px;
+                right: 6px;
+                font-size: 0.9rem; /* Further reduced size for smaller screens */
+                padding: 1px;
+            }
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-8">
+<body class="min-h-screen flex flex-col items-center p-6">
     <div id="notification" class="notification"></div>
 
-    <header class="w-full max-w-6xl mb-10 flex flex-col items-center justify-center">
-        <h1 class="text-5xl font-bold text-white text-center py-8 rounded-lg gradient-header shadow-lg w-full">
-            Certified Center Production
-        </h1>
-        <img src="https://raw.githubusercontent.com/davepark1210/production-counter/refs/heads/main/Pepsi%20Service%20Advantage%20Logo_blacktype_square.png" alt="Pepsi Equipment Services Logo" class="logo">
+    <header class="w-full max-w-6xl mb-8 flex flex-col items-center justify-center">
+        <div class="header-container gradient-header shadow-lg w-full rounded-lg">
+            <img src="https://raw.githubusercontent.com/davepark1210/production-counter/refs/heads/main/Pepsi%20Service%20Advantage%20Logo_blacktype_square.png" alt="Pepsi Equipment Services Logo" class="header-logo">
+            <h1 class="text-5xl font-bold text-white header-title">Certified Center Production</h1>
+        </div>
     </header>
 
-    <div class="w-full max-w-6xl mb-10 text-center">
-        <div id="dateTimeDisplay" class="text-2xl text-gray-700 font-medium"></div>
-    </div>
-
-    <div class="w-full max-w-6xl mb-10 flex flex-col items-center">
+    <div class="w-full max-w-6xl mb-8 flex flex-col items-center">
         <div id="loadingSpinner" class="loading-spinner"></div>
-        <div id="totalProduction" class="text-3xl font-semibold text-blue-800 mb-6 hidden">
+        <div id="totalProduction" class="text-3xl font-semibold text-blue-800 mb-4 hidden">
             Total Daily Production: <span id="totalProductionValue">0</span> units
         </div>
-        <div class="flex items-center space-x-4 mb-6">
+        <div class="w-full max-w-6xl mb-4 text-center">
+            <div id="dateTimeDisplay" class="text-2xl text-gray-700 font-medium"></div>
+        </div>
+        <div class="flex items-center space-x-4 mb-4">
             <label for="dateSelect" class="text-xl font-medium text-gray-700">Select Date:</label>
             <select id="dateSelect" class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Current Day</option>
             </select>
+            <button id="resetDateButton" class="reset-button">Reset Date</button>
+            <div id="dateLoadingSpinner" class="date-loading-spinner"></div>
         </div>
     </div>
 
-    <main class="w-full max-w-6xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
-        <div class="facility-card bg-white p-8 rounded-xl shadow-md" id="Sellersburg_Certified_Center" style="--delay: 1">
-            <h2 class="text-3xl font-semibold text-blue-600 mb-6">Sellersburg Certified Center</h2>
-            <div class="space-y-6">
+    <main id="facilityGrid" class="w-full max-w-6xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div class="facility-card bg-white p-6 rounded-xl shadow-md" id="Sellersburg_Certified_Center">
+            <span class="rank-icon" id="Sellersburg_Certified_Center_Rank"></span>
+            <h2 class="text-3xl font-semibold text-blue-600 mb-4">Sellersburg Certified Center</h2>
+            <div class="space-y-4">
+                <div class="total-production">Total Production: <span id="Sellersburg_Certified_Center_Total">0</span> units</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-vv">VV:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_VV">0</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_VV">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_VV_Tooltip"></span></span>
                 </div>
                 <div class="text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_VV_Rate">Units/Hour: 0</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_FTN_Tooltip"></span></span>
                 </div>
                 <div class="text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_FTN_Rate">Units/Hour: 0</div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">Peak Weekly Production: <span id="Sellersburg_Certified_Center_Peak_Weekly">0</span> units</div>
                     <div class="peak-metric text-left">Peak All-Time Production: <span id="Sellersburg_Certified_Center_Peak_AllTime">0</span> units</div>
+                    <div class="peak-metric text-left">
+                        Progress to All-Time Peak:
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" id="Sellersburg_Certified_Center_Progress" style="width: 0%"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="facility-card bg-white p-8 rounded-xl shadow-md" id="Williamsport_Certified_Center" style="--delay: 2">
-            <h2 class="text-3xl font-semibold text-blue-600 mb-6">Williamsport Certified Center</h2>
-            <div class="space-y-6">
+        <div class="facility-card bg-white p-6 rounded-xl shadow-md" id="Williamsport_Certified_Center">
+            <span class="rank-icon" id="Williamsport_Certified_Center_Rank"></span>
+            <h2 class="text-3xl font-semibold text-blue-600 mb-4">Williamsport Certified Center</h2>
+            <div class="space-y-4">
+                <div class="total-production">Total Production: <span id="Williamsport_Certified_Center_Total">0</span> units</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-vv">VV:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_VV">0</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_VV">0<span class="counter-tooltip" id="Williamsport_Certified_Center_VV_Tooltip"></span></span>
                 </div>
                 <div class="text-base text-gray-600 text-right" id="Williamsport_Certified_Center_VV_Rate">Units/Hour: 0</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0<span class="counter-tooltip" id="Williamsport_Certified_Center_FTN_Tooltip"></span></span>
                 </div>
                 <div class="text-base text-gray-600 text-right" id="Williamsport_Certified_Center_FTN_Rate">Units/Hour: 0</div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">Peak Weekly Production: <span id="Williamsport_Certified_Center_Peak_Weekly">0</span> units</div>
                     <div class="peak-metric text-left">Peak All-Time Production: <span id="Williamsport_Certified_Center_Peak_AllTime">0</span> units</div>
+                    <div class="peak-metric text-left">
+                        Progress to All-Time Peak:
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" id="Williamsport_Certified_Center_Progress" style="width: 0%"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="facility-card bg-white p-8 rounded-xl shadow-md" id="North_Las_Vegas_Certified_Center" style="--delay: 3">
-            <h2 class="text-3xl font-semibold text-blue-600 mb-6">North Las Vegas Certified Center</h2>
-            <div class="space-y-6">
+        <div class="facility-card bg-white p-6 rounded-xl shadow-md" id="North_Las_Vegas_Certified_Center">
+            <span class="rank-icon" id="North_Las_Vegas_Certified_Center_Rank"></span>
+            <h2 class="text-3xl font-semibold text-blue-600 mb-4">North Las Vegas Certified Center</h2>
+            <div class="space-y-4">
+                <div class="total-production">Total Production: <span id="North_Las_Vegas_Certified_Center_Total">0</span> units</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-vv">VV:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_VV">0</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_VV">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_VV_Tooltip"></span></span>
                 </div>
                 <div class="text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_VV_Rate">Units/Hour: 0</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_FTN_Tooltip"></span></span>
                 </div>
                 <div class="text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_FTN_Rate">Units/Hour: 0</div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">Peak Weekly Production: <span id="North_Las_Vegas_Certified_Center_Peak_Weekly">0</span> units</div>
                     <div class="peak-metric text-left">Peak All-Time Production: <span id="North_Las_Vegas_Certified_Center_Peak_AllTime">0</span> units</div>
+                    <div class="peak-metric text-left">
+                        Progress to All-Time Peak:
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" id="North_Las_Vegas_Certified_Center_Progress" style="width: 0%"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <section class="w-full max-w-6xl mb-10">
-        <div class="flex justify-center mb-6">
+    <section class="w-full max-w-6xl mb-6">
+        <div class="flex justify-center mb-4">
             <button id="toggleGraphButton" class="toggle-button">Hide Hourly Production Rates</button>
         </div>
         <div id="graphSection" class="graph-section">
-            <h2 class="text-3xl font-semibold text-blue-600 mb-6 text-center">Hourly Production Rates</h2>
-            <div class="bg-white p-8 rounded-xl shadow-md">
+            <h2 id="graphTitle" class="text-3xl font-semibold text-blue-600 mb-4 text-center">Hourly Production Rates</h2>
+            <div class="bg-white p-6 rounded-xl shadow-md" style="height: 400px;">
                 <canvas id="productionChart"></canvas>
             </div>
         </div>
@@ -269,10 +448,18 @@
     <script>
         // Initialize Chart.js
         const ctx = document.getElementById('productionChart').getContext('2d');
+        const now = new Date();
+        const currentHour = now.getHours();
+        const timezoneOffset = now.getTimezoneOffset() / 60; // Offset in hours
+        const labels = Array.from({ length: 24 }, (_, i) => {
+            const adjustedHour = (i + timezoneOffset) % 24;
+            const displayHour = adjustedHour < 0 ? 24 + adjustedHour : adjustedHour;
+            return `${displayHour}:00`;
+        });
         const productionChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+                labels: labels,
                 datasets: [
                     { label: 'Sellersburg FTN', data: Array(24).fill(0), borderColor: '#ff6384', backgroundColor: 'rgba(255, 99, 132, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
                     { label: 'Sellersburg VV', data: Array(24).fill(0), borderColor: '#36a2eb', backgroundColor: 'rgba(54, 162, 235, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
@@ -291,7 +478,7 @@
                         position: 'top',
                         labels: {
                             font: { size: 14, weight: 'bold' },
-                            padding: 20,
+                            padding: 10,
                             boxWidth: 20,
                             usePointStyle: true,
                             pointStyle: 'circle'
@@ -310,25 +497,10 @@
                     x: {
                         title: {
                             display: true,
-                            text: 'Hour of Day (24h)',
+                            text: 'Hour of Day (Local Time)',
                             font: { size: 16, weight: 'bold' },
-                            color: '#374151'
-                        },
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        },
-                        ticks: {
-                            font: { size: 12 },
-                            color: '#374151'
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Production Rate (Units/Hour)',
-                            font: { size: 16, weight: 'bold' },
-                            color: '#374151'
+                            color: '#374151',
+                            padding: 10
                         },
                         grid: {
                             display: true,
@@ -337,7 +509,26 @@
                         ticks: {
                             font: { size: 12 },
                             color: '#374151',
-                            beginAtZero: true
+                            padding: 10
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Production Rate (Units/Hour)',
+                            font: { size: 16, weight: 'bold' },
+                            color: '#374151',
+                            padding: 10
+                        },
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            font: { size: 12 },
+                            color: '#374151',
+                            beginAtZero: true,
+                            padding: 10
                         }
                     }
                 },
@@ -345,13 +536,20 @@
                     line: {
                         tension: 0.3
                     }
+                },
+                layout: {
+                    padding: {
+                        left: 20,
+                        right: 20,
+                        top: 20,
+                        bottom: 20
+                    }
                 }
             }
         });
 
         // Real-time clock update
-        function updateDateTime(serverDate) {
-            const date = new Date(serverDate);
+        function updateDateTime() {
             const now = new Date();
             const options = {
                 year: 'numeric',
@@ -360,19 +558,12 @@
                 hour: 'numeric',
                 minute: '2-digit',
                 second: '2-digit',
-                hour12: true
+                hour12: true,
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
             };
-            const displayDate = new Date(
-                date.getFullYear(),
-                date.getMonth(),
-                date.getDate(),
-                now.getHours(),
-                now.getMinutes(),
-                now.getSeconds()
-            );
-            document.getElementById('dateTimeDisplay').textContent = `Date & Time: ${displayDate.toLocaleString(undefined, options)}`;
+            document.getElementById('dateTimeDisplay').textContent = `Date & Time: ${now.toLocaleString(undefined, options)}`;
         }
-        setInterval(() => updateDateTime(currentDate), 1000);
+        setInterval(updateDateTime, 1000);
 
         // Display notification
         function showNotification(message) {
@@ -397,6 +588,14 @@
             }
         });
 
+        // Reset date to current day
+        const resetDateButton = document.getElementById('resetDateButton');
+        resetDateButton.addEventListener('click', () => {
+            const dateSelect = document.getElementById('dateSelect');
+            dateSelect.value = '';
+            ws.send(JSON.stringify({ action: 'requestCurrentData' }));
+        });
+
         // Load historical dates
         async function loadHistoricalDates() {
             try {
@@ -414,49 +613,174 @@
             }
         }
 
+        // Cache for hourly rates and peak production to reduce redundant fetches
+        const hourlyRatesCache = {};
+        const peakProductionCache = {};
+
         // Handle date selection change
         document.getElementById('dateSelect').addEventListener('change', async (event) => {
+            const dateLoadingSpinner = document.getElementById('dateLoadingSpinner');
+            dateLoadingSpinner.style.display = 'inline-block';
             const selectedDate = event.target.value;
-            if (!selectedDate) {
-                ws.send(JSON.stringify({ action: 'requestCurrentData' }));
-                return;
-            }
             try {
-                const responseData = await fetch(`/getHistoricalData?date=${selectedDate}`);
-                const { data } = await responseData.json();
-                const responseRates = await fetch(`/getHourlyRates?date=${selectedDate}`);
-                const { hourlyRates } = await responseRates.json();
-                updateUI(selectedDate, data, hourlyRates, null, null);
+                if (!selectedDate) {
+                    ws.send(JSON.stringify({ action: 'requestCurrentData' }));
+                    document.getElementById('graphTitle').textContent = 'Hourly Production Rates';
+                    return;
+                }
+
+                let cachedData = null;
+                let cachedRates = hourlyRatesCache[selectedDate];
+                let cachedPeak = peakProductionCache[selectedDate];
+
+                if (!cachedRates || !cachedPeak) {
+                    const responseData = await fetch(`/getHistoricalData?date=${selectedDate}`);
+                    cachedData = (await responseData.json()).data;
+
+                    const responseRates = await fetch(`/getHourlyRates?date=${selectedDate}`);
+                    cachedRates = (await responseRates.json()).hourlyRates;
+                    hourlyRatesCache[selectedDate] = cachedRates;
+
+                    const peakResponse = await fetch(`/getPeakProduction?date=${selectedDate}`);
+                    cachedPeak = (await peakResponse.json()).peakProduction;
+                    peakProductionCache[selectedDate] = cachedPeak;
+                }
+
+                updateUI(selectedDate, cachedData || (await (await fetch(`/getHistoricalData?date=${selectedDate}`)).json()).data, cachedRates, null, cachedPeak);
+                document.getElementById('graphTitle').textContent = `Hourly Production Rates (${selectedDate})`;
             } catch (err) {
                 console.error('Failed to load historical data:', err);
+            } finally {
+                dateLoadingSpinner.style.display = 'none';
             }
         });
 
+        // Debounce function to limit the rate of UI updates
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
         // Update UI with data
         let currentCounts = {};
-        function updateUI(date, data, hourlyRates, totalProduction, peakProduction) {
-            currentDate = date;
-            updateDateTime(date);
-            const currentHour = new Date().getUTCHours();
+        let previousRanking = [];
+        let lastUpdateTimestamps = {};
+        const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
+        const facilityGrid = document.getElementById('facilityGrid');
 
-            ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'].forEach(facility => {
+        const updateUI = debounce((date, data, hourlyRates, totalProduction, peakProduction) => {
+            updateDateTime();
+            const currentHour = new Date().getHours();
+            const timezoneOffset = new Date().getTimezoneOffset() / 60;
+
+            // Calculate total production for each facility
+            const facilityTotals = facilities.map(facility => {
+                const ftnCount = data[facility]?.['FTN']?.count || 0;
+                const vvCount = data[facility]?.['VV']?.count || 0;
+                const total = ftnCount + vvCount;
+                return { facility, total };
+            });
+
+            // Sort facilities by total production (descending)
+            facilityTotals.sort((a, b) => b.total - a.total);
+
+            // Check for ranking changes
+            const currentRanking = facilityTotals.map(ft => ft.facility);
+            const rankingChanged = previousRanking.length > 0 && !currentRanking.every((facility, index) => facility === previousRanking[index]);
+            previousRanking = currentRanking;
+
+            // Find the overall all-time peak production across all facilities
+            let overallPeakAllTime = 0;
+            facilities.forEach(facility => {
+                if (peakProduction && peakProduction[facility]) {
+                    overallPeakAllTime = Math.max(overallPeakAllTime, peakProduction[facility].peakAllTime);
+                }
+            });
+
+            // Update total production for each card
+            facilities.forEach(facility => {
+                const ftnCount = data[facility]?.['FTN']?.count || 0;
+                const vvCount = data[facility]?.['VV']?.count || 0;
+                const total = ftnCount + vvCount;
+                const totalElement = document.getElementById(`${facility}_Total`);
+                if (totalElement && parseInt(totalElement.textContent) !== total) {
+                    totalElement.textContent = total;
+                    totalElement.classList.add('update');
+                }
+
+                // Update progress bar
+                const progressElement = document.getElementById(`${facility}_Progress`);
+                const percentage = overallPeakAllTime > 0 ? (total / overallPeakAllTime) * 100 : 0;
+                progressElement.style.width = `${Math.min(percentage, 100)}%`;
+            });
+
+            // Update facility cards with ranking and icons
+            facilities.forEach(facility => {
+                const rankIconElement = document.getElementById(`${facility}_Rank`);
+                const cardElement = document.getElementById(facility);
+                const index = facilityTotals.findIndex(ft => ft.facility === facility);
+                let rankIcon = '';
+                if (index === 0) {
+                    rankIcon = '🏆';
+                    cardElement.classList.remove('second-place', 'third-place');
+                    cardElement.classList.add('top-performer');
+                } else if (index === 1) {
+                    rankIcon = '🥈';
+                    cardElement.classList.remove('top-performer', 'third-place');
+                    cardElement.classList.add('second-place');
+                } else if (index === 2) {
+                    rankIcon = '🥉';
+                    cardElement.classList.remove('top-performer', 'second-place');
+                    cardElement.classList.add('third-place');
+                }
+                if (rankIconElement) {
+                    rankIconElement.textContent = rankIcon;
+                }
+            });
+
+            // Reorder facility cards only if ranking changed
+            if (rankingChanged) {
+                const facilityGridChildren = Array.from(facilityGrid.children);
+                facilityGrid.innerHTML = ''; // Clear the grid
+                facilityTotals.forEach(({ facility }) => {
+                    const card = facilityGridChildren.find(child => child.id === facility);
+                    if (card) {
+                        card.classList.add('rank-changed');
+                        facilityGrid.appendChild(card);
+                    }
+                });
+            }
+
+            // Update counts, rates, and peak production for each facility
+            facilities.forEach(facility => {
                 ['FTN', 'VV'].forEach(line => {
                     if (!data[facility] || !data[facility][line] || !hourlyRates[facility] || !hourlyRates[facility][line]) {
                         console.error(`Missing data for ${facility} ${line}:`, data[facility], hourlyRates[facility]);
                         return;
                     }
                     const count = data[facility][line].count;
-                    const rate = hourlyRates[facility][line][currentHour] || 0;
-                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate} (Hour: ${currentHour})`);
+                    const adjustedHour = (currentHour + timezoneOffset) % 24;
+                    const displayHour = adjustedHour < 0 ? 24 + adjustedHour : adjustedHour;
+                    const rate = hourlyRates[facility][line][displayHour] || 0;
+                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate} (Hour: ${displayHour})`);
                     const countElement = document.getElementById(`${facility}_${line}`);
                     const rateElement = document.getElementById(`${facility}_${line}_Rate`);
                     if (countElement && rateElement) {
                         const key = `${facility}_${line}`;
                         if (currentCounts[key] !== undefined && currentCounts[key] !== count) {
                             countElement.classList.add('update');
+                            lastUpdateTimestamps[key] = new Date().toLocaleTimeString();
                         }
                         currentCounts[key] = count;
                         countElement.textContent = count;
+                        countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
                         rateElement.textContent = `Units/Hour: ${rate}`;
                     } else {
                         console.error(`DOM elements not found for ${facility} ${line}`);
@@ -488,7 +812,7 @@
             } else {
                 document.getElementById('totalProduction').classList.add('hidden');
             }
-        }
+        }, 100); // Debounce with 100ms delay
 
         let currentDate = new Date().toISOString().split('T')[0];
 
@@ -497,6 +821,7 @@
         ws.onopen = () => {
             console.log('WebSocket connection established');
             document.getElementById('loadingSpinner').style.display = 'none';
+            ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
             loadHistoricalDates();
         };
         ws.onmessage = (event) => {
