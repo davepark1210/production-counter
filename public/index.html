@@ -19,7 +19,7 @@
             background: linear-gradient(90deg, #3b82f6, #1e40af);
         }
         .logo {
-            height: 60px;
+            height: 120px; /* Increased from 60px to 120px */
             margin-top: 1rem;
         }
     </style>
@@ -163,7 +163,7 @@
             }
 
             updateDateTime(date);
-            const currentHour = new Date().getHours(); // Get current hour in local timezone
+            const currentHour = new Date().getUTCHours(); // Get current hour in UTC to match server
 
             ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'].forEach(facility => {
                 ['FTN', 'VV'].forEach(line => {
@@ -173,7 +173,7 @@
                     }
                     const count = data[facility][line].count;
                     const rate = hourlyRates[facility][line][currentHour] || 0;
-                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate}`);
+                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate} (Hour: ${currentHour})`);
                     const countElement = document.getElementById(`${facility}_${line}`);
                     const rateElement = document.getElementById(`${facility}_${line}_Rate`);
                     if (countElement && rateElement) {
