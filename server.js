@@ -2,7 +2,7 @@ const express = require('express');
 const WebSocket = require('ws');
 const { Pool } = require('pg');
 const app = express();
-const fs = require('fs').promises; // Use promises version for async/await
+const fs = require('fs').promises;
 
 // PostgreSQL configuration (Neon.tech)
 const pool = new Pool({
@@ -18,6 +18,7 @@ const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Cent
 const lines = ['FTN', 'VV'];
 // Use UTC date to avoid timezone issues
 let currentDate = new Date().toISOString().split('T')[0]; // e.g., "2025-05-02"
+let lastMilestone = 0; // Track the last milestone to avoid duplicate notifications
 
 // Serve static files
 app.use(express.static('public'));
@@ -47,7 +48,7 @@ app.get('/getCount', async (req, res) => {
 
 // HTTP endpoint to get hourly production rates
 app.get('/getHourlyRates', async (req, res) => {
-  const { date = currentDate } = req.query; // Allow querying for a specific date
+  const { date = currentDate } = req.query;
   const client = await pool.connect();
   try {
     const result = await client.query(
@@ -64,7 +65,7 @@ app.get('/getHourlyRates', async (req, res) => {
     facilities.forEach(f => {
       hourlyRates[f] = {};
       lines.forEach(l => {
-        hourlyRates[f][l] = Array(24).fill(0); // 24 hours
+        hourlyRates[f][l] = Array(24).fill(0);
         const facilityRates = result.rows.filter(row => row.facility === f && row.line === l);
         facilityRates.forEach(row => {
           const hour = parseInt(row.hour);
@@ -262,7 +263,7 @@ async function getHourlyRates(date = currentDate) {
     facilities.forEach(f => {
       hourlyRates[f] = {};
       lines.forEach(l => {
-        hourlyRates[f][l] = Array(24).fill(0); // 24 hours
+        hourlyRates[f][l] = Array(24).fill(0);
         const facilityRates = result.rows.filter(row => row.facility === f && row.line === l);
         facilityRates.forEach(row => {
           const hour = parseInt(row.hour);
@@ -305,10 +306,26 @@ async function broadcastUpdate() {
   const data = await getCurrentData();
   const hourlyRates = await getHourlyRates();
   const totalProduction = await getTotalDailyProduction();
-  console.log('Broadcasting update:', JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction }));
+  
+  // Check for production milestones (multiples of 100)
+  const milestone = Math.floor(totalProduction / 100) * 100;
+  let notification = null;
+  if (milestone > lastMilestone && totalProduction >= milestone) {
+    lastMilestone = milestone;
+    notification = `Milestone Reached: Total production hit ${milestone} units!`;
+  }
+
+  const message = {
+    date: currentDate,
+    data,
+    hourlyRates,
+    totalProduction,
+    notification
+  };
+  console.log('Broadcasting update:', JSON.stringify(message));
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction }));
+      client.send(JSON.stringify(message));
     }
   });
 }
@@ -321,6 +338,7 @@ setInterval(async () => {
     const data = await getCurrentData();
     await fs.writeFile(`production_${currentDate}.json`, JSON.stringify(data));
     currentDate = new Date().toISOString().split('T')[0];
+    lastMilestone = 0; // Reset milestone tracking for the new day
     broadcastUpdate();
   }
 }, 60000);
