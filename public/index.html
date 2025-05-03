@@ -17,10 +17,10 @@
         .facility-card:hover {
             transform: translateY(-5px) scale(1.02);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            background-color: #f0f7ff; /* Light blue on hover */
+            background-color: #f0f7ff;
         }
         .gradient-header {
-            background: linear-gradient(90deg, #003087, #0057b8); /* Pepsi blue gradient */
+            background: linear-gradient(90deg, #003087, #0057b8);
         }
         .logo {
             height: 120px;
@@ -33,10 +33,15 @@
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 0.375rem;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, transform 0.2s ease;
         }
         .toggle-button:hover {
             background-color: #003087;
+            transform: scale(1.05);
+        }
+        .toggle-button:focus {
+            outline: none;
+            ring: 2px solid #003087;
         }
         .loading-spinner {
             border: 4px solid #f3f3f3;
@@ -50,6 +55,45 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #003087;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            z-index: 1000;
+        }
+        .notification.visible {
+            opacity: 1;
+        }
+        .graph-section {
+            border: 1px solid #e5e7eb;
+            background-color: #f9fafb;
+            border-radius: 0.5rem;
+        }
+        select {
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        select:hover {
+            border-color: #0057b8;
+        }
+        select:focus {
+            border-color: #003087;
+            box-shadow: 0 0 0 3px rgba(0, 87, 184, 0.2);
+            outline: none;
+        }
+        .text-gray-600 {
+            color: #4b5563; /* Darker gray for better contrast */
+        }
+        .text-gray-700 {
+            color: #374151; /* Darker gray for better contrast */
         }
         @media (max-width: 640px) {
             .facility-card h2 {
@@ -68,6 +112,8 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col items-center p-6">
+    <div id="notification" class="notification"></div>
+
     <header class="w-full max-w-5xl mb-8 flex flex-col items-center justify-center">
         <h1 class="text-4xl font-bold text-white text-center py-6 rounded-lg gradient-header shadow-lg w-full">
             Certified Center Production
@@ -146,7 +192,7 @@
         <div class="flex justify-center mb-4">
             <button id="toggleGraphButton" class="toggle-button">Hide Hourly Production Rates</button>
         </div>
-        <div id="graphSection">
+        <div id="graphSection" class="graph-section">
             <h2 class="text-2xl font-semibold text-blue-600 mb-4 text-center">Hourly Production Rates</h2>
             <div class="bg-white p-6 rounded-xl shadow-md">
                 <canvas id="productionChart"></canvas>
@@ -182,7 +228,7 @@
         // Update date and time display
         function updateDateTime(serverDate) {
             const date = new Date(serverDate);
-            const now = new Date(); // Get the current time
+            const now = new Date();
             const options = {
                 year: 'numeric',
                 month: 'numeric',
@@ -191,7 +237,6 @@
                 minute: '2-digit',
                 hour12: true
             };
-            // Use the server date but current time
             const displayDate = new Date(
                 date.getFullYear(),
                 date.getMonth(),
@@ -200,6 +245,16 @@
                 now.getMinutes()
             );
             document.getElementById('dateTimeDisplay').textContent = `Date & Time: ${displayDate.toLocaleString(undefined, options)}`;
+        }
+
+        // Display notification
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('visible');
+            setTimeout(() => {
+                notification.classList.remove('visible');
+            }, 5000); // Hide after 5 seconds
         }
 
         // Toggle graph visibility
@@ -236,7 +291,6 @@
         document.getElementById('dateSelect').addEventListener('change', async (event) => {
             const selectedDate = event.target.value;
             if (!selectedDate) {
-                // Reset to current day data via WebSocket
                 ws.send(JSON.stringify({ action: 'requestCurrentData' }));
                 return;
             }
@@ -245,7 +299,7 @@
                 const { data } = await responseData.json();
                 const responseRates = await fetch(`/getHourlyRates?date=${selectedDate}`);
                 const { hourlyRates } = await responseRates.json();
-                updateUI(selectedDate, data, hourlyRates, null); // No total production for historical data
+                updateUI(selectedDate, data, hourlyRates, null);
             } catch (err) {
                 console.error('Failed to load historical data:', err);
             }
@@ -254,7 +308,7 @@
         // Update UI with data
         function updateUI(date, data, hourlyRates, totalProduction) {
             updateDateTime(date);
-            const currentHour = new Date().getUTCHours(); // Get current hour in UTC to match server
+            const currentHour = new Date().getUTCHours();
 
             ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'].forEach(facility => {
                 ['FTN', 'VV'].forEach(line => {
@@ -276,7 +330,6 @@
                 });
             });
 
-            // Update chart with hourly rates
             if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
                 productionChart.data.datasets[0].data = hourlyRates['Sellersburg_Certified_Center']['FTN'] || Array(24).fill(0);
                 productionChart.data.datasets[1].data = hourlyRates['Sellersburg_Certified_Center']['VV'] || Array(24).fill(0);
@@ -289,7 +342,6 @@
                 console.error('Incomplete hourly rates data:', hourlyRates);
             }
 
-            // Update total production
             if (totalProduction !== null) {
                 document.getElementById('totalProductionValue').textContent = totalProduction;
                 document.getElementById('totalProduction').classList.remove('hidden');
@@ -315,13 +367,16 @@
                 return;
             }
 
-            const { date, data, hourlyRates, totalProduction } = message;
+            const { date, data, hourlyRates, totalProduction, notification } = message;
             if (!date || !data || !hourlyRates) {
                 console.error('Invalid WebSocket message structure:', message);
                 return;
             }
 
             updateUI(date, data, hourlyRates, totalProduction);
+            if (notification) {
+                showNotification(notification);
+            }
         };
         ws.onerror = (error) => {
             console.error('WebSocket error:', error);
