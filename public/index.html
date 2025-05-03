@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Certified Center Production</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Custom Tailwind styles */
         .facility-card {
@@ -17,17 +18,25 @@
         .gradient-header {
             background: linear-gradient(90deg, #3b82f6, #1e40af);
         }
+        .logo {
+            height: 60px;
+            margin-right: 1rem;
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800 min-h-screen flex flex-col items-center p-6">
-    <header class="w-full max-w-5xl mb-8">
-        <h1 class="text-4xl font-bold text-white text-center py-6 rounded-lg gradient-header shadow-lg">
+    <header class="w-full max-w-5xl mb-8 flex items-center justify-center">
+        <img src="https://raw.githubusercontent.com/davepark1210/production-counter/main/Pepsi Service Advantage Logo_blacktype_square.png" alt="Pepsi Equipment Services Logo" class="logo">
+        <h1 class="text-4xl font-bold text-white text-center py-6 rounded-lg gradient-header shadow-lg flex-1">
             Certified Center Production
         </h1>
-        <div id="dateDisplay" class="text-center text-xl text-gray-600 mt-4"></div>
     </header>
 
-    <main class="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="w-full max-w-5xl mb-8 text-center">
+        <div id="dateTimeDisplay" class="text-xl text-gray-600"></div>
+    </div>
+
+    <main class="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div class="facility-card bg-white p-6 rounded-xl shadow-md" id="Sellersburg_Certified_Center">
             <h2 class="text-2xl font-semibold text-blue-600 mb-4">Sellersburg Certified Center</h2>
             <div class="space-y-4">
@@ -71,21 +80,69 @@
         </div>
     </main>
 
+    <section class="w-full max-w-5xl mb-8">
+        <h2 class="text-2xl font-semibold text-blue-600 mb-4 text-center">Hourly Production Rates</h2>
+        <div class="bg-white p-6 rounded-xl shadow-md">
+            <canvas id="productionChart"></canvas>
+        </div>
+    </section>
+
     <script>
+        // Initialize Chart.js
+        const ctx = document.getElementById('productionChart').getContext('2d');
+        const productionChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+                datasets: [
+                    { label: 'Sellersburg FTN', data: Array(24).fill(0), borderColor: '#ff6384', fill: false },
+                    { label: 'Sellersburg VV', data: Array(24).fill(0), borderColor: '#36a2eb', fill: false },
+                    { label: 'Williamsport FTN', data: Array(24).fill(0), borderColor: '#cc65fe', fill: false },
+                    { label: 'Williamsport VV', data: Array(24).fill(0), borderColor: '#ffce56', fill: false },
+                    { label: 'North Las Vegas FTN', data: Array(24).fill(0), borderColor: '#4bc0c0', fill: false },
+                    { label: 'North Las Vegas VV', data: Array(24).fill(0), borderColor: '#9966ff', fill: false }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: 'Hour of Day' } },
+                    y: { title: { display: true, text: 'Production Rate (Units/Hour)' }, beginAtZero: true }
+                }
+            }
+        });
+
+        // Update date and time display
+        function updateDateTime(serverDate) {
+            const date = new Date(serverDate);
+            const options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            document.getElementById('dateTimeDisplay').textContent = `Date & Time: ${date.toLocaleString(undefined, options)}`;
+        }
+
+        // WebSocket connection
         const ws = new WebSocket('wss://production-counter.onrender.com');
         ws.onopen = () => {
             console.log('WebSocket connection established');
         };
         ws.onmessage = (event) => {
             console.log('Received WebSocket message:', event.data);
-            const { date, data } = JSON.parse(event.data);
-            document.getElementById('dateDisplay').textContent = `Date: ${date}`;
+            const { date, data, hourlyRates } = JSON.parse(event.data);
+            updateDateTime(date);
             ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'].forEach(facility => {
                 ['FTN', 'VV'].forEach(line => {
                     const count = data[facility][line].count;
                     document.getElementById(`${facility}_${line}`).textContent = count;
                 });
             });
+
+            // Update chart with hourly rates
+            productionChart.data.datasets[0].data = hourlyRates['Sellersburg_Certified_Center']['FTN'];
+            productionChart.data.datasets[1].data = hourlyRates['Sellersburg_Certified_Center']['VV'];
+            productionChart.data.datasets[2].data = hourlyRates['Williamsport_Certified_Center']['FTN'];
+            productionChart.data.datasets[3].data = hourlyRates['Williamsport_Certified_Center']['VV'];
+            productionChart.data.datasets[4].data = hourlyRates['North_Las_Vegas_Certified_Center']['FTN'];
+            productionChart.data.datasets[5].data = hourlyRates['North_Las_Vegas_Certified_Center']['VV'];
+            productionChart.update();
         };
         ws.onerror = (error) => {
             console.error('WebSocket error:', error);
