@@ -141,6 +141,10 @@
         .label-vv::before {
             background-color: #36a2eb;
         }
+        .peak-metric {
+            font-size: 0.95rem;
+            color: #6b7280;
+        }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -168,7 +172,7 @@
         <h1 class="text-5xl font-bold text-white text-center py-8 rounded-lg gradient-header shadow-lg w-full">
             Certified Center Production
         </h1>
-        <img src="https://your-hosting-service.com/path-to-pepsi-logo.png" alt="Pepsi Equipment Services Logo" class="logo">
+        <img src="https://raw.githubusercontent.com/davepark1210/production-counter/refs/heads/main/Pepsi%20Service%20Advantage%20Logo_blacktype_square.png" alt="Pepsi Equipment Services Logo" class="logo">
     </header>
 
     <div class="w-full max-w-6xl mb-10 text-center">
@@ -193,15 +197,19 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-6">Sellersburg Certified Center</h2>
             <div class="space-y-6">
                 <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0</span>
-                </div>
-                <div class="text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_FTN_Rate">Units/Hour: 0</div>
-                <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-vv">VV:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_VV">0</span>
                 </div>
                 <div class="text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_VV_Rate">Units/Hour: 0</div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0</span>
+                </div>
+                <div class="text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_FTN_Rate">Units/Hour: 0</div>
+                <div class="space-y-2">
+                    <div class="peak-metric text-left">Peak Weekly Production: <span id="Sellersburg_Certified_Center_Peak_Weekly">0</span> units</div>
+                    <div class="peak-metric text-left">Peak All-Time Production: <span id="Sellersburg_Certified_Center_Peak_AllTime">0</span> units</div>
+                </div>
             </div>
         </div>
 
@@ -209,15 +217,19 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-6">Williamsport Certified Center</h2>
             <div class="space-y-6">
                 <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0</span>
-                </div>
-                <div class="text-base text-gray-600 text-right" id="Williamsport_Certified_Center_FTN_Rate">Units/Hour: 0</div>
-                <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-vv">VV:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_VV">0</span>
                 </div>
                 <div class="text-base text-gray-600 text-right" id="Williamsport_Certified_Center_VV_Rate">Units/Hour: 0</div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0</span>
+                </div>
+                <div class="text-base text-gray-600 text-right" id="Williamsport_Certified_Center_FTN_Rate">Units/Hour: 0</div>
+                <div class="space-y-2">
+                    <div class="peak-metric text-left">Peak Weekly Production: <span id="Williamsport_Certified_Center_Peak_Weekly">0</span> units</div>
+                    <div class="peak-metric text-left">Peak All-Time Production: <span id="Williamsport_Certified_Center_Peak_AllTime">0</span> units</div>
+                </div>
             </div>
         </div>
 
@@ -225,15 +237,19 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-6">North Las Vegas Certified Center</h2>
             <div class="space-y-6">
                 <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0</span>
-                </div>
-                <div class="text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_FTN_Rate">Units/Hour: 0</div>
-                <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-vv">VV:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_VV">0</span>
                 </div>
                 <div class="text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_VV_Rate">Units/Hour: 0</div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0</span>
+                </div>
+                <div class="text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_FTN_Rate">Units/Hour: 0</div>
+                <div class="space-y-2">
+                    <div class="peak-metric text-left">Peak Weekly Production: <span id="North_Las_Vegas_Certified_Center_Peak_Weekly">0</span> units</div>
+                    <div class="peak-metric text-left">Peak All-Time Production: <span id="North_Las_Vegas_Certified_Center_Peak_AllTime">0</span> units</div>
+                </div>
             </div>
         </div>
     </main>
@@ -258,19 +274,77 @@
             data: {
                 labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
                 datasets: [
-                    { label: 'Sellersburg FTN', data: Array(24).fill(0), borderColor: '#ff6384', fill: false },
-                    { label: 'Sellersburg VV', data: Array(24).fill(0), borderColor: '#36a2eb', fill: false },
-                    { label: 'Williamsport FTN', data: Array(24).fill(0), borderColor: '#cc65fe', fill: false },
-                    { label: 'Williamsport VV', data: Array(24).fill(0), borderColor: '#ffce56', fill: false },
-                    { label: 'North Las Vegas FTN', data: Array(24).fill(0), borderColor: '#4bc0c0', fill: false },
-                    { label: 'North Las Vegas VV', data: Array(24).fill(0), borderColor: '#9966ff', fill: false }
+                    { label: 'Sellersburg FTN', data: Array(24).fill(0), borderColor: '#ff6384', backgroundColor: 'rgba(255, 99, 132, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
+                    { label: 'Sellersburg VV', data: Array(24).fill(0), borderColor: '#36a2eb', backgroundColor: 'rgba(54, 162, 235, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
+                    { label: 'Williamsport FTN', data: Array(24).fill(0), borderColor: '#cc65fe', backgroundColor: 'rgba(204, 101, 254, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
+                    { label: 'Williamsport VV', data: Array(24).fill(0), borderColor: '#ffce56', backgroundColor: 'rgba(255, 206, 86, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
+                    { label: 'North Las Vegas FTN', data: Array(24).fill(0), borderColor: '#4bc0c0', backgroundColor: 'rgba(75, 192, 192, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
+                    { label: 'North Las Vegas VV', data: Array(24).fill(0), borderColor: '#9966ff', backgroundColor: 'rgba(153, 102, 255, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 }
                 ]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: { size: 14, weight: 'bold' },
+                            padding: 20,
+                            boxWidth: 20,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: { size: 14 },
+                        bodyFont: { size: 12 },
+                        padding: 10,
+                        cornerRadius: 6
+                    }
+                },
                 scales: {
-                    x: { title: { display: true, text: 'Hour of Day', font: { size: 14 } } },
-                    y: { title: { display: true, text: 'Production Rate (Units/Hour)', font: { size: 14 } }, beginAtZero: true }
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Hour of Day (24h)',
+                            font: { size: 16, weight: 'bold' },
+                            color: '#374151'
+                        },
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            font: { size: 12 },
+                            color: '#374151'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Production Rate (Units/Hour)',
+                            font: { size: 16, weight: 'bold' },
+                            color: '#374151'
+                        },
+                        grid: {
+                            display: true,
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            font: { size: 12 },
+                            color: '#374151',
+                            beginAtZero: true
+                        }
+                    }
+                },
+                elements: {
+                    line: {
+                        tension: 0.3
+                    }
                 }
             }
         });
@@ -352,7 +426,7 @@
                 const { data } = await responseData.json();
                 const responseRates = await fetch(`/getHourlyRates?date=${selectedDate}`);
                 const { hourlyRates } = await responseRates.json();
-                updateUI(selectedDate, data, hourlyRates, null);
+                updateUI(selectedDate, data, hourlyRates, null, null);
             } catch (err) {
                 console.error('Failed to load historical data:', err);
             }
@@ -360,7 +434,7 @@
 
         // Update UI with data
         let currentCounts = {};
-        function updateUI(date, data, hourlyRates, totalProduction) {
+        function updateUI(date, data, hourlyRates, totalProduction, peakProduction) {
             currentDate = date;
             updateDateTime(date);
             const currentHour = new Date().getUTCHours();
@@ -388,6 +462,12 @@
                         console.error(`DOM elements not found for ${facility} ${line}`);
                     }
                 });
+
+                // Update peak production values
+                if (peakProduction && peakProduction[facility]) {
+                    document.getElementById(`${facility}_Peak_Weekly`).textContent = peakProduction[facility].peakWeekly;
+                    document.getElementById(`${facility}_Peak_AllTime`).textContent = peakProduction[facility].peakAllTime;
+                }
             });
 
             if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
@@ -429,13 +509,13 @@
                 return;
             }
 
-            const { date, data, hourlyRates, totalProduction, notification } = message;
+            const { date, data, hourlyRates, totalProduction, peakProduction, notification } = message;
             if (!date || !data || !hourlyRates) {
                 console.error('Invalid WebSocket message structure:', message);
                 return;
             }
 
-            updateUI(date, data, hourlyRates, totalProduction);
+            updateUI(date, data, hourlyRates, totalProduction, peakProduction);
             if (notification) {
                 showNotification(notification);
             }
