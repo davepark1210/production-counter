@@ -20,6 +20,29 @@ let currentDate = new Date().toISOString().split('T')[0];
 // Serve static files
 app.use(express.static('public'));
 
+// HTTP endpoint to get the current count for a facility and line
+app.get('/getCount', async (req, res) => {
+  const { facility, line } = req.query;
+  if (!facilities.includes(facility) || !lines.includes(line)) {
+    console.log(`Invalid facility or line: ${facility}, ${line}`);
+    return res.status(400).json({ error: 'Invalid facility or line' });
+  }
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'SELECT count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
+      [currentDate, facility, line]
+    );
+    const count = result.rows.length > 0 ? result.rows[0].count : 0;
+    res.json({ count });
+  } catch (err) {
+    console.error('GetCount Error:', err);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
 // HTTP endpoints for ESP32
 app.post('/increment', async (req, res) => {
   const { facility, line } = req.query;
