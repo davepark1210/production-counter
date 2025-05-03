@@ -20,34 +20,10 @@ let currentDate = new Date().toISOString().split('T')[0];
 // Serve static files
 app.use(express.static('public'));
 
-// HTTP endpoint to get the current count for a facility and line
-app.get('/getCount', async (req, res) => {
-  const { facility, line } = req.query;
-  if (!facilities.includes(facility) || !lines.includes(line)) {
-    console.log(`Invalid facility or line: ${facility}, ${line}`);
-    return res.status(400).json({ error: 'Invalid facility or line' });
-  }
-  const client = await pool.connect();
-  try {
-    const result = await client.query(
-      'SELECT count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
-      [currentDate, facility, line]
-    );
-    const count = result.rows.length > 0 ? result.rows[0].count : 0;
-    res.json({ count });
-  } catch (err) {
-    console.error('GetCount Error:', err);
-    res.status(500).json({ error: 'Server error' });
-  } finally {
-    client.release();
-  }
-});
-
 // HTTP endpoints for ESP32
 app.post('/increment', async (req, res) => {
   const { facility, line } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) {
-    console.log(`Invalid facility or line: ${facility}, ${line}`);
     return res.sendStatus(400);
   }
   try {
@@ -63,7 +39,6 @@ app.post('/increment', async (req, res) => {
 app.post('/decrement', async (req, res) => {
   const { facility, line } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) {
-    console.log(`Invalid facility or line: ${facility}, ${line}`);
     return res.sendStatus(400);
   }
   try {
@@ -80,30 +55,23 @@ app.post('/decrement', async (req, res) => {
 async function updateCount(facility, line, delta) {
   const client = await pool.connect();
   try {
-    console.log(`Updating count for ${facility}, ${line}, delta: ${delta}`);
     const res = await client.query(
       'SELECT Count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
       [currentDate, facility, line]
     );
-    console.log('Query result:', res.rows);
     if (res.rows.length > 0) {
       const newCount = Math.max(res.rows[0].count + delta, 0);
       await client.query(
         'UPDATE ProductionCounts SET Count = $1, Timestamp = NOW() WHERE Date = $2 AND Facility = $3 AND Line = $4',
         [newCount, currentDate, facility, line]
       );
-      console.log(`Updated count to ${newCount}`);
     } else {
       const initialCount = delta > 0 ? delta : 0;
       await client.query(
         'INSERT INTO ProductionCounts (Date, Facility, Line, Count, Timestamp) VALUES ($1, $2, $3, $4, NOW())',
         [currentDate, facility, line, initialCount]
       );
-      console.log(`Inserted new count: ${initialCount}`);
     }
-  } catch (err) {
-    console.error('Increment/Decrement Error:', err);
-    throw err;
   } finally {
     client.release();
   }
@@ -123,26 +91,19 @@ wss.on('connection', async (ws) => {
 async function getCurrentData() {
   const client = await pool.connect();
   try {
-    console.log('Fetching current data from database for date:', currentDate);
     const res = await client.query(
-      'SELECT facility, line, count FROM ProductionCounts WHERE Date = $1',
+      'SELECT Facility, Line, Count FROM ProductionCounts WHERE Date = $1',
       [currentDate]
     );
-    console.log('Database query result:', res.rows);
     const data = {};
     facilities.forEach(f => {
       data[f] = {};
       lines.forEach(l => {
-        const row = res.rows.find(r => r.facility === f && r.line === l);
+        const row = res.rows.find(r => r.Facility === f && r.Line === l);
         data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
-        console.log(`Count for ${f}, ${l}: ${data[f][l].count}`);
       });
     });
-    console.log('Constructed data:', data);
     return data;
-  } catch (err) {
-    console.error('Error in getCurrentData:', err);
-    throw err;
   } finally {
     client.release();
   }
@@ -150,7 +111,6 @@ async function getCurrentData() {
 
 async function broadcastUpdate() {
   const data = await getCurrentData();
-  console.log('Broadcasting update:', JSON.stringify({ date: currentDate, data }));
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify({ date: currentDate, data }));
