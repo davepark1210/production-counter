@@ -26,7 +26,7 @@
 </head>
 <body class="bg-gray-100 font-sans text-gray-800 min-h-screen flex flex-col items-center p-6">
     <header class="w-full max-w-5xl mb-8 flex items-center justify-center">
-        <img src="https://raw.githubusercontent.com/davepark1210/production-counter/main/Pepsi Service Advantage Logo_blacktype_square.png" alt="Pepsi Equipment Services Logo" class="logo">
+        <img src="https://raw.githubusercontent.com/davepark1210/production-counter/main/Pepsi%20Service%20Advantage%20Logo_blacktype_square.png" alt="Pepsi Equipment Services Logo" class="logo">
         <h1 class="text-4xl font-bold text-white text-center py-6 rounded-lg gradient-header shadow-lg flex-1">
             Certified Center Production
         </h1>
@@ -44,10 +44,12 @@
                     <span class="text-lg font-medium text-gray-700">FTN:</span>
                     <span class="counter text-3xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0</span>
                 </div>
+                <div class="text-sm text-gray-600 text-right" id="Sellersburg_Certified_Center_FTN_Rate">Units/Hour: 0</div>
                 <div class="flex justify-between items-center">
                     <span class="text-lg font-medium text-gray-700">VV:</span>
                     <span class="counter text-3xl font-bold text-gray-900" id="Sellersburg_Certified_Center_VV">0</span>
                 </div>
+                <div class="text-sm text-gray-600 text-right" id="Sellersburg_Certified_Center_VV_Rate">Units/Hour: 0</div>
             </div>
         </div>
 
@@ -58,10 +60,12 @@
                     <span class="text-lg font-medium text-gray-700">FTN:</span>
                     <span class="counter text-3xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0</span>
                 </div>
+                <div class="text-sm text-gray-600 text-right" id="Williamsport_Certified_Center_FTN_Rate">Units/Hour: 0</div>
                 <div class="flex justify-between items-center">
                     <span class="text-lg font-medium text-gray-700">VV:</span>
                     <span class="counter text-3xl font-bold text-gray-900" id="Williamsport_Certified_Center_VV">0</span>
                 </div>
+                <div class="text-sm text-gray-600 text-right" id="Williamsport_Certified_Center_VV_Rate">Units/Hour: 0</div>
             </div>
         </div>
 
@@ -72,10 +76,12 @@
                     <span class="text-lg font-medium text-gray-700">FTN:</span>
                     <span class="counter text-3xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0</span>
                 </div>
+                <div class="text-sm text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_FTN_Rate">Units/Hour: 0</div>
                 <div class="flex justify-between items-center">
                     <span class="text-lg font-medium text-gray-700">VV:</span>
                     <span class="counter text-3xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_VV">0</span>
                 </div>
+                <div class="text-sm text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_VV_Rate">Units/Hour: 0</div>
             </div>
         </div>
     </main>
@@ -135,10 +141,14 @@
             console.log('Received WebSocket message:', event.data);
             const { date, data, hourlyRates } = JSON.parse(event.data);
             updateDateTime(date);
+            const currentHour = new Date().getHours(); // Get current hour in local timezone
+
             ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'].forEach(facility => {
                 ['FTN', 'VV'].forEach(line => {
                     const count = data[facility][line].count;
+                    const rate = hourlyRates[facility][line][currentHour];
                     document.getElementById(`${facility}_${line}`).textContent = count;
+                    document.getElementById(`${facility}_${line}_Rate`).textContent = `Units/Hour: ${rate}`;
                 });
             });
 
