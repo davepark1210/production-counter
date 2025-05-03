@@ -115,7 +115,14 @@
         // Update date and time display
         function updateDateTime(serverDate) {
             const date = new Date(serverDate);
-            const options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            const options = {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            };
             document.getElementById('dateTimeDisplay').textContent = `Date & Time: ${date.toLocaleString(undefined, options)}`;
         }
 
