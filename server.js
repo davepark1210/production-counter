@@ -16,8 +16,7 @@ const pool = new Pool({
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'VV'];
-// Use UTC date to avoid timezone issues on the server
-let currentDate = new Date().toISOString().split('T')[0]; // e.g., "2025-05-02"
+let currentDate = new Date().toISOString().split('T')[0]; // Initial value, will be updated by client
 let lastMilestone = 0;
 
 // Serve static files
@@ -210,6 +209,18 @@ const server = app.listen(10000, () => {
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', async (ws) => {
+  ws.on('message', (message) => {
+    try {
+      const parsedMessage = JSON.parse(message);
+      if (parsedMessage.action === 'setClientDate' && parsedMessage.clientDate) {
+        currentDate = parsedMessage.clientDate;
+        console.log(`Updated currentDate to client's date: ${currentDate}`);
+      }
+    } catch (err) {
+      console.error('Failed to parse WebSocket message:', err);
+    }
+  });
+
   const data = await getCurrentData();
   const hourlyRates = await getHourlyRates();
   const totalProduction = await getTotalDailyProduction();
