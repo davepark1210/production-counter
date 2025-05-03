@@ -2,6 +2,7 @@ const express = require('express');
 const WebSocket = require('ws');
 const { Pool } = require('pg');
 const app = express();
+const fs = require('fs').promises; // Use promises version for async/await
 
 // PostgreSQL configuration (Neon.tech)
 const pool = new Pool({
@@ -46,6 +47,7 @@ app.get('/getCount', async (req, res) => {
 
 // HTTP endpoint to get hourly production rates
 app.get('/getHourlyRates', async (req, res) => {
+  const { date = currentDate } = req.query; // Allow querying for a specific date
   const client = await pool.connect();
   try {
     const result = await client.query(
@@ -54,7 +56,7 @@ app.get('/getHourlyRates', async (req, res) => {
        WHERE date = $1
        GROUP BY facility, line, EXTRACT(HOUR FROM timestamp)
        ORDER BY facility, line, hour`,
-      [currentDate]
+      [date]
     );
     console.log('Hourly rates query result:', result.rows);
 
@@ -77,6 +79,52 @@ app.get('/getHourlyRates', async (req, res) => {
     res.json({ hourlyRates });
   } catch (err) {
     console.error('GetHourlyRates Error:', err);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// HTTP endpoint to get historical dates
+app.get('/getHistoricalDates', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'SELECT DISTINCT date FROM ProductionCounts ORDER BY date DESC'
+    );
+    const dates = result.rows.map(row => row.date.toISOString().split('T')[0]);
+    res.json({ dates });
+  } catch (err) {
+    console.error('GetHistoricalDates Error:', err);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// HTTP endpoint to get historical data for a specific date
+app.get('/getHistoricalData', async (req, res) => {
+  const { date } = req.query;
+  if (!date) {
+    return res.status(400).json({ error: 'Date parameter is required' });
+  }
+  const client = await pool.connect();
+  try {
+    const resCounts = await client.query(
+      'SELECT facility, line, count FROM ProductionCounts WHERE Date = $1',
+      [date]
+    );
+    const data = {};
+    facilities.forEach(f => {
+      data[f] = {};
+      lines.forEach(l => {
+        const row = resCounts.rows.find(r => r.facility === f && r.line === l);
+        data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
+      });
+    });
+    res.json({ data });
+  } catch (err) {
+    console.error('GetHistoricalData Error:', err);
     res.status(500).json({ error: 'Server error' });
   } finally {
     client.release();
@@ -165,7 +213,8 @@ const wss = new WebSocket.Server({ server });
 wss.on('connection', async (ws) => {
   const data = await getCurrentData();
   const hourlyRates = await getHourlyRates();
-  ws.send(JSON.stringify({ date: currentDate, data, hourlyRates }));
+  const totalProduction = await getTotalDailyProduction();
+  ws.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction }));
 });
 
 async function getCurrentData() {
@@ -196,7 +245,7 @@ async function getCurrentData() {
   }
 }
 
-async function getHourlyRates() {
+async function getHourlyRates(date = currentDate) {
   const client = await pool.connect();
   try {
     const result = await client.query(
@@ -205,7 +254,7 @@ async function getHourlyRates() {
        WHERE date = $1
        GROUP BY facility, line, EXTRACT(HOUR FROM timestamp)
        ORDER BY facility, line, hour`,
-      [currentDate]
+      [date]
     );
     console.log('Hourly rates query result:', result.rows);
 
@@ -234,13 +283,32 @@ async function getHourlyRates() {
   }
 }
 
+async function getTotalDailyProduction() {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(
+      'SELECT SUM(count) as total FROM ProductionCounts WHERE Date = $1',
+      [currentDate]
+    );
+    const total = result.rows[0]?.total || 0;
+    console.log(`Total daily production: ${total}`);
+    return total;
+  } catch (err) {
+    console.error('GetTotalDailyProduction Error:', err);
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 async function broadcastUpdate() {
   const data = await getCurrentData();
   const hourlyRates = await getHourlyRates();
-  console.log('Broadcasting update:', JSON.stringify({ date: currentDate, data, hourlyRates }));
+  const totalProduction = await getTotalDailyProduction();
+  console.log('Broadcasting update:', JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction }));
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({ date: currentDate, data, hourlyRates }));
+      client.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction }));
     }
   });
 }
@@ -249,9 +317,9 @@ async function broadcastUpdate() {
 setInterval(async () => {
   const now = new Date();
   if (now.getHours() === 0 && now.getMinutes() === 0) {
-    const fs = require('fs');
+    const fs = require('fs').promises;
     const data = await getCurrentData();
-    fs.writeFileSync(`production_${currentDate}.json`, JSON.stringify(data));
+    await fs.writeFile(`production_${currentDate}.json`, JSON.stringify(data));
     currentDate = new Date().toISOString().split('T')[0];
     broadcastUpdate();
   }
