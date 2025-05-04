@@ -1004,9 +1004,9 @@
                     }
                     const count = data[facility][line].count;
                     const rateData = hourlyRates[facility][line];
-                    console.log(`Raw hourly rates for ${facility} ${line}:`, rateData);
+                    console.log(`Raw hourly rates for ${facility} ${line} (UTC):`, rateData);
                     const rate = rateData[currentHour] || 0; // Rate for the current hour in local time
-                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate} (Hour: ${currentHour})`);
+                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate} (Local Hour: ${currentHour})`);
                     const countElement = document.getElementById(`${facility}_${line}`);
                     const rateElement = document.getElementById(`${facility}_${line}_Rate`);
                     if (countElement && rateElement) {
@@ -1033,20 +1033,23 @@
 
             if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
                 // Log the raw hourly rates data
-                console.log('Raw hourly rates data:', hourlyRates);
+                console.log('Raw hourly rates data (UTC):', hourlyRates);
 
-                // Adjust for the 7-hour offset to align with local time
+                // Convert UTC hours to local time
+                const timezoneOffsetHours = new Date().getTimezoneOffset() / 60; // Offset in hours (e.g., -7 for UTC-7)
+                console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
                 const datasets = productionChart.data.datasets.map(dataset => {
                     const [facility, line] = dataset.label.split(' ');
                     const facilityKey = facility === 'North' ? 'North_Las_Vegas_Certified_Center' : `${facility}_Certified_Center`;
                     const rawData = hourlyRates[facilityKey][line] || Array(24).fill(0);
-                    console.log(`Raw data for ${dataset.label} before shifting:`, rawData);
+                    console.log(`Raw data for ${dataset.label} (UTC):`, rawData);
                     const shiftedData = Array(24).fill(0);
                     for (let i = 0; i < 24; i++) {
-                        const localHour = i; // Server hour is in local time
-                        const labelIndex = (localHour - currentHour + 24) % 24; // Map to the graph's label index
+                        const utcHour = i; // Server provides hours in UTC
+                        const localHour = (utcHour - timezoneOffsetHours + 24) % 24; // Convert UTC to local time
+                        const labelIndex = (localHour - currentHour + 24) % 24; // Map to graph's label index
                         shiftedData[labelIndex] = rawData[i];
-                        console.log(`Mapping ${facility} ${line} localHour ${localHour} to labelIndex ${labelIndex} (label: ${labels[labelIndex]})`);
+                        console.log(`Mapping ${facility} ${line} UTC hour ${utcHour} to local hour ${localHour} to labelIndex ${labelIndex} (label: ${labels[labelIndex]})`);
                     }
                     console.log(`Shifted data for ${dataset.label}:`, shiftedData);
                     return shiftedData;
@@ -1073,8 +1076,7 @@
         }, 100); // Debounce with 100ms delay
 
         let currentDate = new Date().toISOString().split('T')[0];
-        const timezoneOffset = new Date().getTimezoneOffset(); // Offset in minutes
-        console.log(`Client timezone offset: ${timezoneOffset} minutes`);
+        console.log(`Client current date: ${currentDate}`);
 
         // WebSocket connection
         const ws = new WebSocket('wss://production-counter.onrender.com');
@@ -1082,7 +1084,6 @@
             console.log('WebSocket connection established');
             document.getElementById('loadingSpinner').style.display = 'none';
             ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-            ws.send(JSON.stringify({ action: 'setTimezoneOffset', timezoneOffset: timezoneOffset }));
             loadHistoricalDates();
         };
         ws.onmessage = (event) => {
