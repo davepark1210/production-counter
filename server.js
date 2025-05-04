@@ -16,8 +16,9 @@ const pool = new Pool({
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'VV'];
-let currentDate = new Date().toISOString().split('T')[0]; // Initial value, will be updated by client
+let currentDate = new Date().toISOString().split('T')[0];
 let lastMilestone = 0;
+let clientTimezoneOffset = 0;
 
 // Serve static files
 app.use(express.static('public'));
@@ -51,10 +52,10 @@ app.get('/getHourlyRates', async (req, res) => {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      `SELECT facility, line, EXTRACT(HOUR FROM timestamp) as hour, SUM(delta) as rate
+      `SELECT facility, line, EXTRACT(HOUR FROM (timestamp AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes')) as hour, SUM(delta) as rate
        FROM ProductionEvents
        WHERE date = $1
-       GROUP BY facility, line, EXTRACT(HOUR FROM timestamp)
+       GROUP BY facility, line, EXTRACT(HOUR FROM (timestamp AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes'))
        ORDER BY facility, line, hour`,
       [date]
     );
@@ -164,12 +165,31 @@ app.post('/decrement', async (req, res) => {
   }
 });
 
+// Reset all data endpoint
+app.post('/resetAllData', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    // Truncate ProductionCounts and ProductionEvents tables
+    await client.query('TRUNCATE TABLE ProductionCounts, ProductionEvents');
+    lastMilestone = 0;
+    console.log('All data reset successfully');
+    broadcastUpdate();
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('ResetAllData Error:', err);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
 // Update count in database and log the event
 async function updateCount(facility, line, delta) {
   const client = await pool.connect();
   try {
     await client.query(
-      'INSERT INTO ProductionEvents (date, facility, line, delta, timestamp) VALUES ($1, $2, $3, $4, NOW())',
+      `INSERT INTO ProductionEvents (date, facility, line, delta, timestamp)
+       VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes')`,
       [currentDate, facility, line, delta]
     );
 
@@ -182,14 +202,16 @@ async function updateCount(facility, line, delta) {
     if (res.rows.length > 0) {
       const newCount = Math.max(res.rows[0].count + delta, 0);
       await client.query(
-        'UPDATE ProductionCounts SET Count = $1, Timestamp = NOW() WHERE Date = $2 AND Facility = $3 AND Line = $4',
+        `UPDATE ProductionCounts SET Count = $1, Timestamp = NOW() AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes'
+         WHERE Date = $2 AND Facility = $3 AND Line = $4`,
         [newCount, currentDate, facility, line]
       );
       console.log(`Updated count to ${newCount}`);
     } else {
       const initialCount = delta > 0 ? delta : 0;
       await client.query(
-        'INSERT INTO ProductionCounts (Date, Facility, Line, Count, Timestamp) VALUES ($1, $2, $3, $4, NOW())',
+        `INSERT INTO ProductionCounts (Date, Facility, Line, Count, Timestamp)
+         VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes')`,
         [currentDate, facility, line, initialCount]
       );
       console.log(`Inserted new count: ${initialCount}`);
@@ -215,6 +237,10 @@ wss.on('connection', async (ws) => {
       if (parsedMessage.action === 'setClientDate' && parsedMessage.clientDate) {
         currentDate = parsedMessage.clientDate;
         console.log(`Updated currentDate to client's date: ${currentDate}`);
+      }
+      if (parsedMessage.action === 'setTimezoneOffset' && parsedMessage.timezoneOffset !== undefined) {
+        clientTimezoneOffset = parsedMessage.timezoneOffset;
+        console.log(`Updated client timezone offset to: ${clientTimezoneOffset} minutes`);
       }
     } catch (err) {
       console.error('Failed to parse WebSocket message:', err);
@@ -260,10 +286,10 @@ async function getHourlyRates(date = currentDate) {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      `SELECT facility, line, EXTRACT(HOUR FROM timestamp) as hour, SUM(delta) as rate
+      `SELECT facility, line, EXTRACT(HOUR FROM (timestamp AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes')) as hour, SUM(delta) as rate
        FROM ProductionEvents
        WHERE date = $1
-       GROUP BY facility, line, EXTRACT(HOUR FROM timestamp)
+       GROUP BY facility, line, EXTRACT(HOUR FROM (timestamp AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes'))
        ORDER BY facility, line, hour`,
       [date]
     );
@@ -315,11 +341,12 @@ async function getTotalDailyProduction() {
 async function getPeakProduction() {
   const client = await pool.connect();
   try {
-    // Calculate peak production for all time
-    const allTimeResult = await client.query(
-      `SELECT facility, MAX(count) as peak_all_time
+    // Calculate peak daily production (highest single-day total for each facility)
+    const peakDayResult = await client.query(
+      `SELECT facility, date, SUM(count) as daily_total
        FROM ProductionCounts
-       GROUP BY facility`
+       GROUP BY facility, date
+       ORDER BY facility, daily_total DESC`
     );
 
     // Calculate peak production for the last 7 days
@@ -328,31 +355,32 @@ async function getPeakProduction() {
     const weekStartDate = weekStart.toISOString().split('T')[0];
 
     const weeklyResult = await client.query(
-      `SELECT facility, MAX(count) as peak_weekly
-       FROM ProductionCounts
-       WHERE Date >= $1 AND Date <= $2
+      `SELECT facility, MAX(daily_total) as peak_weekly
+       FROM (
+         SELECT facility, SUM(count) as daily_total
+         FROM ProductionCounts
+         WHERE Date >= $1 AND Date <= $2
+         GROUP BY facility, date
+       ) as daily_totals
        GROUP BY facility`,
       [weekStartDate, currentDate]
     );
 
     const peakProduction = {};
     facilities.forEach(f => {
-      const allTimeRow = allTimeResult.rows.find(row => row.facility === f);
+      // Find the highest daily total for this facility
+      const facilityRows = peakDayResult.rows.filter(row => row.facility === f);
+      const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
+
       const weeklyRow = weeklyResult.rows.find(row => row.facility === f);
       peakProduction[f] = {
-        peakAllTime: allTimeRow ? parseInt(allTimeRow.peak_all_time) : 0,
+        peakDay: peakDay,
         peakWeekly: weeklyRow ? parseInt(weeklyRow.peak_weekly) : 0
       };
     });
 
     console.log('Peak production:', peakProduction);
     return peakProduction;
-  } catch (err) {
-    console.error('GetPeakProduction Error:', err);
-    throw err;
-  } finally {
-    client.release();
-  }
 }
 
 async function broadcastUpdate() {
