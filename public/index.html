@@ -338,12 +338,30 @@
             top: -20px;
             right: 0;
             font-size: 1.5rem;
-            animation: celebrate 2s ease-in-out;
+            animation: celebrate 2s ease-in-out forwards;
         }
         @keyframes celebrate {
             0% { transform: translateY(0) scale(1); opacity: 1; }
             50% { transform: translateY(-10px) scale(1.2); opacity: 0.8; }
             100% { transform: translateY(-20px) scale(0.5); opacity: 0; }
+        }
+        .progress-bar.starburst {
+            position: relative;
+            overflow: visible;
+        }
+        .progress-bar.starburst::before {
+            content: '⭐';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            animation: starburst 1.5s ease-in-out infinite;
+        }
+        @keyframes starburst {
+            0% { transform: translateX(-50%) scale(1); opacity: 1; }
+            50% { transform: translateX(-50%) scale(1.5); opacity: 0.5; }
+            100% { transform: translateX(-50%) scale(1); opacity: 1; }
         }
         .total-production {
             font-size: 1.5rem;
@@ -385,6 +403,20 @@
         }
         .reset-button-hidden:hover {
             background-color: #b91c1c;
+        }
+        footer {
+            width: 100%;
+            text-align: center;
+            padding: 1rem 0;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+        footer a {
+            color: #0057b8;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
         }
         @media (max-width: 640px) {
             .facility-card h2 {
@@ -550,6 +582,10 @@
     <div class="reset-container">
         <button id="resetAllDataButton" class="reset-button-hidden">Reset All Data</button>
     </div>
+
+    <footer>
+        Developed by the Centralized Reporting Team. For issues, contact <a href="mailto:david.park@pepsico.com">david.park@pepsico.com</a>.
+    </footer>
 
     <script>
         // Initialize Chart.js
@@ -908,6 +944,14 @@
                 // Check if the current total has reached or surpassed the peak day
                 if (overallPeakDay > 0 && total >= overallPeakDay && previousTotal < overallPeakDay) {
                     progressContainer.classList.add('past-peak');
+                    // Remove past-peak class after 5 seconds to make the celebrate icon disappear
+                    setTimeout(() => {
+                        progressContainer.classList.remove('past-peak');
+                    }, 5000);
+                }
+                // Additional celebration when surpassing peak
+                if (overallPeakDay > 0 && total > overallPeakDay && previousTotal <= overallPeakDay) {
+                    progressContainer.classList.add('starburst');
                 }
 
                 progressElement.style.width = `${Math.min(percentage, 100)}%`;
@@ -959,7 +1003,17 @@
                         return;
                     }
                     const count = data[facility][line].count;
-                    const rate = hourlyRates[facility][line][currentHour] || 0;
+                    const rateData = hourlyRates[facility][line];
+                    console.log(`Raw hourly rates for ${facility} ${line}:`, rateData);
+                    // Shift the hourly rates to align with the graph labels
+                    const shiftedRates = Array(24).fill(0);
+                    for (let i = 0; i < 24; i++) {
+                        const serverHour = i;
+                        const clientHour = (serverHour + currentHour) % 24;
+                        shiftedRates[clientHour] = rateData[i] || 0;
+                    }
+                    console.log(`Shifted hourly rates for ${facility} ${line}:`, shiftedRates);
+                    const rate = shiftedRates[currentHour] || 0;
                     console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate} (Hour: ${currentHour})`);
                     const countElement = document.getElementById(`${facility}_${line}`);
                     const rateElement = document.getElementById(`${facility}_${line}_Rate`);
@@ -986,12 +1040,27 @@
             });
 
             if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
-                productionChart.data.datasets[0].data = hourlyRates['Sellersburg_Certified_Center']['FTN'] || Array(24).fill(0);
-                productionChart.data.datasets[1].data = hourlyRates['Sellersburg_Certified_Center']['VV'] || Array(24).fill(0);
-                productionChart.data.datasets[2].data = hourlyRates['Williamsport_Certified_Center']['FTN'] || Array(24).fill(0);
-                productionChart.data.datasets[3].data = hourlyRates['Williamsport_Certified_Center']['VV'] || Array(24).fill(0);
-                productionChart.data.datasets[4].data = hourlyRates['North_Las_Vegas_Certified_Center']['FTN'] || Array(24).fill(0);
-                productionChart.data.datasets[5].data = hourlyRates['North_Las_Vegas_Certified_Center']['VV'] || Array(24).fill(0);
+                // Shift the data to align with the graph labels
+                const shiftedDatasets = productionChart.data.datasets.map(dataset => {
+                    const [facility, line] = dataset.label.split(' ');
+                    const facilityKey = facility === 'North' ? 'North_Las_Vegas_Certified_Center' : `${facility}_Certified_Center`;
+                    const rawData = hourlyRates[facilityKey][line] || Array(24).fill(0);
+                    const shiftedData = Array(24).fill(0);
+                    for (let i = 0; i < 24; i++) {
+                        const serverHour = i;
+                        const clientHour = (serverHour + currentHour) % 24;
+                        shiftedData[clientHour] = rawData[i];
+                    }
+                    return shiftedData;
+                });
+
+                productionChart.data.datasets[0].data = shiftedDatasets[0];
+                productionChart.data.datasets[1].data = shiftedDatasets[1];
+                productionChart.data.datasets[2].data = shiftedDatasets[2];
+                productionChart.data.datasets[3].data = shiftedDatasets[3];
+                productionChart.data.datasets[4].data = shiftedDatasets[4];
+                productionChart.data.datasets[5].data = shiftedDatasets[5];
+                console.log('Updated chart datasets:', productionChart.data.datasets.map(ds => ds.data));
                 productionChart.update();
             } else {
                 console.error('Incomplete hourly rates data:', hourlyRates);
