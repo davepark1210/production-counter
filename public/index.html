@@ -556,10 +556,12 @@
         const ctx = document.getElementById('productionChart').getContext('2d');
         const now = new Date();
         const currentHour = now.getHours();
+        console.log(`Current local hour: ${currentHour}`);
         const labels = Array.from({ length: 24 }, (_, i) => {
-            const adjustedHour = (currentHour + i) % 24;
-            return `${adjustedHour}:00`;
+            const hour = (i + currentHour) % 24;
+            return `${hour}:00`;
         });
+        console.log('Graph labels:', labels);
         const productionChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -854,6 +856,7 @@
         const updateUI = debounce((date, data, hourlyRates, totalProduction, peakProduction) => {
             updateDateTime();
             const currentHour = new Date().getHours();
+            console.log(`Current local hour in updateUI: ${currentHour}`);
 
             // Calculate total production for each facility
             const facilityTotals = facilities.map(facility => {
@@ -1004,6 +1007,7 @@
 
         let currentDate = new Date().toISOString().split('T')[0];
         const timezoneOffset = new Date().getTimezoneOffset(); // Offset in minutes
+        console.log(`Client timezone offset: ${timezoneOffset} minutes`);
 
         // WebSocket connection
         const ws = new WebSocket('wss://production-counter.onrender.com');
