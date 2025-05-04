@@ -18,7 +18,6 @@ const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Cent
 const lines = ['FTN', 'VV'];
 let currentDate = new Date().toISOString().split('T')[0];
 let lastMilestone = 0;
-let clientTimezoneOffset = 0;
 
 // Serve static files
 app.use(express.static('public'));
@@ -46,17 +45,17 @@ app.get('/getCount', async (req, res) => {
   }
 });
 
-// HTTP endpoint to get hourly production rates
+// HTTP endpoint to get hourly production rates (in UTC)
 app.get('/getHourlyRates', async (req, res) => {
   const { date = currentDate } = req.query;
   const client = await pool.connect();
   try {
-    console.log(`Fetching hourly rates for date: ${date}, timezone offset: ${clientTimezoneOffset} minutes`);
+    console.log(`Fetching hourly rates for date: ${date}`);
     const result = await client.query(
-      `SELECT facility, line, EXTRACT(HOUR FROM (timestamp AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes')) as hour, SUM(delta) as rate
+      `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
        FROM ProductionEvents
        WHERE date = $1
-       GROUP BY facility, line, EXTRACT(HOUR FROM (timestamp AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes'))
+       GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')
        ORDER BY facility, line, hour`,
       [date]
     );
@@ -72,11 +71,11 @@ app.get('/getHourlyRates', async (req, res) => {
           const hour = parseInt(row.hour);
           const rate = parseInt(row.rate);
           hourlyRates[f][l][hour] = rate;
-          console.log(`Hourly rate for ${f}, ${l}, hour ${hour}: ${rate}`);
+          console.log(`Hourly rate for ${f}, ${l}, UTC hour ${hour}: ${rate}`);
         });
       });
     });
-    console.log('Constructed hourlyRates:', hourlyRates);
+    console.log('Constructed hourlyRates (UTC):', hourlyRates);
 
     res.json({ hourlyRates });
   } catch (err) {
@@ -188,11 +187,11 @@ app.post('/resetAllData', async (req, res) => {
 async function updateCount(facility, line, delta) {
   const client = await pool.connect();
   try {
-    const adjustedTimestamp = `NOW() AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes'`;
-    console.log(`Inserting into ProductionEvents with adjusted timestamp: ${adjustedTimestamp}`);
+    // Store timestamp in UTC
+    console.log(`Inserting into ProductionEvents with UTC timestamp: NOW() AT TIME ZONE 'UTC'`);
     await client.query(
       `INSERT INTO ProductionEvents (date, facility, line, delta, timestamp)
-       VALUES ($1, $2, $3, $4, ${adjustedTimestamp})`,
+       VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
       [currentDate, facility, line, delta]
     );
 
@@ -205,7 +204,7 @@ async function updateCount(facility, line, delta) {
     if (res.rows.length > 0) {
       const newCount = Math.max(res.rows[0].count + delta, 0);
       await client.query(
-        `UPDATE ProductionCounts SET Count = $1, Timestamp = ${adjustedTimestamp}
+        `UPDATE ProductionCounts SET Count = $1, Timestamp = NOW() AT TIME ZONE 'UTC'
          WHERE Date = $2 AND Facility = $3 AND Line = $4`,
         [newCount, currentDate, facility, line]
       );
@@ -214,7 +213,7 @@ async function updateCount(facility, line, delta) {
       const initialCount = delta > 0 ? delta : 0;
       await client.query(
         `INSERT INTO ProductionCounts (Date, Facility, Line, Count, Timestamp)
-         VALUES ($1, $2, $3, $4, ${adjustedTimestamp})`,
+         VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
         [currentDate, facility, line, initialCount]
       );
       console.log(`Inserted new count: ${initialCount}`);
@@ -241,10 +240,7 @@ wss.on('connection', async (ws) => {
         currentDate = parsedMessage.clientDate;
         console.log(`Updated currentDate to client's date: ${currentDate}`);
       }
-      if (parsedMessage.action === 'setTimezoneOffset' && parsedMessage.timezoneOffset !== undefined) {
-        clientTimezoneOffset = parsedMessage.timezoneOffset;
-        console.log(`Updated client timezone offset to: ${clientTimezoneOffset} minutes`);
-      }
+      // No longer need clientTimezoneOffset since adjustments are client-side
     } catch (err) {
       console.error('Failed to parse WebSocket message:', err);
     }
@@ -288,12 +284,12 @@ async function getCurrentData() {
 async function getHourlyRates(date = currentDate) {
   const client = await pool.connect();
   try {
-    console.log(`Fetching hourly rates for date: ${date}, timezone offset: ${clientTimezoneOffset} minutes`);
+    console.log(`Fetching hourly rates for date: ${date}`);
     const result = await client.query(
-      `SELECT facility, line, EXTRACT(HOUR FROM (timestamp AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes')) as hour, SUM(delta) as rate
+      `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
        FROM ProductionEvents
        WHERE date = $1
-       GROUP BY facility, line, EXTRACT(HOUR FROM (timestamp AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes'))
+       GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')
        ORDER BY facility, line, hour`,
       [date]
     );
@@ -309,11 +305,11 @@ async function getHourlyRates(date = currentDate) {
           const hour = parseInt(row.hour);
           const rate = parseInt(row.rate);
           hourlyRates[f][l][hour] = rate;
-          console.log(`Hourly rate for ${f}, ${l}, hour ${hour}: ${rate}`);
+          console.log(`Hourly rate for ${f}, ${l}, UTC hour ${hour}: ${rate}`);
         });
       });
     });
-    console.log('Constructed hourlyRates:', hourlyRates);
+    console.log('Constructed hourlyRates (UTC):', hourlyRates);
 
     return hourlyRates;
   } catch (err) {
