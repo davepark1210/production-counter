@@ -51,6 +51,7 @@ app.get('/getHourlyRates', async (req, res) => {
   const { date = currentDate } = req.query;
   const client = await pool.connect();
   try {
+    console.log(`Fetching hourly rates for date: ${date}, timezone offset: ${clientTimezoneOffset} minutes`);
     const result = await client.query(
       `SELECT facility, line, EXTRACT(HOUR FROM (timestamp AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes')) as hour, SUM(delta) as rate
        FROM ProductionEvents
@@ -187,9 +188,11 @@ app.post('/resetAllData', async (req, res) => {
 async function updateCount(facility, line, delta) {
   const client = await pool.connect();
   try {
+    const adjustedTimestamp = `NOW() AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes'`;
+    console.log(`Inserting into ProductionEvents with adjusted timestamp: ${adjustedTimestamp}`);
     await client.query(
       `INSERT INTO ProductionEvents (date, facility, line, delta, timestamp)
-       VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes')`,
+       VALUES ($1, $2, $3, $4, ${adjustedTimestamp})`,
       [currentDate, facility, line, delta]
     );
 
@@ -202,7 +205,7 @@ async function updateCount(facility, line, delta) {
     if (res.rows.length > 0) {
       const newCount = Math.max(res.rows[0].count + delta, 0);
       await client.query(
-        `UPDATE ProductionCounts SET Count = $1, Timestamp = NOW() AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes'
+        `UPDATE ProductionCounts SET Count = $1, Timestamp = ${adjustedTimestamp}
          WHERE Date = $2 AND Facility = $3 AND Line = $4`,
         [newCount, currentDate, facility, line]
       );
@@ -211,7 +214,7 @@ async function updateCount(facility, line, delta) {
       const initialCount = delta > 0 ? delta : 0;
       await client.query(
         `INSERT INTO ProductionCounts (Date, Facility, Line, Count, Timestamp)
-         VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes')`,
+         VALUES ($1, $2, $3, $4, ${adjustedTimestamp})`,
         [currentDate, facility, line, initialCount]
       );
       console.log(`Inserted new count: ${initialCount}`);
@@ -285,6 +288,7 @@ async function getCurrentData() {
 async function getHourlyRates(date = currentDate) {
   const client = await pool.connect();
   try {
+    console.log(`Fetching hourly rates for date: ${date}, timezone offset: ${clientTimezoneOffset} minutes`);
     const result = await client.query(
       `SELECT facility, line, EXTRACT(HOUR FROM (timestamp AT TIME ZONE 'UTC' - INTERVAL '${clientTimezoneOffset} minutes')) as hour, SUM(delta) as rate
        FROM ProductionEvents
