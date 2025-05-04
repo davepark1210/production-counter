@@ -1005,15 +1005,7 @@
                     const count = data[facility][line].count;
                     const rateData = hourlyRates[facility][line];
                     console.log(`Raw hourly rates for ${facility} ${line}:`, rateData);
-                    // Shift the hourly rates to align with the graph labels
-                    const shiftedRates = Array(24).fill(0);
-                    for (let i = 0; i < 24; i++) {
-                        const serverHour = i;
-                        const clientHour = (serverHour + currentHour) % 24;
-                        shiftedRates[clientHour] = rateData[i] || 0;
-                    }
-                    console.log(`Shifted hourly rates for ${facility} ${line}:`, shiftedRates);
-                    const rate = shiftedRates[currentHour] || 0;
+                    const rate = rateData[currentHour] || 0; // Rate for the current hour in local time
                     console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate} (Hour: ${currentHour})`);
                     const countElement = document.getElementById(`${facility}_${line}`);
                     const rateElement = document.getElementById(`${facility}_${line}_Rate`);
@@ -1047,9 +1039,9 @@
                     const rawData = hourlyRates[facilityKey][line] || Array(24).fill(0);
                     const shiftedData = Array(24).fill(0);
                     for (let i = 0; i < 24; i++) {
-                        const serverHour = i;
-                        const clientHour = (serverHour + currentHour) % 24;
-                        shiftedData[clientHour] = rawData[i];
+                        const localHour = i; // Server hour is already in local time
+                        const labelIndex = (localHour - currentHour + 24) % 24; // Map to the graph's label index
+                        shiftedData[labelIndex] = rawData[i];
                     }
                     return shiftedData;
                 });
