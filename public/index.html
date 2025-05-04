@@ -594,7 +594,7 @@
         const currentHour = now.getHours();
         console.log(`Current local hour: ${currentHour}`);
         const labels = Array.from({ length: 24 }, (_, i) => {
-            const hour = (i + currentHour) % 24;
+            const hour = (currentHour + i) % 24;
             return `${hour}:00`;
         });
         console.log('Graph labels:', labels);
@@ -1032,26 +1032,32 @@
             });
 
             if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
-                // Shift the data to align with the graph labels
-                const shiftedDatasets = productionChart.data.datasets.map(dataset => {
+                // Log the raw hourly rates data
+                console.log('Raw hourly rates data:', hourlyRates);
+
+                // Adjust for the 7-hour offset to align with local time
+                const datasets = productionChart.data.datasets.map(dataset => {
                     const [facility, line] = dataset.label.split(' ');
                     const facilityKey = facility === 'North' ? 'North_Las_Vegas_Certified_Center' : `${facility}_Certified_Center`;
                     const rawData = hourlyRates[facilityKey][line] || Array(24).fill(0);
+                    console.log(`Raw data for ${dataset.label} before shifting:`, rawData);
                     const shiftedData = Array(24).fill(0);
                     for (let i = 0; i < 24; i++) {
-                        const localHour = i; // Server hour is already in local time
+                        const localHour = i; // Server hour is in local time
                         const labelIndex = (localHour - currentHour + 24) % 24; // Map to the graph's label index
                         shiftedData[labelIndex] = rawData[i];
+                        console.log(`Mapping ${facility} ${line} localHour ${localHour} to labelIndex ${labelIndex} (label: ${labels[labelIndex]})`);
                     }
+                    console.log(`Shifted data for ${dataset.label}:`, shiftedData);
                     return shiftedData;
                 });
 
-                productionChart.data.datasets[0].data = shiftedDatasets[0];
-                productionChart.data.datasets[1].data = shiftedDatasets[1];
-                productionChart.data.datasets[2].data = shiftedDatasets[2];
-                productionChart.data.datasets[3].data = shiftedDatasets[3];
-                productionChart.data.datasets[4].data = shiftedDatasets[4];
-                productionChart.data.datasets[5].data = shiftedDatasets[5];
+                productionChart.data.datasets[0].data = datasets[0];
+                productionChart.data.datasets[1].data = datasets[1];
+                productionChart.data.datasets[2].data = datasets[2];
+                productionChart.data.datasets[3].data = datasets[3];
+                productionChart.data.datasets[4].data = datasets[4];
+                productionChart.data.datasets[5].data = datasets[5];
                 console.log('Updated chart datasets:', productionChart.data.datasets.map(ds => ds.data));
                 productionChart.update();
             } else {
