@@ -381,6 +381,12 @@ async function getPeakProduction() {
 
     console.log('Peak production:', peakProduction);
     return peakProduction;
+  } catch (err) {
+    console.error('GetPeakProduction Error:', err);
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 async function broadcastUpdate() {
