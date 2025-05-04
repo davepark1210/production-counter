@@ -60,7 +60,7 @@ app.get('/getHourlyRates', async (req, res) => {
        ORDER BY facility, line, hour`,
       [date]
     );
-    console.log('Hourly rates query result:', result.rows);
+    console.log('Hourly rates query result (raw rows):', result.rows);
 
     const hourlyRates = {};
     facilities.forEach(f => {
@@ -297,7 +297,7 @@ async function getHourlyRates(date = currentDate) {
        ORDER BY facility, line, hour`,
       [date]
     );
-    console.log('Hourly rates query result:', result.rows);
+    console.log('Hourly rates query result (raw rows):', result.rows);
 
     const hourlyRates = {};
     facilities.forEach(f => {
