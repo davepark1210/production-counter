@@ -19,6 +19,15 @@
             position: relative;
             background: white;
             border: 1px solid #d1d5db;
+            animation: slideUp 0.5s ease-out forwards;
+            opacity: 0;
+        }
+        .facility-card:nth-child(1) { animation-delay: 0.1s; }
+        .facility-card:nth-child(2) { animation-delay: 0.2s; }
+        .facility-card:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes slideUp {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
         }
         .facility-card:hover {
             transform: translateY(-8px) scale(1.03);
@@ -26,31 +35,31 @@
             background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
         }
         .facility-card.top-performer {
-            background-color: rgba(255, 215, 0, 0.1);
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.1), rgba(255, 245, 157, 0.1));
             box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
         }
         .facility-card.top-performer:hover {
             transform: translateY(-10px) scale(1.05);
             box-shadow: 0 15px 30px rgba(255, 215, 0, 0.4), 0 0 15px rgba(255, 215, 0, 0.5);
-            background-color: rgba(255, 215, 0, 0.15);
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.15), rgba(255, 245, 157, 0.15));
         }
         .facility-card.second-place {
-            background-color: rgba(192, 192, 192, 0.1);
+            background: linear-gradient(145deg, rgba(192, 192, 192, 0.1), rgba(224, 224, 224, 0.1));
             box-shadow: 0 0 8px rgba(192, 192, 192, 0.3);
         }
         .facility-card.second-place:hover {
             transform: translateY(-10px) scale(1.05);
             box-shadow: 0 15px 30px rgba(192, 192, 192, 0.4), 0 0 15px rgba(192, 192, 192, 0.5);
-            background-color: rgba(192, 192, 192, 0.15);
+            background: linear-gradient(145deg, rgba(192, 192, 192, 0.15), rgba(224, 224, 224, 0.15));
         }
         .facility-card.third-place {
-            background-color: rgba(205, 127, 50, 0.1);
+            background: linear-gradient(145deg, rgba(205, 127, 50, 0.1), rgba(231, 171, 111, 0.1));
             box-shadow: 0 0 8px rgba(205, 127, 50, 0.3);
         }
         .facility-card.third-place:hover {
             transform: translateY(-10px) scale(1.05);
             box-shadow: 0 15px 30px rgba(205, 127, 50, 0.4), 0 0 15px rgba(205, 127, 50, 0.5);
-            background-color: rgba(205, 127, 50, 0.15);
+            background: linear-gradient(145deg, rgba(205, 127, 50, 0.15), rgba(231, 171, 111, 0.15));
         }
         .facility-card.rank-changed {
             animation: pulse 1s ease-in-out;
@@ -238,7 +247,7 @@
             background: radial-gradient(circle, rgba(54, 162, 235, 0.3), transparent);
             border-radius: 50%;
             transform: translate(-50%, -50%) scale(1);
-            animation: ripple 1s ease-out;
+            animation: ripple 1s ease-out forwards;
             z-index: -1;
         }
         .counter.update::after {
@@ -247,7 +256,7 @@
             top: -10px;
             right: -10px;
             font-size: 1rem;
-            animation: sparkle 1s ease-in-out;
+            animation: sparkle 1s ease-in-out forwards;
         }
         @keyframes pop {
             0% { transform: scale(1); }
@@ -299,6 +308,11 @@
             overflow: hidden;
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
             position: relative;
+            transition: height 0.3s ease, box-shadow 0.3s ease;
+        }
+        .progress-bar:hover {
+            height: 12px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 8px rgba(0, 87, 184, 0.3);
         }
         .progress-bar-fill {
             height: 100%;
@@ -339,6 +353,7 @@
         }
         .total-production span {
             transition: transform 0.3s ease, color 0.3s ease;
+            display: inline-block;
         }
         .total-production span.update {
             animation: highlight 0.5s ease-in-out;
@@ -758,6 +773,21 @@
             }
         }
 
+        // Function to animate counting up
+        function animateCountUp(element, start, end, duration) {
+            let startTime = null;
+            const step = (timestamp) => {
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                element.textContent = value;
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                }
+            };
+            requestAnimationFrame(step);
+        }
+
         // Cache for hourly rates and peak production to reduce redundant fetches
         const hourlyRatesCache = {};
         const peakProductionCache = {};
@@ -856,7 +886,8 @@
                 const total = ftnCount + vvCount;
                 const totalElement = document.getElementById(`${facility}_Total`);
                 if (totalElement && parseInt(totalElement.textContent) !== total) {
-                    totalElement.textContent = total;
+                    const previousTotal = parseInt(totalElement.textContent) || 0;
+                    animateCountUp(totalElement, previousTotal, total, 500);
                     totalElement.classList.add('update');
                 }
 
