@@ -2,7 +2,6 @@ const express = require('express');
 const WebSocket = require('ws');
 const { Pool } = require('pg');
 const app = express();
-const fs = require('fs').promises;
 
 // PostgreSQL configuration (Neon.tech)
 const pool = new Pool({
@@ -16,7 +15,7 @@ const pool = new Pool({
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'VV'];
-let currentDate = new Date().toISOString().split('T')[0];
+let currentDate = new Date().toISOString().split('T')[0]; // Initial date, will be updated by client
 let lastMilestone = 0;
 
 // Serve static files
@@ -24,7 +23,7 @@ app.use(express.static('public'));
 
 // HTTP endpoint to get the current count for a facility and line
 app.get('/getCount', async (req, res) => {
-  const { facility, line } = req.query;
+  const { facility, line, date = currentDate } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) {
     console.log(`Invalid facility or line: ${facility}, ${line}`);
     return res.status(400).json({ error: 'Invalid facility or line' });
@@ -33,7 +32,7 @@ app.get('/getCount', async (req, res) => {
   try {
     const result = await client.query(
       'SELECT count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
-      [currentDate, facility, line]
+      [date, facility, line]
     );
     const count = result.rows.length > 0 ? result.rows[0].count : 0;
     res.json({ count });
@@ -232,25 +231,31 @@ const server = app.listen(10000, () => {
 });
 const wss = new WebSocket.Server({ server });
 
-wss.on('connection', async (ws) => {
-  ws.on('message', (message) => {
+wss.on('connection', (ws) => {
+  ws.on('message', async (message) => {
     try {
       const parsedMessage = JSON.parse(message);
       if (parsedMessage.action === 'setClientDate' && parsedMessage.clientDate) {
         currentDate = parsedMessage.clientDate;
         console.log(`Updated currentDate to client's date: ${currentDate}`);
+        // Send initial data after setting the date
+        const data = await getCurrentData();
+        const hourlyRates = await getHourlyRates();
+        const totalProduction = await getTotalDailyProduction();
+        const peakProduction = await getPeakProduction();
+        ws.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction, peakProduction }));
       }
-      // No longer need clientTimezoneOffset since adjustments are client-side
+      if (parsedMessage.action === 'requestCurrentData') {
+        const data = await getCurrentData();
+        const hourlyRates = await getHourlyRates();
+        const totalProduction = await getTotalDailyProduction();
+        const peakProduction = await getPeakProduction();
+        ws.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction, peakProduction }));
+      }
     } catch (err) {
       console.error('Failed to parse WebSocket message:', err);
     }
   });
-
-  const data = await getCurrentData();
-  const hourlyRates = await getHourlyRates();
-  const totalProduction = await getTotalDailyProduction();
-  const peakProduction = await getPeakProduction();
-  ws.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction, peakProduction }));
 });
 
 async function getCurrentData() {
@@ -417,16 +422,3 @@ async function broadcastUpdate() {
     }
   });
 }
-
-// Midnight data dump
-setInterval(async () => {
-  const now = new Date();
-  if (now.getHours() === 0 && now.getMinutes() === 0) {
-    const fs = require('fs').promises;
-    const data = await getCurrentData();
-    await fs.writeFile(`production_${currentDate}.json`, JSON.stringify(data));
-    currentDate = new Date().toISOString().split('T')[0];
-    lastMilestone = 0;
-    broadcastUpdate();
-  }
-}, 60000);
