@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Custom Tailwind styles */
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
@@ -584,10 +583,10 @@
     </div>
 
     <footer>
-        Developed by the Centralized Reporting Team. For issues, contact <a href="mailto:david.park@pepsico.com">david.park@pepsico.com</a>.
+        Developed by the Centralized Reporting Team. For issues, contact <a href="/cdn-cgi/l/email-protection#a7c3c6d1cec389d7c6d5cce7d7c2d7d4cec4c889c4c8ca"><span class="__cf_email__" data-cfemail="04c025322d206a3425362f04342134372d272b6a272b29">[email&#160;protected]</span></a>.
     </footer>
 
-    <script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
         // Initialize Chart.js
         const ctx = document.getElementById('productionChart').getContext('2d');
         const now = new Date();
@@ -751,6 +750,9 @@
             currentDate = new Date().toISOString().split('T')[0];
             ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
             ws.send(JSON.stringify({ action: 'requestCurrentData' }));
+            clearUI();
+            document.getElementById('graphTitle').textContent = 'Hourly Production Rates';
+            showNotification('Date reset to current day.');
         });
 
         // Reset all data button
@@ -761,31 +763,13 @@
                     const response = await fetch('/resetAllData', { method: 'POST' });
                     if (response.ok) {
                         showNotification('All data has been reset.');
-                        // Reset UI
-                        facilities.forEach(facility => {
-                            ['FTN', 'VV'].forEach(line => {
-                                const countElement = document.getElementById(`${facility}_${line}`);
-                                if (countElement) {
-                                    countElement.textContent = '0';
-                                    countElement.innerHTML = `0<span class="counter-tooltip">Last updated: N/A</span>`;
-                                }
-                                const rateElement = document.getElementById(`${facility}_${line}_Rate`);
-                                if (rateElement) rateElement.textContent = 'Units/Hour: 0';
-                            });
-                            const totalElement = document.getElementById(`${facility}_Total`);
-                            if (totalElement) totalElement.textContent = '0';
-                            const peakWeeklyElement = document.getElementById(`${facility}_Peak_Weekly`);
-                            if (peakWeeklyElement) peakWeeklyElement.textContent = '0';
-                            const peakDayElement = document.getElementById(`${facility}_Peak_AllTime`);
-                            if (peakDayElement) peakDayElement.textContent = '0';
-                            const progressElement = document.getElementById(`${facility}_Progress`);
-                            if (progressElement) progressElement.style.width = '0%';
-                        });
+                        clearUI();
                         document.getElementById('totalProductionValue').textContent = '0';
                         productionChart.data.datasets.forEach(dataset => {
                             dataset.data = Array(24).fill(0);
                         });
                         productionChart.update();
+                        loadHistoricalDates(); // Refresh historical dates
                     } else {
                         showNotification('Failed to reset data.');
                     }
@@ -796,20 +780,60 @@
             }
         });
 
+        // Clear UI function
+        function clearUI() {
+            facilities.forEach(facility => {
+                ['FTN', 'VV'].forEach(line => {
+                    const countElement = document.getElementById(`${facility}_${line}`);
+                    if (countElement) {
+                        countElement.textContent = '0';
+                        countElement.innerHTML = `0<span class="counter-tooltip">Last updated: N/A</span>`;
+                    }
+                    const rateElement = document.getElementById(`${facility}_${line}_Rate`);
+                    if (rateElement) rateElement.textContent = 'Units/Hour: 0';
+                });
+                const totalElement = document.getElementById(`${facility}_Total`);
+                if (totalElement) totalElement.textContent = '0';
+                const peakWeeklyElement = document.getElementById(`${facility}_Peak_Weekly`);
+                if (peakWeeklyElement) peakWeeklyElement.textContent = '0';
+                const peakDayElement = document.getElementById(`${facility}_Peak_AllTime`);
+                if (peakDayElement) peakDayElement.textContent = '0';
+                const progressElement = document.getElementById(`${facility}_Progress`);
+                if (progressElement) progressElement.style.width = '0%';
+            });
+            productionChart.data.datasets.forEach(dataset => {
+                dataset.data = Array(24).fill(0);
+            });
+            productionChart.update();
+            document.getElementById('totalProduction').classList.add('hidden');
+            // Clear caches
+            Object.keys(hourlyRatesCache).forEach(key => delete hourlyRatesCache[key]);
+            Object.keys(peakProductionCache).forEach(key => delete peakProductionCache[key]);
+        }
+
         // Load historical dates
         async function loadHistoricalDates() {
             try {
+                console.log('Fetching historical dates...');
                 const response = await fetch('/getHistoricalDates');
                 const { dates } = await response.json();
+                console.log('Received historical dates:', dates);
                 const dateSelect = document.getElementById('dateSelect');
+                dateSelect.innerHTML = '<option value="">Current Day</option>';
                 dates.forEach(date => {
                     const option = document.createElement('option');
                     option.value = date;
                     option.textContent = date;
                     dateSelect.appendChild(option);
                 });
+                if (dates.includes('2025-05-04')) {
+                    console.log('Confirmed 5/4/2025 is in dropdown options.');
+                } else {
+                    console.warn('5/4/2025 not found in historical dates.');
+                }
             } catch (err) {
                 console.error('Failed to load historical dates:', err);
+                showNotification('Failed to load historical dates.');
             }
         }
 
@@ -828,7 +852,7 @@
             requestAnimationFrame(step);
         }
 
-        // Cache for hourly rates and peak production to reduce redundant fetches
+        // Cache for hourly rates and peak production
         const hourlyRatesCache = {};
         const peakProductionCache = {};
 
@@ -837,42 +861,30 @@
             const dateLoadingSpinner = document.getElementById('dateLoadingSpinner');
             dateLoadingSpinner.style.display = 'inline-block';
             const selectedDate = event.target.value;
+            console.log(`Date selected: ${selectedDate}`);
             try {
+                clearUI();
                 if (!selectedDate) {
                     currentDate = new Date().toISOString().split('T')[0];
-                    ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-                    ws.send(JSON.stringify({ action: 'requestCurrentData' }));
+                    console.log(`Resetting to current date: ${currentDate}`);
                     document.getElementById('graphTitle').textContent = 'Hourly Production Rates';
-                    return;
+                } else {
+                    currentDate = selectedDate;
+                    console.log(`Switching to historical date: ${currentDate}`);
+                    document.getElementById('graphTitle').textContent = `Hourly Production Rates (${selectedDate})`;
                 }
-
-                let cachedData = null;
-                let cachedRates = hourlyRatesCache[selectedDate];
-                let cachedPeak = peakProductionCache[selectedDate];
-
-                if (!cachedRates || !cachedPeak) {
-                    const responseData = await fetch(`/getHistoricalData?date=${selectedDate}`);
-                    cachedData = (await responseData.json()).data;
-
-                    const responseRates = await fetch(`/getHourlyRates?date=${selectedDate}`);
-                    cachedRates = (await responseRates.json()).hourlyRates;
-                    hourlyRatesCache[selectedDate] = cachedRates;
-
-                    const peakResponse = await fetch(`/getPeakProduction?date=${selectedDate}`);
-                    cachedPeak = (await peakResponse.json()).peakProduction;
-                    peakProductionCache[selectedDate] = cachedPeak;
-                }
-
-                updateUI(selectedDate, cachedData || (await (await fetch(`/getHistoricalData?date=${selectedDate}`)).json()).data, cachedRates, null, cachedPeak);
-                document.getElementById('graphTitle').textContent = `Hourly Production Rates (${selectedDate})`;
+                ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
+                ws.send(JSON.stringify({ action: 'requestCurrentData' }));
+                showNotification(`Displaying data for ${currentDate}`);
             } catch (err) {
-                console.error('Failed to load historical data:', err);
+                console.error('Failed to load data for selected date:', err);
+                showNotification('Error loading data for selected date.');
             } finally {
                 dateLoadingSpinner.style.display = 'none';
             }
         });
 
-        // Debounce function to limit the rate of UI updates
+        // Debounce function
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -892,13 +904,17 @@
         let previousTotals = {};
         const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
         const facilityGrid = document.getElementById('facilityGrid');
-        let currentDate = new Date().toISOString().split('T')[0]; // Ensure this is set initially
+        let currentDate = new Date().toISOString().split('T')[0];
 
         const updateUI = debounce((date, data, hourlyRates, totalProduction, peakProduction) => {
+            if (date !== currentDate) {
+                console.warn(`Received data for ${date}, but currentDate is ${currentDate}. Ignoring.`);
+                return;
+            }
+            console.log(`Updating UI for date: ${date}`);
+            console.log('Received data:', JSON.stringify(data));
             updateDateTime();
             const currentHour = new Date().getHours();
-            console.log(`Current local hour in updateUI: ${currentHour}`);
-            console.log(`Received data for update:`, JSON.stringify(data));
 
             // Calculate total production for each facility
             const facilityTotals = facilities.map(facility => {
@@ -908,7 +924,7 @@
                 return { facility, total };
             });
 
-            // Sort facilities by total production (descending)
+            // Sort facilities by total production
             facilityTotals.sort((a, b) => b.total - a.total);
 
             // Check for ranking changes
@@ -916,7 +932,7 @@
             const rankingChanged = previousRanking.length > 0 && !currentRanking.every((facility, index) => facility === previousRanking[index]);
             previousRanking = currentRanking;
 
-            // Find the overall peak day production across all facilities
+            // Find the overall peak day production
             let overallPeakDay = 0;
             facilities.forEach(facility => {
                 if (peakProduction && peakProduction[facility]) {
@@ -924,7 +940,7 @@
                 }
             });
 
-            // Update total production and progress bar for each card
+            // Update total production and progress bar
             facilities.forEach(facility => {
                 const ftnCount = data[facility]?.['FTN']?.count || 0;
                 const vvCount = data[facility]?.['VV']?.count || 0;
@@ -936,7 +952,7 @@
                     totalElement.classList.add('update');
                 }
 
-                // Update progress bar with animation and award
+                // Update progress bar
                 const progressElement = document.getElementById(`${facility}_Progress`);
                 const progressContainer = document.getElementById(`${facility}_Progress_Container`);
                 const percentage = overallPeakDay > 0 ? (total / overallPeakDay) * 100 : 0;
@@ -947,15 +963,12 @@
                     progressElement.classList.add('increase');
                 }
 
-                // Check if the current total has reached or surpassed the peak day
                 if (overallPeakDay > 0 && total >= overallPeakDay && previousTotal < overallPeakDay) {
                     progressContainer.classList.add('past-peak');
-                    // Remove past-peak class after 5 seconds to make the celebrate icon disappear
                     setTimeout(() => {
                         progressContainer.classList.remove('past-peak');
                     }, 5000);
                 }
-                // Additional celebration when surpassing peak
                 if (overallPeakDay > 0 && total > overallPeakDay && previousTotal <= overallPeakDay) {
                     progressContainer.classList.add('starburst');
                 }
@@ -964,7 +977,7 @@
                 previousTotals[facility] = total;
             });
 
-            // Update facility cards with ranking and icons
+            // Update facility cards with ranking
             facilities.forEach(facility => {
                 const rankIconElement = document.getElementById(`${facility}_Rank`);
                 const cardElement = document.getElementById(facility);
@@ -988,10 +1001,10 @@
                 }
             });
 
-            // Reorder facility cards only if ranking changed
+            // Reorder facility cards if ranking changed
             if (rankingChanged) {
                 const facilityGridChildren = Array.from(facilityGrid.children);
-                facilityGrid.innerHTML = ''; // Clear the grid
+                facilityGrid.innerHTML = '';
                 facilityTotals.forEach(({ facility }) => {
                     const card = facilityGridChildren.find(child => child.id === facility);
                     if (card) {
@@ -1001,7 +1014,7 @@
                 });
             }
 
-            // Update counts, rates, and peak production for each facility
+            // Update counts, rates, and peak production
             facilities.forEach(facility => {
                 ['FTN', 'VV'].forEach(line => {
                     if (!data[facility] || !data[facility][line] || !hourlyRates[facility] || !hourlyRates[facility][line]) {
@@ -1010,8 +1023,7 @@
                     }
                     const count = data[facility][line].count;
                     const rateData = hourlyRates[facility][line];
-                    console.log(`Raw hourly rates for ${facility} ${line} (UTC):`, rateData);
-                    const rate = rateData[currentHour] || 0; // Rate for the current hour in local time
+                    const rate = rateData[currentHour] || 0;
                     console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate} (Local Hour: ${currentHour})`);
                     const countElement = document.getElementById(`${facility}_${line}`);
                     const rateElement = document.getElementById(`${facility}_${line}_Rate`);
@@ -1026,8 +1038,6 @@
                         countElement.textContent = count;
                         countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
                         rateElement.textContent = `Units/Hour: ${rate}`;
-                    } else {
-                        console.error(`DOM elements not found for ${facility} ${line}`);
                     }
                 });
 
@@ -1038,12 +1048,10 @@
                 }
             });
 
+            // Update chart with hourly rates
             if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
-                // Log the raw hourly rates data
                 console.log('Raw hourly rates data (UTC):', hourlyRates);
-
-                // Convert UTC hours to local time
-                const timezoneOffsetHours = new Date().getTimezoneOffset() / 60; // Offset in hours (e.g., -4 for EDT)
+                const timezoneOffsetHours = new Date().getTimezoneOffset() / 60;
                 console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
                 const datasets = productionChart.data.datasets.map(dataset => {
                     const [facility, line] = dataset.label.split(' ');
@@ -1052,9 +1060,9 @@
                     console.log(`Raw data for ${dataset.label} (UTC):`, rawData);
                     const shiftedData = Array(24).fill(0);
                     for (let i = 0; i < 24; i++) {
-                        const utcHour = i; // Server provides hours in UTC
-                        const localHour = (utcHour - timezoneOffsetHours + 24) % 24; // Convert UTC to local time
-                        const labelIndex = (localHour - currentHour + 24) % 24; // Map to graph's label index
+                        const utcHour = i;
+                        const localHour = (utcHour - timezoneOffsetHours + 24) % 24;
+                        const labelIndex = (localHour - currentHour + 24) % 24;
                         shiftedData[labelIndex] = rawData[i];
                         console.log(`Mapping ${facility} ${line} UTC hour ${utcHour} to local hour ${localHour} to labelIndex ${labelIndex} (label: ${labels[labelIndex]})`);
                     }
@@ -1070,8 +1078,6 @@
                 productionChart.data.datasets[5].data = datasets[5];
                 console.log('Updated chart datasets:', productionChart.data.datasets.map(ds => ds.data));
                 productionChart.update();
-            } else {
-                console.error('Incomplete hourly rates data:', hourlyRates);
             }
 
             if (totalProduction !== null) {
@@ -1080,7 +1086,7 @@
             } else {
                 document.getElementById('totalProduction').classList.add('hidden');
             }
-        }, 100); // Debounce with 100ms delay
+        }, 100);
 
         console.log(`Client current date: ${currentDate}`);
 
@@ -1108,10 +1114,8 @@
                 return;
             }
 
-            // Debug specific counts
-            console.log(`Sellersburg FTN count from WebSocket: ${data['Sellersburg_Certified_Center']['FTN'].count}`);
-
-            currentDate = date; // Ensure client uses the server's confirmed date
+            console.log(`Received data for date: ${date}`);
+            console.log(`Sellersburg FTN count: ${data['Sellersburg_Certified_Center']['FTN'].count}`);
             updateUI(date, data, hourlyRates, totalProduction, peakProduction);
             if (notification) {
                 showNotification(notification);
