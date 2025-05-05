@@ -33,11 +33,13 @@ app.get('/getCount', async (req, res) => {
   }
   const client = await pool.connect();
   try {
+    console.log(`Fetching count for ${facility}, ${line}, ${date}`);
     const result = await client.query(
       'SELECT count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
       [date, facility, line]
     );
     const count = result.rows.length > 0 ? result.rows[0].count : 0;
+    console.log(`Fetched count: ${count}`);
     res.json({ count });
   } catch (err) {
     console.error('GetCount Error:', err);
@@ -56,6 +58,12 @@ app.get('/getHourlyRates', async (req, res) => {
   const client = await pool.connect();
   try {
     console.log(`Fetching hourly rates for date: ${date}`);
+    // Debug: Fetch raw events to verify data
+    const rawEvents = await client.query(
+      'SELECT facility, line, delta, EXTRACT(HOUR FROM timestamp AT TIME ZONE \'UTC\') as hour FROM ProductionEvents WHERE date = $1',
+      [date]
+    );
+    console.log(`Raw ProductionEvents for ${date}:`, rawEvents.rows);
     const result = await client.query(
       `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
        FROM ProductionEvents
@@ -64,7 +72,7 @@ app.get('/getHourlyRates', async (req, res) => {
        ORDER BY facility, line, hour`,
       [date]
     );
-    console.log('Hourly rates query result (raw rows):', result.rows);
+    console.log(`Hourly rates query result for ${date} (raw rows):`, result.rows);
 
     const hourlyRates = {};
     facilities.forEach(f => {
@@ -80,7 +88,7 @@ app.get('/getHourlyRates', async (req, res) => {
         });
       });
     });
-    console.log('Constructed hourlyRates (UTC):', hourlyRates);
+    console.log(`Constructed hourlyRates for ${date} (UTC):`, hourlyRates);
 
     res.json({ hourlyRates });
   } catch (err) {
@@ -99,6 +107,7 @@ app.get('/getHistoricalDates', async (req, res) => {
       'SELECT DISTINCT date FROM ProductionCounts ORDER BY date DESC'
     );
     const dates = result.rows.map(row => row.date.toISOString().split('T')[0]);
+    console.log('Returning historical dates:', dates);
     res.json({ dates });
   } catch (err) {
     console.error('GetHistoricalDates Error:', err);
@@ -116,6 +125,7 @@ app.get('/getHistoricalData', async (req, res) => {
   }
   const client = await pool.connect();
   try {
+    console.log(`Fetching historical data for date: ${date}`);
     const resCounts = await client.query(
       'SELECT facility, line, count FROM ProductionCounts WHERE Date = $1',
       [date]
@@ -128,6 +138,7 @@ app.get('/getHistoricalData', async (req, res) => {
         data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
       });
     });
+    console.log(`Historical data for ${date}:`, data);
     res.json({ data });
   } catch (err) {
     console.error('GetHistoricalData Error:', err);
@@ -184,7 +195,6 @@ app.post('/decrement', async (req, res) => {
 app.post('/resetAllData', async (req, res) => {
   const client = await pool.connect();
   try {
-    // Truncate ProductionCounts and ProductionEvents tables
     await client.query('TRUNCATE TABLE ProductionCounts, ProductionEvents');
     lastMilestone = 0;
     console.log('All data reset successfully');
@@ -202,19 +212,14 @@ app.post('/resetAllData', async (req, res) => {
 async function updateCount(facility, line, delta, date) {
   const client = await pool.connect();
   try {
-    // Log the current server time for debugging
     const serverTime = new Date().toISOString();
     console.log(`Server time (UTC) at update: ${serverTime}`);
     console.log(`Using date for insertion: ${date}`);
-
-    // Store timestamp in UTC
-    console.log(`Inserting into ProductionEvents with UTC timestamp: NOW() AT TIME ZONE 'UTC'`);
     await client.query(
       `INSERT INTO ProductionEvents (date, facility, line, delta, timestamp)
        VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
       [date, facility, line, delta]
     );
-
     console.log(`Updating count for ${facility}, ${line}, delta: ${delta}, date: ${date}`);
     const res = await client.query(
       'SELECT Count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
@@ -239,8 +244,6 @@ async function updateCount(facility, line, delta, date) {
       );
       console.log(`Inserted new count: ${newCount}`);
     }
-
-    // Verify the updated count
     const verifyRes = await client.query(
       'SELECT Count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
       [date, facility, line]
@@ -254,7 +257,7 @@ async function updateCount(facility, line, delta, date) {
   }
 }
 
-// WebSocket server (Render expects port 10000 for HTTP and WebSocket)
+// WebSocket server
 const server = app.listen(10000, () => {
   console.log(`Server running at https://production-counter.onrender.com`);
 });
@@ -267,7 +270,6 @@ wss.on('connection', (ws) => {
       if (parsedMessage.action === 'setClientDate' && parsedMessage.clientDate) {
         currentDate = parsedMessage.clientDate;
         console.log(`Updated currentDate to client's date: ${currentDate}`);
-        // Send initial data after setting the date
         const data = await getCurrentData();
         const hourlyRates = await getHourlyRates();
         const totalProduction = await getTotalDailyProduction();
@@ -371,7 +373,7 @@ async function getTotalDailyProduction() {
       [currentDate]
     );
     const total = result.rows[0]?.total || 0;
-    console.log(`Total daily production: ${total}`);
+    console.log(`Total daily production for ${currentDate}: ${total}`);
     return total;
   } catch (err) {
     console.error('GetTotalDailyProduction Error:', err);
