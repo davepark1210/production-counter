@@ -437,6 +437,10 @@
             white-space: nowrap;
             z-index: 10;
         }
+        .facility-grid-single {
+            display: flex;
+            justify-content: center;
+        }
         @media (max-width: 640px) {
             .facility-card h2 {
                 font-size: 1.5rem;
@@ -488,8 +492,7 @@
             Total Daily Production: <span id="totalProductionValue">0</span> units
         </div>
         <div class="w-full max-w-6xl mb-4 text-center">
-            <div id="dateTimeDisplay" class="text-:action
-2xl text-gray-700 font-medium"></div>
+            <div id="dateTimeDisplay" class="text-2xl text-gray-700 font-medium"></div>
         </div>
         <div class="flex items-center space-x-4 mb-4">
             <label for="dateSelect" class="text-xl font-medium text-gray-700">Select Date:</label>
@@ -498,6 +501,15 @@
             </select>
             <button id="resetDateButton" class="reset-button">Reset Date</button>
             <div id="dateLoadingSpinner" class="date-loading-spinner"></div>
+        </div>
+        <div class="flex items-center space-x-4 mb-4">
+            <label for="facilitySelect" class="text-xl font-medium text-gray-700">Select Facility:</label>
+            <select id="facilitySelect" class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">All Facilities</option>
+                <option value="Sellersburg_Certified_Center">Sellersburg Certified Center</option>
+                <option value="Williamsport_Certified_Center">Williamsport Certified Center</option>
+                <option value="North_Las_Vegas_Certified_Center">North Las Vegas Certified Center</option>
+            </select>
         </div>
     </div>
 
@@ -796,6 +808,34 @@
             }
         });
 
+        // Facility filter
+        let selectedFacility = '';
+        const facilitySelect = document.getElementById('facilitySelect');
+        facilitySelect.addEventListener('change', () => {
+            selectedFacility = facilitySelect.value;
+            console.log(`Selected facility: ${selectedFacility || 'All Facilities'}`);
+            updateFacilityGrid();
+            showNotification(`Showing ${selectedFacility ? facilitySelect.options[facilitySelect.selectedIndex].text : 'All Facilities'}`);
+        });
+
+        function updateFacilityGrid() {
+            const facilityGrid = document.getElementById('facilityGrid');
+            const facilityCards = facilityGrid.querySelectorAll('.facility-card');
+            if (selectedFacility) {
+                facilityGrid.classList.add('facility-grid-single');
+                facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                facilityCards.forEach(card => {
+                    card.style.display = card.id === selectedFacility ? 'block' : 'none';
+                });
+            } else {
+                facilityGrid.classList.remove('facility-grid-single');
+                facilityGrid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                facilityCards.forEach(card => {
+                    card.style.display = 'block';
+                });
+            }
+        }
+
         // Clear UI function
         function clearUI() {
             facilities.forEach(facility => {
@@ -827,6 +867,7 @@
             // Clear caches
             Object.keys(hourlyRatesCache).forEach(key => delete hourlyRatesCache[key]);
             Object.keys(peakProductionCache).forEach(key => delete peakProductionCache[key]);
+            updateFacilityGrid();
         }
 
         // Load historical dates
@@ -1077,6 +1118,9 @@
                 const datasets = productionChart.data.datasets.map(dataset => {
                     const [facility, line] = dataset.label.split(' ');
                     const facilityKey = facility === 'North' ? 'North_Las_Vegas_Certified_Center' : `${facility}_Certified_Center`;
+                    if (selectedFacility && facilityKey !== selectedFacility) {
+                        return Array(24).fill(0); // Hide data for non-selected facilities
+                    }
                     const rawData = hourlyRates[facilityKey][line] || Array(24).fill(0);
                     console.log(`Raw data for ${dataset.label} (UTC):`, rawData);
                     const shiftedData = Array(24).fill(0);
@@ -1109,6 +1153,9 @@
             } else {
                 document.getElementById('totalProduction').classList.add('hidden');
             }
+
+            // Apply facility filter
+            updateFacilityGrid();
         }, 100);
 
         console.log(`Client current date: ${currentDate}`);
