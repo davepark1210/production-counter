@@ -300,12 +300,12 @@
             50% { transform: translate(5px, -5px) scale(1.2); opacity: 0.8; }
             100% { transform: translate(10px, -10px) scale(0.5); opacity: 0; }
         }
-        .label-ftn, .label-vv {
+        .label-ftn, .label-vv, .label-a-repair {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
         }
-        .label-ftn::before, .label-vv::before {
+        .label-ftn::before, .label-vv::before, .label-a-repair::before {
             content: '';
             display: inline-block;
             width: 12px;
@@ -317,6 +317,9 @@
         }
         .label-vv::before {
             background-color: #36a2eb;
+        }
+        .label-a-repair::before {
+            background-color: #ff9f40;
         }
         .peak-metric {
             font-size: 0.95rem;
@@ -603,6 +606,11 @@
                     <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_FTN_Tooltip"></span></span>
                 </div>
                 <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_A_Repair">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_A_Repair_Tooltip"></span></span>
+                </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">Peak Weekly Production: <span id="Sellersburg_Certified_Center_Peak_Weekly">0</span> units</div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="Sellersburg_Certified_Center_Peak_AllTime">0</span> units</div>
@@ -631,6 +639,11 @@
                     <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0<span class="counter-tooltip" id="Williamsport_Certified_Center_FTN_Tooltip"></span></span>
                 </div>
                 <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_A_Repair">0<span class="counter-tooltip" id="Williamsport_Certified_Center_A_Repair_Tooltip"></span></span>
+                </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">Peak Weekly Production: <span id="Williamsport_Certified_Center_Peak_Weekly">0</span> units</div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="Williamsport_Certified_Center_Peak_AllTime">0</span> units</div>
@@ -659,6 +672,11 @@
                     <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_FTN_Tooltip"></span></span>
                 </div>
                 <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_A_Repair">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_A_Repair_Tooltip"></span></span>
+                </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">Peak Weekly Production: <span id="North_Las_Vegas_Certified_Center_Peak_Weekly">0</span> units</div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="North_Las_Vegas_Certified_Center_Peak_AllTime">0</span> units</div>
@@ -709,10 +727,13 @@
                 datasets: [
                     { label: 'Sellersburg FTN', data: Array(24).fill(0), borderColor: '#ff6384', backgroundColor: 'rgba(255, 99, 132, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
                     { label: 'Sellersburg VV', data: Array(24).fill(0), borderColor: '#36a2eb', backgroundColor: 'rgba(54, 162, 235, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
+                    { label: 'Sellersburg A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: 'rgba(255, 159, 64, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
                     { label: 'Williamsport FTN', data: Array(24).fill(0), borderColor: '#cc65fe', backgroundColor: 'rgba(204, 101, 254, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
                     { label: 'Williamsport VV', data: Array(24).fill(0), borderColor: '#ffce56', backgroundColor: 'rgba(255, 206, 86, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
+                    { label: 'Williamsport A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: 'rgba(255, 159, 64, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
                     { label: 'North Las Vegas FTN', data: Array(24).fill(0), borderColor: '#4bc0c0', backgroundColor: 'rgba(75, 192, 192, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
-                    { label: 'North Las Vegas VV', data: Array(24).fill(0), borderColor: '#9966ff', backgroundColor: 'rgba(153, 102, 255, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 }
+                    { label: 'North Las Vegas VV', data: Array(24).fill(0), borderColor: '#9966ff', backgroundColor: 'rgba(153, 102, 255, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
+                    { label: 'North Las Vegas A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: 'rgba(255, 159, 64, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 }
                 ]
             },
             options: {
@@ -890,7 +911,7 @@
         const facilitySelect = document.getElementById('facilitySelect');
         facilitySelect.addEventListener('change', () => {
             selectedFacility = facilitySelect.value;
-            console.log(`Selected facility: ${selected施設 || 'All Facilities'}`);
+            console.log(`Selected facility: ${selectedFacility || 'All Facilities'}`);
             updateFacilityGrid();
             showNotification(`Showing ${selectedFacility ? facilitySelect.options[facilitySelect.selectedIndex].text : 'All Facilities'}`);
         });
@@ -923,7 +944,7 @@
         // Clear UI function
         function clearUI() {
             facilities.forEach(facility => {
-                ['FTN', 'VV'].forEach(line => {
+                ['FTN', 'VV', 'A-Repair'].forEach(line => {
                     const countElement = document.getElementById(`${facility}_${line}`);
                     if (countElement) {
                         countElement.textContent = '0';
@@ -1049,6 +1070,7 @@
         let lastUpdateTimestamps = {};
         let previousTotals = {};
         const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
+        const lines = ['FTN', 'VV', 'A-Repair'];
         const facilityGrid = document.getElementById('facilityGrid');
         let currentDate = new Date().toISOString().split('T')[0];
 
@@ -1068,7 +1090,8 @@
             const facilityTotals = facilities.map(facility => {
                 const ftnCount = data[facility]?.['FTN']?.count || 0;
                 const vvCount = data[facility]?.['VV']?.count || 0;
-                const total = ftnCount + vvCount;
+                const aRepairCount = data[facility]?.['A-Repair']?.count || 0;
+                const total = ftnCount + vvCount + aRepairCount;
                 return { facility, total };
             });
 
@@ -1092,7 +1115,8 @@
             facilities.forEach(facility => {
                 const ftnCount = data[facility]?.['FTN']?.count || 0;
                 const vvCount = data[facility]?.['VV']?.count || 0;
-                const total = ftnCount + vvCount;
+                const aRepairCount = data[facility]?.['A-Repair']?.count || 0;
+                const total = ftnCount + vvCount + aRepairCount;
                 const totalElement = document.getElementById(`${facility}_Total`);
                 if (totalElement && parseInt(totalElement.textContent) !== total) {
                     const previousTotal = parseInt(totalElement.textContent) || 0;
@@ -1164,7 +1188,7 @@
 
             // Update counts, rates, and peak production
             facilities.forEach(facility => {
-                ['FTN', 'VV'].forEach(line => {
+                lines.forEach(line => {
                     if (!data[facility] || !data[facility][line] || !hourlyRates[facility] || !hourlyRates[facility][line]) {
                         console.error(`Missing data for ${facility} ${line}:`, data[facility], hourlyRates[facility]);
                         return;
@@ -1221,12 +1245,9 @@
                     return shiftedData;
                 });
 
-                productionChart.data.datasets[0].data = datasets[0];
-                productionChart.data.datasets[1].data = datasets[1];
-                productionChart.data.datasets[2].data = datasets[2];
-                productionChart.data.datasets[3].data = datasets[3];
-                productionChart.data.datasets[4].data = datasets[4];
-                productionChart.data.datasets[5].data = datasets[5];
+                productionChart.data.datasets.forEach((dataset, index) => {
+                    dataset.data = datasets[index];
+                });
                 console.log('Updated chart datasets:', productionChart.data.datasets.map(ds => ds.data));
                 productionChart.update();
             } else {
