@@ -15,7 +15,7 @@ const pool = new Pool({
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'VV'];
-let currentDate = null; // Will be set by client
+let currentDate = null; // Will be set by client for UI purposes
 let lastMilestone = 0;
 
 // Serve static files
@@ -139,16 +139,16 @@ app.get('/getHistoricalData', async (req, res) => {
 
 // HTTP endpoints for ESP32
 app.post('/increment', async (req, res) => {
-  const { facility, line } = req.query;
+  const { facility, line, date } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) {
     console.log(`Invalid facility or line: ${facility}, ${line}`);
-    return res.sendStatus(400);
+    return res.status(400).json({ error: 'Invalid facility or line' });
   }
-  if (!currentDate) {
-    return res.status(400).json({ error: 'Current date not set' });
+  if (!date) {
+    return res.status(400).json({ error: 'Date query parameter is required' });
   }
   try {
-    await updateCount(facility, line, 1);
+    await updateCount(facility, line, 1, date);
     broadcastUpdate();
     res.sendStatus(200);
   } catch (err) {
@@ -158,16 +158,16 @@ app.post('/increment', async (req, res) => {
 });
 
 app.post('/decrement', async (req, res) => {
-  const { facility, line } = req.query;
+  const { facility, line, date } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) {
     console.log(`Invalid facility or line: ${facility}, ${line}`);
-    return res.sendStatus(400);
+    return res.status(400).json({ error: 'Invalid facility or line' });
   }
-  if (!currentDate) {
-    return res.status(400).json({ error: 'Current date not set' });
+  if (!date) {
+    return res.status(400).json({ error: 'Date query parameter is required' });
   }
   try {
-    await updateCount(facility, line, -1);
+    await updateCount(facility, line, -1, date);
     broadcastUpdate();
     res.sendStatus(200);
   } catch (err) {
@@ -195,26 +195,26 @@ app.post('/resetAllData', async (req, res) => {
 });
 
 // Update count in database and log the event
-async function updateCount(facility, line, delta) {
+async function updateCount(facility, line, delta, date) {
   const client = await pool.connect();
   try {
     // Log the current server time for debugging
     const serverTime = new Date().toISOString();
     console.log(`Server time (UTC) at update: ${serverTime}`);
-    console.log(`Using currentDate for insertion: ${currentDate}`);
+    console.log(`Using date for insertion: ${date}`);
 
     // Store timestamp in UTC
     console.log(`Inserting into ProductionEvents with UTC timestamp: NOW() AT TIME ZONE 'UTC'`);
     await client.query(
       `INSERT INTO ProductionEvents (date, facility, line, delta, timestamp)
        VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
-      [currentDate, facility, line, delta]
+      [date, facility, line, delta]
     );
 
-    console.log(`Updating count for ${facility}, ${line}, delta: ${delta}`);
+    console.log(`Updating count for ${facility}, ${line}, delta: ${delta}, date: ${date}`);
     const res = await client.query(
       'SELECT Count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
-      [currentDate, facility, line]
+      [date, facility, line]
     );
     console.log('Query result:', res.rows);
     if (res.rows.length > 0) {
@@ -222,7 +222,7 @@ async function updateCount(facility, line, delta) {
       await client.query(
         `UPDATE ProductionCounts SET Count = $1, Timestamp = NOW() AT TIME ZONE 'UTC'
          WHERE Date = $2 AND Facility = $3 AND Line = $4`,
-        [newCount, currentDate, facility, line]
+        [newCount, date, facility, line]
       );
       console.log(`Updated count to ${newCount}`);
     } else {
@@ -230,7 +230,7 @@ async function updateCount(facility, line, delta) {
       await client.query(
         `INSERT INTO ProductionCounts (Date, Facility, Line, Count, Timestamp)
          VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
-        [currentDate, facility, line, initialCount]
+        [date, facility, line, initialCount]
       );
       console.log(`Inserted new count: ${initialCount}`);
     }
