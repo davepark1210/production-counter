@@ -15,7 +15,7 @@ const pool = new Pool({
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'VV'];
-let currentDate = new Date().toISOString().split('T')[0]; // Initial date, will be updated by client
+let currentDate = null; // Will be set by client
 let lastMilestone = 0;
 
 // Serve static files
@@ -27,6 +27,9 @@ app.get('/getCount', async (req, res) => {
   if (!facilities.includes(facility) || !lines.includes(line)) {
     console.log(`Invalid facility or line: ${facility}, ${line}`);
     return res.status(400).json({ error: 'Invalid facility or line' });
+  }
+  if (!date) {
+    return res.status(400).json({ error: 'Date is required' });
   }
   const client = await pool.connect();
   try {
@@ -47,6 +50,9 @@ app.get('/getCount', async (req, res) => {
 // HTTP endpoint to get hourly production rates (in UTC)
 app.get('/getHourlyRates', async (req, res) => {
   const { date = currentDate } = req.query;
+  if (!date) {
+    return res.status(400).json({ error: 'Date is required' });
+  }
   const client = await pool.connect();
   try {
     console.log(`Fetching hourly rates for date: ${date}`);
@@ -138,6 +144,9 @@ app.post('/increment', async (req, res) => {
     console.log(`Invalid facility or line: ${facility}, ${line}`);
     return res.sendStatus(400);
   }
+  if (!currentDate) {
+    return res.status(400).json({ error: 'Current date not set' });
+  }
   try {
     await updateCount(facility, line, 1);
     broadcastUpdate();
@@ -153,6 +162,9 @@ app.post('/decrement', async (req, res) => {
   if (!facilities.includes(facility) || !lines.includes(line)) {
     console.log(`Invalid facility or line: ${facility}, ${line}`);
     return res.sendStatus(400);
+  }
+  if (!currentDate) {
+    return res.status(400).json({ error: 'Current date not set' });
   }
   try {
     await updateCount(facility, line, -1);
@@ -186,6 +198,11 @@ app.post('/resetAllData', async (req, res) => {
 async function updateCount(facility, line, delta) {
   const client = await pool.connect();
   try {
+    // Log the current server time for debugging
+    const serverTime = new Date().toISOString();
+    console.log(`Server time (UTC) at update: ${serverTime}`);
+    console.log(`Using currentDate for insertion: ${currentDate}`);
+
     // Store timestamp in UTC
     console.log(`Inserting into ProductionEvents with UTC timestamp: NOW() AT TIME ZONE 'UTC'`);
     await client.query(
@@ -259,6 +276,9 @@ wss.on('connection', (ws) => {
 });
 
 async function getCurrentData() {
+  if (!currentDate) {
+    throw new Error('Current date not set');
+  }
   const client = await pool.connect();
   try {
     console.log('Fetching current data from database for date:', currentDate);
@@ -287,6 +307,9 @@ async function getCurrentData() {
 }
 
 async function getHourlyRates(date = currentDate) {
+  if (!date) {
+    throw new Error('Date not set');
+  }
   const client = await pool.connect();
   try {
     console.log(`Fetching hourly rates for date: ${date}`);
@@ -326,6 +349,9 @@ async function getHourlyRates(date = currentDate) {
 }
 
 async function getTotalDailyProduction() {
+  if (!currentDate) {
+    throw new Error('Current date not set');
+  }
   const client = await pool.connect();
   try {
     const result = await client.query(
@@ -344,6 +370,9 @@ async function getTotalDailyProduction() {
 }
 
 async function getPeakProduction() {
+  if (!currentDate) {
+    throw new Error('Current date not set');
+  }
   const client = await pool.connect();
   try {
     // Calculate peak daily production (highest single-day total for each facility)
@@ -395,6 +424,10 @@ async function getPeakProduction() {
 }
 
 async function broadcastUpdate() {
+  if (!currentDate) {
+    console.error('Cannot broadcast update: currentDate not set');
+    return;
+  }
   const data = await getCurrentData();
   const hourlyRates = await getHourlyRates();
   const totalProduction = await getTotalDailyProduction();
