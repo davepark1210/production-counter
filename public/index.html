@@ -434,6 +434,20 @@
             font-size: 0.9rem;
             color: #6b7280;
         }
+        .footer-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .footer-logo {
+            height: 40px;
+            padding: 0.2rem;
+            transition: transform 0.2s ease;
+        }
+        .footer-logo:hover {
+            transform: scale(1.1);
+        }
         footer a {
             color: #0057b8;
             text-decoration: none;
@@ -526,6 +540,12 @@
             .date-time-container {
                 font-size: 1rem;
                 padding: 0.4rem 0.8rem;
+            }
+            .footer-logo {
+                height: 30px;
+            }
+            footer {
+                font-size: 0.8rem;
             }
         }
     </style>
@@ -670,10 +690,13 @@
     </div>
 
     <footer>
-        Developed by the Centralized Reporting Team. For issues, contact <a href="mailto:david.park@pepsico.com">david.park@pepsico.com</a>.
+        <div class="footer-container">
+            <img src="https://raw.githubusercontent.com/davepark1210/production-counter/refs/heads/main/Pepsi%20Operational%20Effectiveness%20Logo_RGB.png" alt="Pepsi Operational Effectiveness Logo" class="footer-logo">
+            <span>Developed by the Centralized Reporting Team. For issues, contact <a href="mailto:david.park@pepsico.com">david.park@pepsico.com</a>.</span>
+        </div>
     </footer>
 
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    <script>
         // Initialize Chart.js
         const ctx = document.getElementById('productionChart').getContext('2d');
         // Fixed x-axis labels from 0:00 to 23:00
@@ -867,7 +890,7 @@
         const facilitySelect = document.getElementById('facilitySelect');
         facilitySelect.addEventListener('change', () => {
             selectedFacility = facilitySelect.value;
-            console.log(`Selected facility: ${selectedFacility || 'All Facilities'}`);
+            console.log(`Selected facility: ${selected施設 || 'All Facilities'}`);
             updateFacilityGrid();
             showNotification(`Showing ${selectedFacility ? facilitySelect.options[facilitySelect.selectedIndex].text : 'All Facilities'}`);
         });
