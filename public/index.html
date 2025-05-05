@@ -68,6 +68,30 @@
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
         }
+        .facility-card-focused {
+            max-width: 600px;
+            padding: 2rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 0 20px rgba(0, 87, 184, 0.4);
+            border: 3px solid #0057b8;
+            transform: scale(1.1);
+        }
+        .facility-card-focused h2 {
+            font-size: 2.5rem;
+            color: #003087;
+        }
+        .facility-card-focused .total-production {
+            font-size: 2rem;
+            color: #1e40af;
+        }
+        .facility-card-focused .counter {
+            font-size: 3rem;
+        }
+        .facility-card-focused .text-xl {
+            font-size: 1.5rem;
+        }
+        .facility-card-focused .text-base {
+            font-size: 1.2rem;
+        }
         .rank-icon {
             position: absolute;
             top: 8px;
@@ -441,6 +465,19 @@
             display: flex;
             justify-content: center;
         }
+        .date-time-container {
+            background: linear-gradient(90deg, #e6f0fa, #f0f4f8);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            animation: slideIn 1s ease-out;
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #374151;
+            text-align: center;
+            max-width: 400px;
+            margin: 0 auto;
+        }
         @media (max-width: 640px) {
             .facility-card h2 {
                 font-size: 1.5rem;
@@ -473,6 +510,23 @@
                 font-size: 0.9rem;
                 padding: 1px;
             }
+            .facility-card-focused {
+                transform: scale(1.05);
+                padding: 1.5rem;
+            }
+            .facility-card-focused h2 {
+                font-size: 2rem;
+            }
+            .facility-card-focused .total-production {
+                font-size: 1.5rem;
+            }
+            .facility-card-focused .counter {
+                font-size: 2.5rem;
+            }
+            .date-time-container {
+                font-size: 1rem;
+                padding: 0.4rem 0.8rem;
+            }
         }
     </style>
 </head>
@@ -491,8 +545,8 @@
         <div id="totalProduction" class="text-3xl font-semibold text-blue-800 mb-4 hidden">
             Total Daily Production: <span id="totalProductionValue">0</span> units
         </div>
-        <div class="w-full max-w-6xl mb-4 text-center">
-            <div id="dateTimeDisplay" class="text-2xl text-gray-700 font-medium"></div>
+        <div class="w-full max-w-6xl mb-4">
+            <div id="dateTimeDisplay" class="date-time-container"></div>
         </div>
         <div class="flex items-center space-x-4 mb-4">
             <label for="dateSelect" class="text-xl font-medium text-gray-700">Select Date:</label>
@@ -743,7 +797,7 @@
                 hour12: true,
                 timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
             };
-            document.getElementById('dateTimeDisplay').textContent = `Date & Time: ${now.toLocaleString(undefined, options)}`;
+            document.getElementById('dateTimeDisplay').textContent = now.toLocaleString(undefined, options);
         }
         setInterval(updateDateTime, 1000);
 
@@ -825,13 +879,20 @@
                 facilityGrid.classList.add('facility-grid-single');
                 facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
                 facilityCards.forEach(card => {
-                    card.style.display = card.id === selectedFacility ? 'block' : 'none';
+                    if (card.id === selectedFacility) {
+                        card.style.display = 'block';
+                        card.classList.add('facility-card-focused');
+                    } else {
+                        card.style.display = 'none';
+                        card.classList.remove('facility-card-focused');
+                    }
                 });
             } else {
                 facilityGrid.classList.remove('facility-grid-single');
                 facilityGrid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
                 facilityCards.forEach(card => {
                     card.style.display = 'block';
+                    card.classList.remove('facility-card-focused');
                 });
             }
         }
@@ -878,14 +939,17 @@
                 const { dates } = await response.json();
                 console.log('Received historical dates:', dates);
                 const dateSelect = document.getElementById('dateSelect');
-                dateSelect.innerHTML = '<option value="">Current Day</option>';
-                dates.forEach(date => {
+                const today = new Date().toISOString().split('T')[0];
+                // Filter out today's date to avoid duplication
+                const filteredDates = dates.filter(date => date !== today);
+                dateSelect.innerHTML = `<option value="">Current Day (${today})</option>`;
+                filteredDates.forEach(date => {
                     const option = document.createElement('option');
                     option.value = date;
                     option.textContent = date;
                     dateSelect.appendChild(option);
                 });
-                if (dates.includes('2025-05-04')) {
+                if (filteredDates.includes('2025-05-04')) {
                     console.log('Confirmed 5/4/2025 is in dropdown options.');
                 } else {
                     console.warn('5/4/2025 not found in historical dates.');
