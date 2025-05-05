@@ -2,7 +2,6 @@ const express = require('express');
 const WebSocket = require('ws');
 const { Pool } = require('pg');
 const app = express();
-const fs = require('fs').promises;
 
 // PostgreSQL configuration (Neon.tech)
 const pool = new Pool({
@@ -16,7 +15,7 @@ const pool = new Pool({
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'VV'];
-let currentDate = new Date().toISOString().split('T')[0];
+let currentDate = null; // Will be set by client for UI purposes
 let lastMilestone = 0;
 
 // Serve static files
@@ -24,16 +23,19 @@ app.use(express.static('public'));
 
 // HTTP endpoint to get the current count for a facility and line
 app.get('/getCount', async (req, res) => {
-  const { facility, line } = req.query;
+  const { facility, line, date = currentDate } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) {
     console.log(`Invalid facility or line: ${facility}, ${line}`);
     return res.status(400).json({ error: 'Invalid facility or line' });
+  }
+  if (!date) {
+    return res.status(400).json({ error: 'Date is required' });
   }
   const client = await pool.connect();
   try {
     const result = await client.query(
       'SELECT count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
-      [currentDate, facility, line]
+      [date, facility, line]
     );
     const count = result.rows.length > 0 ? result.rows[0].count : 0;
     res.json({ count });
@@ -48,6 +50,9 @@ app.get('/getCount', async (req, res) => {
 // HTTP endpoint to get hourly production rates (in UTC)
 app.get('/getHourlyRates', async (req, res) => {
   const { date = currentDate } = req.query;
+  if (!date) {
+    return res.status(400).json({ error: 'Date is required' });
+  }
   const client = await pool.connect();
   try {
     console.log(`Fetching hourly rates for date: ${date}`);
@@ -134,13 +139,18 @@ app.get('/getHistoricalData', async (req, res) => {
 
 // HTTP endpoints for ESP32
 app.post('/increment', async (req, res) => {
-  const { facility, line } = req.query;
+  const requestTime = new Date().toISOString();
+  console.log(`Received /increment request at ${requestTime}`);
+  const { facility, line, date } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) {
     console.log(`Invalid facility or line: ${facility}, ${line}`);
-    return res.sendStatus(400);
+    return res.status(400).json({ error: 'Invalid facility or line' });
+  }
+  if (!date) {
+    return res.status(400).json({ error: 'Date query parameter is required' });
   }
   try {
-    await updateCount(facility, line, 1);
+    await updateCount(facility, line, 1, date);
     broadcastUpdate();
     res.sendStatus(200);
   } catch (err) {
@@ -150,13 +160,18 @@ app.post('/increment', async (req, res) => {
 });
 
 app.post('/decrement', async (req, res) => {
-  const { facility, line } = req.query;
+  const requestTime = new Date().toISOString();
+  console.log(`Received /decrement request at ${requestTime}`);
+  const { facility, line, date } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) {
     console.log(`Invalid facility or line: ${facility}, ${line}`);
-    return res.sendStatus(400);
+    return res.status(400).json({ error: 'Invalid facility or line' });
+  }
+  if (!date) {
+    return res.status(400).json({ error: 'Date query parameter is required' });
   }
   try {
-    await updateCount(facility, line, -1);
+    await updateCount(facility, line, -1, date);
     broadcastUpdate();
     res.sendStatus(200);
   } catch (err) {
@@ -184,40 +199,53 @@ app.post('/resetAllData', async (req, res) => {
 });
 
 // Update count in database and log the event
-async function updateCount(facility, line, delta) {
+async function updateCount(facility, line, delta, date) {
   const client = await pool.connect();
   try {
+    // Log the current server time for debugging
+    const serverTime = new Date().toISOString();
+    console.log(`Server time (UTC) at update: ${serverTime}`);
+    console.log(`Using date for insertion: ${date}`);
+
     // Store timestamp in UTC
     console.log(`Inserting into ProductionEvents with UTC timestamp: NOW() AT TIME ZONE 'UTC'`);
     await client.query(
       `INSERT INTO ProductionEvents (date, facility, line, delta, timestamp)
        VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
-      [currentDate, facility, line, delta]
+      [date, facility, line, delta]
     );
 
-    console.log(`Updating count for ${facility}, ${line}, delta: ${delta}`);
+    console.log(`Updating count for ${facility}, ${line}, delta: ${delta}, date: ${date}`);
     const res = await client.query(
       'SELECT Count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
-      [currentDate, facility, line]
+      [date, facility, line]
     );
     console.log('Query result:', res.rows);
+    let newCount;
     if (res.rows.length > 0) {
-      const newCount = Math.max(res.rows[0].count + delta, 0);
+      newCount = Math.max(res.rows[0].count + delta, 0);
       await client.query(
         `UPDATE ProductionCounts SET Count = $1, Timestamp = NOW() AT TIME ZONE 'UTC'
          WHERE Date = $2 AND Facility = $3 AND Line = $4`,
-        [newCount, currentDate, facility, line]
+        [newCount, date, facility, line]
       );
       console.log(`Updated count to ${newCount}`);
     } else {
-      const initialCount = delta > 0 ? delta : 0;
+      newCount = delta > 0 ? delta : 0;
       await client.query(
         `INSERT INTO ProductionCounts (Date, Facility, Line, Count, Timestamp)
          VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
-        [currentDate, facility, line, initialCount]
+        [date, facility, line, newCount]
       );
-      console.log(`Inserted new count: ${initialCount}`);
+      console.log(`Inserted new count: ${newCount}`);
     }
+
+    // Verify the updated count
+    const verifyRes = await client.query(
+      'SELECT Count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
+      [date, facility, line]
+    );
+    console.log(`Verified count after update: ${verifyRes.rows[0]?.count}`);
   } catch (err) {
     console.error('Increment/Decrement Error:', err);
     throw err;
@@ -232,28 +260,37 @@ const server = app.listen(10000, () => {
 });
 const wss = new WebSocket.Server({ server });
 
-wss.on('connection', async (ws) => {
-  ws.on('message', (message) => {
+wss.on('connection', (ws) => {
+  ws.on('message', async (message) => {
     try {
       const parsedMessage = JSON.parse(message);
       if (parsedMessage.action === 'setClientDate' && parsedMessage.clientDate) {
         currentDate = parsedMessage.clientDate;
         console.log(`Updated currentDate to client's date: ${currentDate}`);
+        // Send initial data after setting the date
+        const data = await getCurrentData();
+        const hourlyRates = await getHourlyRates();
+        const totalProduction = await getTotalDailyProduction();
+        const peakProduction = await getPeakProduction();
+        ws.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction, peakProduction }));
       }
-      // No longer need clientTimezoneOffset since adjustments are client-side
+      if (parsedMessage.action === 'requestCurrentData') {
+        const data = await getCurrentData();
+        const hourlyRates = await getHourlyRates();
+        const totalProduction = await getTotalDailyProduction();
+        const peakProduction = await getPeakProduction();
+        ws.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction, peakProduction }));
+      }
     } catch (err) {
       console.error('Failed to parse WebSocket message:', err);
     }
   });
-
-  const data = await getCurrentData();
-  const hourlyRates = await getHourlyRates();
-  const totalProduction = await getTotalDailyProduction();
-  const peakProduction = await getPeakProduction();
-  ws.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction, peakProduction }));
 });
 
 async function getCurrentData() {
+  if (!currentDate) {
+    throw new Error('Current date not set');
+  }
   const client = await pool.connect();
   try {
     console.log('Fetching current data from database for date:', currentDate);
@@ -282,6 +319,9 @@ async function getCurrentData() {
 }
 
 async function getHourlyRates(date = currentDate) {
+  if (!date) {
+    throw new Error('Date not set');
+  }
   const client = await pool.connect();
   try {
     console.log(`Fetching hourly rates for date: ${date}`);
@@ -321,6 +361,9 @@ async function getHourlyRates(date = currentDate) {
 }
 
 async function getTotalDailyProduction() {
+  if (!currentDate) {
+    throw new Error('Current date not set');
+  }
   const client = await pool.connect();
   try {
     const result = await client.query(
@@ -339,6 +382,9 @@ async function getTotalDailyProduction() {
 }
 
 async function getPeakProduction() {
+  if (!currentDate) {
+    throw new Error('Current date not set');
+  }
   const client = await pool.connect();
   try {
     // Calculate peak daily production (highest single-day total for each facility)
@@ -390,6 +436,10 @@ async function getPeakProduction() {
 }
 
 async function broadcastUpdate() {
+  if (!currentDate) {
+    console.error('Cannot broadcast update: currentDate not set');
+    return;
+  }
   const data = await getCurrentData();
   const hourlyRates = await getHourlyRates();
   const totalProduction = await getTotalDailyProduction();
@@ -417,16 +467,3 @@ async function broadcastUpdate() {
     }
   });
 }
-
-// Midnight data dump
-setInterval(async () => {
-  const now = new Date();
-  if (now.getHours() === 0 && now.getMinutes() === 0) {
-    const fs = require('fs').promises;
-    const data = await getCurrentData();
-    await fs.writeFile(`production_${currentDate}.json`, JSON.stringify(data));
-    currentDate = new Date().toISOString().split('T')[0];
-    lastMilestone = 0;
-    broadcastUpdate();
-  }
-}, 60000);
