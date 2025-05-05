@@ -417,6 +417,26 @@
         footer a:hover {
             text-decoration: underline;
         }
+        .rate-container {
+            position: relative;
+            display: inline-block;
+        }
+        .rate-container:hover .rate-tooltip {
+            visibility: visible;
+        }
+        .rate-tooltip {
+            visibility: hidden;
+            position: absolute;
+            top: -30px;
+            right: 0;
+            background-color: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 10;
+        }
         @media (max-width: 640px) {
             .facility-card h2 {
                 font-size: 1.5rem;
@@ -468,7 +488,8 @@
             Total Daily Production: <span id="totalProductionValue">0</span> units
         </div>
         <div class="w-full max-w-6xl mb-4 text-center">
-            <div id="dateTimeDisplay" class="text-2xl text-gray-700 font-medium"></div>
+            <div id="dateTimeDisplay" class="text-:action
+2xl text-gray-700 font-medium"></div>
         </div>
         <div class="flex items-center space-x-4 mb-4">
             <label for="dateSelect" class="text-xl font-medium text-gray-700">Select Date:</label>
@@ -490,12 +511,12 @@
                     <span class="text-xl font-medium text-gray-700 label-vv">VV:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_VV">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_VV_Tooltip"></span></span>
                 </div>
-                <div class="text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_VV_Rate">Units/Hour: 0</div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_VV_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_FTN_Tooltip"></span></span>
                 </div>
-                <div class="text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_FTN_Rate">Units/Hour: 0</div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">Peak Weekly Production: <span id="Sellersburg_Certified_Center_Peak_Weekly">0</span> units</div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="Sellersburg_Certified_Center_Peak_AllTime">0</span> units</div>
@@ -518,12 +539,12 @@
                     <span class="text-xl font-medium text-gray-700 label-vv">VV:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_VV">0<span class="counter-tooltip" id="Williamsport_Certified_Center_VV_Tooltip"></span></span>
                 </div>
-                <div class="text-base text-gray-600 text-right" id="Williamsport_Certified_Center_VV_Rate">Units/Hour: 0</div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_VV_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0<span class="counter-tooltip" id="Williamsport_Certified_Center_FTN_Tooltip"></span></span>
                 </div>
-                <div class="text-base text-gray-600 text-right" id="Williamsport_Certified_Center_FTN_Rate">Units/Hour: 0</div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">Peak Weekly Production: <span id="Williamsport_Certified_Center_Peak_Weekly">0</span> units</div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="Williamsport_Certified_Center_Peak_AllTime">0</span> units</div>
@@ -546,12 +567,12 @@
                     <span class="text-xl font-medium text-gray-700 label-vv">VV:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_VV">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_VV_Tooltip"></span></span>
                 </div>
-                <div class="text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_VV_Rate">Units/Hour: 0</div>
+                <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_VV_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_FTN_Tooltip"></span></span>
                 </div>
-                <div class="text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_FTN_Rate">Units/Hour: 0</div>
+                <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">Peak Weekly Production: <span id="North_Las_Vegas_Certified_Center_Peak_Weekly">0</span> units</div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="North_Las_Vegas_Certified_Center_Peak_AllTime">0</span> units</div>
@@ -589,13 +610,8 @@
     <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
         // Initialize Chart.js
         const ctx = document.getElementById('productionChart').getContext('2d');
-        const now = new Date();
-        const currentHour = now.getHours();
-        console.log(`Current local hour: ${currentHour}`);
-        const labels = Array.from({ length: 24 }, (_, i) => {
-            const hour = (currentHour + i) % 24;
-            return `${hour}:00`;
-        });
+        // Fixed x-axis labels from 0:00 to 23:00
+        const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
         console.log('Graph labels:', labels);
         const productionChart = new Chart(ctx, {
             type: 'line',
@@ -769,7 +785,7 @@
                             dataset.data = Array(24).fill(0);
                         });
                         productionChart.update();
-                        loadHistoricalDates(); // Refresh historical dates
+                        loadHistoricalDates();
                     } else {
                         showNotification('Failed to reset data.');
                     }
@@ -790,7 +806,9 @@
                         countElement.innerHTML = `0<span class="counter-tooltip">Last updated: N/A</span>`;
                     }
                     const rateElement = document.getElementById(`${facility}_${line}_Rate`);
-                    if (rateElement) rateElement.textContent = 'Units/Hour: 0';
+                    if (rateElement) {
+                        rateElement.innerHTML = `Units/Hour: 0<span class="rate-tooltip">No data for current hour</span>`;
+                    }
                 });
                 const totalElement = document.getElementById(`${facility}_Total`);
                 if (totalElement) totalElement.textContent = '0';
@@ -915,6 +933,8 @@
             console.log('Received data:', JSON.stringify(data));
             updateDateTime();
             const currentHour = new Date().getHours();
+            const timezoneOffsetHours = new Date().getTimezoneOffset() / 60;
+            console.log(`Current local hour: ${currentHour}, Timezone offset: ${timezoneOffsetHours} hours`);
 
             // Calculate total production for each facility
             const facilityTotals = facilities.map(facility => {
@@ -1023,8 +1043,10 @@
                     }
                     const count = data[facility][line].count;
                     const rateData = hourlyRates[facility][line];
-                    const rate = rateData[currentHour] || 0;
-                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate} (Local Hour: ${currentHour})`);
+                    // Map current local hour to UTC hour for rate lookup
+                    const utcHour = (currentHour + timezoneOffsetHours + 24) % 24;
+                    const rate = rateData[utcHour] || 0;
+                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate} (Local Hour: ${currentHour}, UTC Hour: ${utcHour})`);
                     const countElement = document.getElementById(`${facility}_${line}`);
                     const rateElement = document.getElementById(`${facility}_${line}_Rate`);
                     if (countElement && rateElement) {
@@ -1037,7 +1059,7 @@
                         currentCounts[key] = count;
                         countElement.textContent = count;
                         countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
-                        rateElement.textContent = `Units/Hour: ${rate}`;
+                        rateElement.innerHTML = `Units/Hour: ${rate}<span class="rate-tooltip">${rate === 0 ? 'No data for current hour' : 'Rate based on production events'}</span>`;
                     }
                 });
 
@@ -1051,7 +1073,6 @@
             // Update chart with hourly rates
             if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
                 console.log('Raw hourly rates data (UTC):', hourlyRates);
-                const timezoneOffsetHours = new Date().getTimezoneOffset() / 60;
                 console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
                 const datasets = productionChart.data.datasets.map(dataset => {
                     const [facility, line] = dataset.label.split(' ');
@@ -1062,9 +1083,8 @@
                     for (let i = 0; i < 24; i++) {
                         const utcHour = i;
                         const localHour = (utcHour - timezoneOffsetHours + 24) % 24;
-                        const labelIndex = (localHour - currentHour + 24) % 24;
-                        shiftedData[labelIndex] = rawData[i];
-                        console.log(`Mapping ${facility} ${line} UTC hour ${utcHour} to local hour ${localHour} to labelIndex ${labelIndex} (label: ${labels[labelIndex]})`);
+                        shiftedData[localHour] = rawData[i];
+                        console.log(`Mapping ${facility} ${line} UTC hour ${utcHour} to local hour ${localHour}`);
                     }
                     console.log(`Shifted data for ${dataset.label}:`, shiftedData);
                     return shiftedData;
@@ -1078,6 +1098,9 @@
                 productionChart.data.datasets[5].data = datasets[5];
                 console.log('Updated chart datasets:', productionChart.data.datasets.map(ds => ds.data));
                 productionChart.update();
+            } else {
+                console.error('Incomplete hourly rates data:', hourlyRates);
+                showNotification('Hourly production rates unavailable.');
             }
 
             if (totalProduction !== null) {
