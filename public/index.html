@@ -748,6 +748,8 @@
         resetDateButton.addEventListener('click', () => {
             const dateSelect = document.getElementById('dateSelect');
             dateSelect.value = '';
+            currentDate = new Date().toISOString().split('T')[0];
+            ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
             ws.send(JSON.stringify({ action: 'requestCurrentData' }));
         });
 
@@ -837,6 +839,8 @@
             const selectedDate = event.target.value;
             try {
                 if (!selectedDate) {
+                    currentDate = new Date().toISOString().split('T')[0];
+                    ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
                     ws.send(JSON.stringify({ action: 'requestCurrentData' }));
                     document.getElementById('graphTitle').textContent = 'Hourly Production Rates';
                     return;
@@ -888,11 +892,13 @@
         let previousTotals = {};
         const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
         const facilityGrid = document.getElementById('facilityGrid');
+        let currentDate = new Date().toISOString().split('T')[0]; // Ensure this is set initially
 
         const updateUI = debounce((date, data, hourlyRates, totalProduction, peakProduction) => {
             updateDateTime();
             const currentHour = new Date().getHours();
             console.log(`Current local hour in updateUI: ${currentHour}`);
+            console.log(`Received data for update:`, JSON.stringify(data));
 
             // Calculate total production for each facility
             const facilityTotals = facilities.map(facility => {
@@ -1012,6 +1018,7 @@
                     if (countElement && rateElement) {
                         const key = `${facility}_${line}`;
                         if (currentCounts[key] !== undefined && currentCounts[key] !== count) {
+                            console.log(`Count for ${facility} ${line} changed from ${currentCounts[key]} to ${count}`);
                             countElement.classList.add('update');
                             lastUpdateTimestamps[key] = new Date().toLocaleTimeString();
                         }
@@ -1036,7 +1043,7 @@
                 console.log('Raw hourly rates data (UTC):', hourlyRates);
 
                 // Convert UTC hours to local time
-                const timezoneOffsetHours = new Date().getTimezoneOffset() / 60; // Offset in hours (e.g., -7 for UTC-7)
+                const timezoneOffsetHours = new Date().getTimezoneOffset() / 60; // Offset in hours (e.g., -4 for EDT)
                 console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
                 const datasets = productionChart.data.datasets.map(dataset => {
                     const [facility, line] = dataset.label.split(' ');
@@ -1075,7 +1082,6 @@
             }
         }, 100); // Debounce with 100ms delay
 
-        let currentDate = new Date().toISOString().split('T')[0];
         console.log(`Client current date: ${currentDate}`);
 
         // WebSocket connection
@@ -1102,6 +1108,10 @@
                 return;
             }
 
+            // Debug specific counts
+            console.log(`Sellersburg FTN count from WebSocket: ${data['Sellersburg_Certified_Center']['FTN'].count}`);
+
+            currentDate = date; // Ensure client uses the server's confirmed date
             updateUI(date, data, hourlyRates, totalProduction, peakProduction);
             if (notification) {
                 showNotification(notification);
