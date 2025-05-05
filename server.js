@@ -14,7 +14,7 @@ const pool = new Pool({
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
-const lines = ['FTN', 'VV'];
+const lines = ['FTN', 'VV', 'A-Repair'];
 let currentDate = null; // Will be set by client for UI purposes
 let lastMilestone = 0;
 
