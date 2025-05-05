@@ -748,6 +748,8 @@
         resetDateButton.addEventListener('click', () => {
             const dateSelect = document.getElementById('dateSelect');
             dateSelect.value = '';
+            currentDate = new Date().toISOString().split('T')[0];
+            ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
             ws.send(JSON.stringify({ action: 'requestCurrentData' }));
         });
 
@@ -837,6 +839,8 @@
             const selectedDate = event.target.value;
             try {
                 if (!selectedDate) {
+                    currentDate = new Date().toISOString().split('T')[0];
+                    ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
                     ws.send(JSON.stringify({ action: 'requestCurrentData' }));
                     document.getElementById('graphTitle').textContent = 'Hourly Production Rates';
                     return;
@@ -888,6 +892,7 @@
         let previousTotals = {};
         const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
         const facilityGrid = document.getElementById('facilityGrid');
+        let currentDate = new Date().toISOString().split('T')[0]; // Ensure this is set initially
 
         const updateUI = debounce((date, data, hourlyRates, totalProduction, peakProduction) => {
             updateDateTime();
@@ -1075,7 +1080,6 @@
             }
         }, 100); // Debounce with 100ms delay
 
-        let currentDate = new Date().toISOString().split('T')[0];
         console.log(`Client current date: ${currentDate}`);
 
         // WebSocket connection
@@ -1102,6 +1106,7 @@
                 return;
             }
 
+            currentDate = date; // Ensure client uses the server's confirmed date
             updateUI(date, data, hourlyRates, totalProduction, peakProduction);
             if (notification) {
                 showNotification(notification);
