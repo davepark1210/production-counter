@@ -69,34 +69,34 @@
             100% { transform: scale(1); }
         }
         .facility-card-focused {
-            max-width: 80rem; /* Wide for 1080p/4K TVs, matches header width */
-            padding: 3.5rem; /* More spacious for visibility */
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 87, 184, 0.6); /* Dramatic shadow */
-            border: 6px solid #1e40af; /* Thicker, vibrant blue border */
-            transform: scale(1.2); /* Larger scale for prominence */
+            max-width: 90rem; /* Wider for 1080p/4K TVs, ~1440px */
+            padding: 4rem; /* Spacious for readability */
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Stronger shadow */
+            border: 6px solid #003087; /* Darker blue, thick border */
+            transform: scale(1.25); /* Larger scale for prominence */
             z-index: 20;
-            background: linear-gradient(145deg, #ffffff, #dbe9ff); /* Bolder gradient */
-            margin: 2rem auto; /* Prevent TV overscan clipping */
+            background: linear-gradient(145deg, #ffffff, #c3daff); /* Bolder gradient */
+            margin: 3rem auto; /* Prevent TV overscan clipping */
         }
         .facility-card-focused h2 {
-            font-size: 3.5rem; /* Larger for readability */
+            font-size: 4rem; /* Larger for 20ft visibility */
             color: #003087;
         }
         .facility-card-focused .total-production {
-            font-size: 3rem;
+            font-size: 3.5rem;
             color: #1e40af;
         }
         .facility-card-focused .counter {
-            font-size: 4.5rem; /* Very large for production floor */
+            font-size: 5rem; /* Very large for distance */
         }
         .facility-card-focused .text-xl {
-            font-size: 2.5rem;
+            font-size: 3rem;
         }
         .facility-card-focused .text-base {
-            font-size: 1.8rem;
+            font-size: 2rem;
         }
         .facility-card-focused .peak-metric {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
         }
         .facility-card-focused .back-button {
             display: block;
@@ -106,7 +106,7 @@
         }
         .back-button:hover {
             background-color: #003087;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
         }
         .rank-icon {
             position: absolute;
@@ -620,31 +620,31 @@
             }
             .facility-card-focused {
                 max-width: 100%;
-                padding: 2rem;
+                padding: 2.5rem;
                 transform: scale(1.05);
-                margin: 1rem auto; /* Smaller margin for mobile */
+                margin: 1.5rem auto; /* Smaller margin for mobile */
             }
             .facility-card-focused h2 {
-                font-size: 2.5rem;
+                font-size: 3rem;
             }
             .facility-card-focused .total-production {
-                font-size: 2rem;
+                font-size: 2.5rem;
             }
             .facility-card-focused .counter {
-                font-size: 3.5rem;
+                font-size: 4rem;
             }
             .facility-card-focused .text-xl {
-                font-size: 1.8rem;
+                font-size: 2rem;
             }
             .facility-card-focused .text-base {
-                font-size: 1.4rem;
+                font-size: 1.6rem;
             }
             .facility-card-focused .peak-metric {
-                font-size: 1.2rem;
+                font-size: 1.4rem;
             }
             .facility-card-focused .back-button {
-                padding: 0.5rem 1rem;
-                font-size: 1rem;
+                padding: 0.75rem 1.5rem;
+                font-size: 1.2rem;
             }
             .progress-bar {
                 height: 14px;
@@ -740,7 +740,7 @@
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="Sellersburg_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
-                <button class="back-button hidden mt-4 bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
+                <button class="back-button hidden mt-4 bg-blue-600 text-white px-8 py-4 rounded-lg text-xl font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
         </div>
 
@@ -778,7 +778,7 @@
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="Williamsport_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
-                <button class="back-button hidden mt-4 bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
+                <button class="back-button hidden mt-4 bg-blue-600 text-white px-8 py-4 rounded-lg text-xl font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
         </div>
 
@@ -816,7 +816,7 @@
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="North_Las_Vegas_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
-                <button class="back-button hidden mt-4 bg-blue-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
+                <button class="back-button hidden mt-4 bg-blue-600 text-white px-8 py-4 rounded-lg text-xl font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
         </div>
     </main>
