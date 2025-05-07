@@ -325,6 +325,15 @@
             font-size: 0.95rem;
             color: #6b7280;
             position: relative;
+            transition: color 0.3s ease;
+        }
+        .peak-metric.forecast-updated {
+            animation: highlight-forecast 1s ease-in-out;
+        }
+        @keyframes highlight-forecast {
+            0% { color: #1e40af; }
+            50% { color: #dc2626; }
+            100% { color: #6b7280; }
         }
         .progress-bar {
             width: 100%;
@@ -698,6 +707,7 @@
                             <span class="progress-tooltip" id="Sellersburg_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
+                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="Sellersburg_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
             </div>
         </div>
@@ -734,6 +744,7 @@
                             <span class="progress-tooltip" id="Williamsport_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
+                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="Williamsport_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
             </div>
         </div>
@@ -770,6 +781,7 @@
                             <span class="progress-tooltip" id="North_Las_Vegas_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
+                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="North_Las_Vegas_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
             </div>
         </div>
@@ -1054,6 +1066,8 @@
                 if (percentageElement) percentageElement.textContent = '0%';
                 const tooltipElement = document.getElementById(`${facility}_Progress_Tooltip`);
                 if (tooltipElement) tooltipElement.textContent = '0% of Peak';
+                const forecastElement = document.getElementById(`${facility}_Forecast`);
+                if (forecastElement) forecastElement.textContent = 'Calculating...';
             });
             productionChart.data.datasets.forEach(dataset => {
                 dataset.data = Array(24).fill(0);
@@ -1200,7 +1214,7 @@
                     overallPeakDay = Math.max(overallPeakDay, peakProduction[facility].peakDay);
                 }
             });
-            // Update total production and progress bar
+            // Update total production, progress bar, and forecast
             facilities.forEach(facility => {
                 const ftnCount = data[facility]?.['FTN']?.count || 0;
                 const vvCount = data[facility]?.['VV']?.count || 0;
@@ -1249,6 +1263,56 @@
                     tooltipElement.textContent = `${displayPercentage}% of Peak`;
                 }
                 previousTotals[facility] = total;
+            
+                // Calculate forecasted daily production
+                const forecastElement = document.getElementById(`${facility}_Forecast`);
+                if (forecastElement) {
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const currentMinutes = now.getMinutes();
+                    const isOperational = currentHour >= 6 && (currentHour < 16 || (currentHour === 16 && currentMinutes <= 30));
+                    const timezoneOffsetHours = new Date().getTimezoneOffset() / 60;
+            
+                    if (!isOperational || !hourlyRates[facility]) {
+                        forecastElement.textContent = 'N/A (Outside operational hours)';
+                        return;
+                    }
+            
+                    // Calculate average production rate from 6:00 AM to current hour
+                    let totalRate = 0;
+                    let hoursCounted = 0;
+                    const startHour = 6; // 6:00 AM
+                    const endHour = Math.min(currentHour, 16); // Up to current hour or 4:00 PM
+                    for (let h = startHour; h <= endHour; h++) {
+                        if (h === 16 && currentMinutes > 30) continue; // Exclude partial hour after 4:30 PM
+                        const utcHour = (h + timezoneOffsetHours + 24) % 24;
+                        const ftnRate = hourlyRates[facility]['FTN']?.[utcHour] || 0;
+                        const vvRate = hourlyRates[facility]['VV']?.[utcHour] || 0;
+                        const aRepairRate = hourlyRates[facility]['A-Repair']?.[utcHour] || 0;
+                        totalRate += ftnRate + vvRate + aRepairRate;
+                        hoursCounted++;
+                    }
+            
+                    const avgRate = hoursCounted > 0 ? totalRate / hoursCounted : 0;
+            
+                    // Calculate remaining hours until 4:30 PM
+                    const endTime = new Date(now);
+                    endTime.setHours(16, 30, 0, 0); // 4:30 PM
+                    const remainingMs = endTime - now;
+                    const remainingHours = remainingMs > 0 ? remainingMs / (1000 * 60 * 60) : 0;
+            
+                    // Forecast: current total + (average rate * remaining hours)
+                    const forecast = total + (avgRate * remainingHours);
+                    const roundedForecast = Math.round(forecast);
+            
+                    if (forecastElement.textContent !== `${roundedForecast} units`) {
+                        forecastElement.textContent = `${roundedForecast} units`;
+                        forecastElement.parentElement.classList.add('forecast-updated');
+                        setTimeout(() => {
+                            forecastElement.parentElement.classList.remove('forecast-updated');
+                        }, 1000);
+                    }
+                }
             });
 
             // Update facility cards with ranking
