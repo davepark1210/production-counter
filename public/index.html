@@ -887,6 +887,14 @@
     </footer>
 
     <script>
+    // Suppress Cloudflare runtime.lastError in console for development
+    const originalConsoleError = console.error;
+    console.error = function (...args) {
+        if (typeof args[0] === 'string' && args[0].includes('Unchecked runtime.lastError: The message port closed before a response was received')) {
+            return; // Skip logging this error
+        }
+        originalConsoleError.apply(console, args);
+    };        
     // Initialize Chart.js
     let productionChart;
     function initializeChart() {
@@ -1045,7 +1053,7 @@
                         tension: 0.4
                     },
                     {
-                        label: 'North Las Vegas VV'VV',
+                        label: 'North Las Vegas VV',
                         data: Array(24).fill(0),
                         borderColor: function(context) {
                             const chart = context.chart;
