@@ -1655,7 +1655,7 @@
                         console.log(`Mapping ${facility} ${line} UTC hour ${utcHour} to local hour ${localHour}`);
                     }
                     // Adjust current hour's rate based on minutes
-                    const currentLocalHour = (utcHour - timezoneOffsetHours + 24) % 24;
+                    const currentLocalHour = (currentHour - timezoneOffsetHours + 24) % 24;
                     shiftedData[currentLocalHour] = shiftedData[currentLocalHour] * (currentMinutes / 60);
                     console.log(`Shifted data for ${dataset.label}:`, shiftedData);
                     return shiftedData;
