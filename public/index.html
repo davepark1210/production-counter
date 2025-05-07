@@ -6,7 +6,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <title>Certified Center Production</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -858,133 +858,286 @@
     <script>
         // Initialize Chart.js
         const ctx = document.getElementById('productionChart').getContext('2d');
-        const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+           const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
         
-        // Create gradient for fill
-        const createGradient = (ctx, chartArea) => {
-            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-            gradient.addColorStop(0, 'rgba(54, 162, 235, 0.1)');
-            gradient.addColorStop(1, 'rgba(54, 162, 235, 0.4)');
-            return gradient;
-        };
-        
-        const productionChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    { label: 'Sellersburg FTN', data: Array(24).fill(0), borderColor: '#ff6384', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
-                    { label: 'Sellersburg VV', data: Array(24).fill(0), borderColor: '#36a2eb', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
-                    { label: 'Sellersburg A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
-                    { label: 'Williamsport FTN', data: Array(24).fill(0), borderColor: '#cc65fe', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
-                    { label: 'Williamsport VV', data: Array(24).fill(0), borderColor: '#ffce56', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
-                    { label: 'Williamsport A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
-                    { label: 'North Las Vegas FTN', data: Array(24).fill(0), borderColor: '#4bc0c0', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
-                    { label: 'North Las Vegas VV', data: Array(24).fill(0), borderColor: '#9966ff', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
-                    { label: 'North Las Vegas A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            font: { size: 14, weight: 'bold', family: 'Poppins' },
-                            padding: 15,
-                            boxWidth: 20,
-                            usePointStyle: true,
-                            pointStyle: 'circle'
-                        }
-                    },
-                    tooltip: {
-                        enabled: true,
-                        backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                        titleFont: { size: 14, family: 'Poppins' },
-                        bodyFont: { size: 12, family: 'Poppins' },
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.dataset.label}: ${context.parsed.y} units/hour`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Hour of Day (Local Time)',
-                            font: { size: 16, weight: 'bold', family: 'Poppins' },
-                            color: '#1e40af',
-                            padding: 10
-                        },
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 87, 184, 0.1)',
-                            lineWidth: 1
-                        },
-                        ticks: {
-                            font: { size: 12, family: 'Poppins' },
-                            color: '#1e40af',
-                            padding: 10
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Production Rate (Units/Hour)',
-                            font: { size: 16, weight: 'bold', family: 'Poppins' },
-                            color: '#1e40af',
-                            padding: 10
-                        },
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 87, 184, 0.1)',
-                            lineWidth: 1
-                        },
-                        ticks: {
-                            font: { size: 12, family: 'Poppins' },
-                            color: '#1e40af',
-                            beginAtZero: true,
-                            padding: 10
-                        }
-                    }
-                },
-                elements: {
-                    line: {
-                        tension: 0.4, // Smoother curves
-                        shadowOffsetX: 0,
-                        shadowOffsetY: 0,
-                        shadowBlur: 10,
-                        shadowColor: 'rgba(0, 0, 0, 0.2)'
-                    },
-                    point: {
-                        pointStyle: 'circle',
-                        backgroundColor: '#ffffff',
-                        borderWidth: 2
-                    }
-                },
-                layout: {
-                    padding: {
-                        left: 20,
-                        right: 20,
-                        top: 20,
-                        bottom: 20
-                    }
-                },
-                onHover: (event, elements) => {
-                    elements.forEach(element => {
-                        const dataset = element.element.$context.dataset;
-                        dataset.shadowBlur = 15;
-                        dataset.shadowColor = dataset.borderColor.replace(')', ', 0.6)').replace('rgb', 'rgba');
-                    });
-                }
-            }
-        });
+           const productionChart = new Chart(ctx, {
+               type: 'line',
+               data: {
+                   labels: labels,
+                   datasets: [
+                       { 
+                           label: 'Sellersburg FTN', 
+                           data: Array(24).fill(0), 
+                           borderColor: '#ff6384', 
+                           backgroundColor: (ctx) => {
+                               const chart = ctx.chart;
+                               const { ctx: canvasCtx, chartArea } = chart;
+                               if (!chartArea) return 'rgba(255, 99, 132, 0.2)';
+                               const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                               gradient.addColorStop(0, 'rgba(255, 99, 132, 0.1)');
+                               gradient.addColorStop(1, 'rgba(255, 99, 132, 0.4)');
+                               return gradient;
+                           }, 
+                           borderWidth: 3, 
+                           fill: true, 
+                           pointRadius: 5, 
+                           pointHoverRadius: 8, 
+                           pointStyle: 'circle' 
+                       },
+                       { 
+                           label: 'Sellersburg VV', 
+                           data: Array(24).fill(0), 
+                           borderColor: '#36a2eb', 
+                           backgroundColor: (ctx) => {
+                               const chart = ctx.chart;
+                               const { ctx: canvasCtx, chartArea } = chart;
+                               if (!chartArea) return 'rgba(54, 162, 235, 0.2)';
+                               const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                               gradient.addColorStop(0, 'rgba(54, 162, 235, 0.1)');
+                               gradient.addColorStop(1, 'rgba(54, 162, 235, 0.4)');
+                               return gradient;
+                           }, 
+                           borderWidth: 3, 
+                           fill: true, 
+                           pointRadius: 5, 
+                           pointHoverRadius: 8, 
+                           pointStyle: 'circle' 
+                       },
+                       { 
+                           label: 'Sellersburg A-Repair', 
+                           data: Array(24).fill(0), 
+                           borderColor: '#ff9f40', 
+                           backgroundColor: (ctx) => {
+                               const chart = ctx.chart;
+                               const { ctx: canvasCtx, chartArea } = chart;
+                               if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
+                               const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                               gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
+                               gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)');
+                               return gradient;
+                           }, 
+                           borderWidth: 3, 
+                           fill: true, 
+                           pointRadius: 5, 
+                           pointHoverRadius: 8, 
+                           pointStyle: 'circle' 
+                       },
+                       { 
+                           label: 'Williamsport FTN', 
+                           data: Array(24).fill(0), 
+                           borderColor: '#cc65fe', 
+                           backgroundColor: (ctx) => {
+                               const chart = ctx.chart;
+                               const { ctx: canvasCtx, chartArea } = chart;
+                               if (!chartArea) return 'rgba(204, 101, 254, 0.2)';
+                               const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                               gradient.addColorStop(0, 'rgba(204, 101, 254, 0.1)');
+                               gradient.addColorStop(1, 'rgba(204, 101, 254, 0.4)');
+                               return gradient;
+                           }, 
+                           borderWidth: 3, 
+                           fill: true, 
+                           pointRadius: 5, 
+                           pointHoverRadius: 8, 
+                           pointStyle: 'circle' 
+                       },
+                       { 
+                           label: 'Williamsport VV', 
+                           data: Array(24).fill(0), 
+                           borderColor: '#ffce56', 
+                           backgroundColor: (ctx) => {
+                               const chart = ctx.chart;
+                               const { ctx: canvasCtx, chartArea } = chart;
+                               if (!chartArea) return 'rgba(255, 206, 86, 0.2)';
+                               const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                               gradient.addColorStop(0, 'rgba(255, 206, 86, 0.1)');
+                               gradient.addColorStop(1, 'rgba(255, 206, 86, 0.4)');
+                               return gradient;
+                           }, 
+                           borderWidth: 3, 
+                           fill: true, 
+                           pointRadius: 5, 
+                           pointHoverRadius: 8, 
+                           pointStyle: 'circle' 
+                       },
+                       { 
+                           label: 'Williamsport A-Repair', 
+                           data: Array(24).fill(0), 
+                           borderColor: '#ff9f40', 
+                           backgroundColor: (ctx) => {
+                               const chart = ctx.chart;
+                               const { ctx: canvasCtx, chartArea } = chart;
+                               if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
+                               const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                               gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
+                               gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)');
+                               return gradient;
+                           }, 
+                           borderWidth: 3, 
+                           fill: true, 
+                           pointRadius: 5, 
+                           pointHoverRadius: 8, 
+                           pointStyle: 'circle' 
+                       },
+                       { 
+                           label: 'North Las Vegas FTN', 
+                           data: Array(24).fill(0), 
+                           borderColor: '#4bc0c0', 
+                           backgroundColor: (ctx) => {
+                               const chart = ctx.chart;
+                               const { ctx: canvasCtx, chartArea } = chart;
+                               if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
+                               const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                               gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)');
+                               gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)');
+                               return gradient;
+                           }, 
+                           borderWidth: 3, 
+                           fill: true, 
+                           pointRadius: 5, 
+                           pointHoverRadius: 8, 
+                           pointStyle: 'circle' 
+                       },
+                       { 
+                           label: 'North Las Vegas VV', 
+                           data: Array(24).fill(0), 
+                           borderColor: '#9966ff', 
+                           backgroundColor: (ctx) => {
+                               const chart = ctx.chart;
+                               const { ctx: canvasCtx, chartArea } = chart;
+                               if (!chartArea) return 'rgba(153, 102, 255, 0.2)';
+                               const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                               gradient.addColorStop(0, 'rgba(153, 102, 255, 0.1)');
+                               gradient.addColorStop(1, 'rgba(153, 102, 255, 0.4)');
+                               return gradient;
+                           }, 
+                           borderWidth: 3, 
+                           fill: true, 
+                           pointRadius: 5, 
+                           pointHoverRadius: 8, 
+                           pointStyle: 'circle' 
+                       },
+                       { 
+                           label: 'North Las Vegas A-Repair', 
+                           data: Array(24).fill(0), 
+                           borderColor: '#ff9f40', 
+                           backgroundColor: (ctx) => {
+                               const chart = ctx.chart;
+                               const { ctx: canvasCtx, chartArea } = chart;
+                               if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
+                               const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                               gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
+                               gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)');
+                               return gradient;
+                           }, 
+                           borderWidth: 3, 
+                           fill: true, 
+                           pointRadius: 5, 
+                           pointHoverRadius: 8, 
+                           pointStyle: 'circle' 
+                       }
+                   ]
+               },
+               options: {
+                   responsive: true,
+                   maintainAspectRatio: false,
+                   plugins: {
+                       legend: {
+                           display: true,
+                           position: 'top',
+                           labels: {
+                               font: { size: 14, weight: 'bold', family: 'Poppins' },
+                               padding: 15,
+                               boxWidth: 20,
+                               usePointStyle: true,
+                               pointStyle: 'circle'
+                           }
+                       },
+                       tooltip: {
+                           enabled: true,
+                           backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                           titleFont: { size: 14, family: 'Poppins' },
+                           bodyFont: { size: 12, family: 'Poppins' },
+                           padding: 12,
+                           cornerRadius: 8,
+                           callbacks: {
+                               label: function(context) {
+                                   return `${context.dataset.label}: ${context.parsed.y} units/hour`;
+                               }
+                           }
+                       }
+                   },
+                   scales: {
+                       x: {
+                           title: {
+                               display: true,
+                               text: 'Hour of Day (Local Time)',
+                               font: { size: 16, weight: 'bold', family: 'Poppins' },
+                               color: '#1e40af',
+                               padding: 10
+                           },
+                           grid: {
+                               display: true,
+                               color: 'rgba(0, 87, 184, 0.1)',
+                               lineWidth: 1
+                           },
+                           ticks: {
+                               font: { size: 12, family: 'Poppins' },
+                               color: '#1e40af',
+                               padding: 10
+                           }
+                       },
+                       y: {
+                           title: {
+                               display: true,
+                               text: 'Production Rate (Units/Hour)',
+                               font: { size: 16, weight: 'bold', family: 'Poppins' },
+                               color: '#1e40af',
+                               padding: 10
+                           },
+                           grid: {
+                               display: true,
+                               color: 'rgba(0, 87, 184, 0.1)',
+                               lineWidth: 1
+                           },
+                           ticks: {
+                               font: { size: 12, family: 'Poppins' },
+                               color: '#1e40af',
+                               beginAtZero: true,
+                               padding: 10
+                           }
+                       }
+                   },
+                   elements: {
+                       line: {
+                           tension: 0.4,
+                           shadowOffsetX: 0,
+                           shadowOffsetY: 0,
+                           shadowBlur: 10,
+                           shadowColor: 'rgba(0, 0, 0, 0.2)'
+                       },
+                       point: {
+                           pointStyle: 'circle',
+                           backgroundColor: '#ffffff',
+                           borderWidth: 2,
+                           hitRadius: 10 // Added to fix hover interaction
+                       }
+                   },
+                   layout: {
+                       padding: {
+                           left: 20,
+                           right: 20,
+                           top: 20,
+                           bottom: 20
+                       }
+                   },
+                   interaction: {
+                       mode: 'nearest',
+                       intersect: true,
+                       axis: 'x'
+                   }
+               }
+           });
 
         // Real-time clock update
         function updateDateTime() {
@@ -1533,43 +1686,54 @@
 
         // WebSocket connection
         const ws = new WebSocket('wss://production-counter.onrender.com');
-        ws.onopen = () => {
-            console.log('WebSocket connection established');
-            document.getElementById('loadingSpinner').style.display = 'none';
-            ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-            loadHistoricalDates();
-        };
-        ws.onmessage = (event) => {
-            console.log('Received WebSocket message:', event.data);
-            let message;
-            try {
-                message = JSON.parse(event.data);
-            } catch (err) {
-                console.error('Failed to parse WebSocket message:', err);
-                return;
-            }
-
-            const { date, data, hourlyRates, totalProduction, peakProduction, notification } = message;
-            if (!date || !data || !hourlyRates) {
-                console.error('Invalid WebSocket message structure:', message);
-                return;
-            }
-
-            console.log(`Received data for date: ${date}`);
-            console.log(`Sellersburg FTN count: ${data['Sellersburg_Certified_Center']['FTN'].count}`);
-            updateUI(date, data, hourlyRates, totalProduction, peakProduction);
-            if (notification) {
-                showNotification(notification);
-            }
-        };
-        ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            document.getElementById('loadingSpinner').style.display = 'none';
-        };
-        ws.onclose = () => {
-            console.log('WebSocket connection closed');
-            document.getElementById('loadingSpinner').style.display = 'none';
-        };
+           ws.onopen = () => {
+               console.log('WebSocket connection established');
+               document.getElementById('loadingSpinner').style.display = 'none';
+               ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
+               loadHistoricalDates();
+           };
+           ws.onmessage = (event) => {
+               console.log('Received WebSocket message:', event.data);
+               let message;
+               try {
+                   message = JSON.parse(event.data);
+               } catch (err) {
+                   console.error('Failed to parse WebSocket message:', err);
+                   return;
+               }
+        
+               const { date, data, hourlyRates, totalProduction, peakProduction, notification } = message;
+               if (!date || !data || !hourlyRates) {
+                   console.error('Invalid WebSocket message structure:', message);
+                   return;
+               }
+        
+               console.log(`Received data for date: ${date}`);
+               console.log(`Sellersburg FTN count: ${data['Sellersburg_Certified_Center']['FTN'].count}`);
+               updateUI(date, data, hourlyRates, totalProduction, peakProduction);
+               if (notification) {
+                   showNotification(notification);
+               }
+           };
+           ws.onerror = (error) => {
+               console.error('WebSocket error:', error);
+               document.getElementById('loadingSpinner').style.display = 'none';
+               showNotification('WebSocket connection error. Attempting to reconnect...');
+           };
+           ws.onclose = () => {
+               console.log('WebSocket connection closed');
+               document.getElementById('loadingSpinner').style.display = 'none';
+               showNotification('WebSocket connection closed. Reconnecting...');
+               setTimeout(() => {
+                   console.log('Attempting to reconnect WebSocket...');
+                   const newWs = new WebSocket('wss://production-counter.onrender.com');
+                   newWs.onopen = ws.onopen;
+                   newWs.onmessage = ws.onmessage;
+                   newWs.onerror = ws.onerror;
+                   newWs.onclose = ws.onclose;
+                   ws = newWs;
+               }, 5000);
+           };
     </script>
 </body>
 </html>
