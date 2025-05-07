@@ -4,7 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <title>Certified Center Production</title>
+    <title>Certified Center Production</title>\
+    <script>
+        // Suppress Cloudflare runtime.lastError in console for development
+        const originalConsoleError = console.error;
+        console.error = function (...args) {
+            if (typeof args[0] === 'string' && args[0].includes('Unchecked runtime.lastError: The message port closed before a response was received')) {
+                return; // Skip logging this error
+            }
+            originalConsoleError.apply(console, args);
+        };    
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
@@ -220,13 +230,13 @@
             opacity: 1;
         }
         .graph-section {
-            border: 2px solid #d1d5db;
+            border: 4px solid #d1d5db;
             background: linear-gradient(145deg, #f9fafb, #e2e8f0);
-            border-radius: 16px;
-            padding: 3rem;
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+            border-radius: 20px;
+            padding: 4rem; /* More padding for spaciousness */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
             max-width: 90rem; /* Matches focused card width */
-            margin: 0 auto; /* Center on TV */
+            margin: 2rem auto; /* More margin to prevent TV overscan clipping */
         }
         .graph-section canvas {
             border-radius: 12px;
@@ -869,7 +879,11 @@
         </div>
         <div id="graphSection" class="graph-section">
             <h2 id="graphTitle" class="text-4xl font-semibold text-blue-600 mb-4 text-center">Hourly Production Rates</h2>
-            <div class="bg-white p-8 rounded-xl shadow-lg" style="height: 500px;">
+            <div class="flex justify-center space-x-4 mb-4">
+                <button id="zoomInButton" class="toggle-button">Zoom In</button>
+                <button id="zoomOutButton" class="toggle-button">Zoom Out</button>
+            </div>
+            <div class="bg-white p-8 rounded-xl shadow-lg" style="height: 600px;">
                 <canvas id="productionChart"></canvas>
             </div>
         </div>
@@ -887,14 +901,6 @@
     </footer>
 
     <script>
-    // Suppress Cloudflare runtime.lastError in console for development
-    const originalConsoleError = console.error;
-    console.error = function (...args) {
-        if (typeof args[0] === 'string' && args[0].includes('Unchecked runtime.lastError: The message port closed before a response was received')) {
-            return; // Skip logging this error
-        }
-        originalConsoleError.apply(console, args);
-    };        
     // Initialize Chart.js
     let productionChart;
     function initializeChart() {
@@ -934,18 +940,18 @@
                             borderColor: function(context) {
                                 const chart = context.chart;
                                 const { ctx, chartArea } = chart;
-                                if (!chartArea) return '#ff6384';
-                                return createGradient(ctx, chartArea, '#ff6384', '#36a2eb');
+                                if (!chartArea) return '#e0245e'; // Brighter red
+                                return createGradient(ctx, chartArea, '#e0245e', '#f687b3');
                             },
-                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                            borderWidth: 4,
+                            backgroundColor: 'rgba(224, 36, 94, 0.2)',
+                            borderWidth: 6, // Thicker lines
                             fill: false,
-                            pointRadius: 6,
-                            pointHoverRadius: 10,
+                            pointRadius: 10, // Larger points
+                            pointHoverRadius: 14,
                             pointBackgroundColor: '#fff',
-                            pointBorderColor: '#ff6384',
-                            pointBorderWidth: 3,
-                            tension: 0.4
+                            pointBorderColor: '#e0245e',
+                            pointBorderWidth: 4,
+                            tension: 0.3 // Smoother curves
                         },
                         {
                             label: 'Sellersburg VV',
@@ -953,18 +959,18 @@
                             borderColor: function(context) {
                                 const chart = context.chart;
                                 const { ctx, chartArea } = chart;
-                                if (!chartArea) return '#36a2eb';
-                                return createGradient(ctx, chartArea, '#36a2eb', '#60a5fa');
+                                if (!chartArea) return '#1e90ff'; // Brighter blue
+                                return createGradient(ctx, chartArea, '#1e90ff', '#a3cffa');
                             },
-                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                            borderWidth: 4,
+                            backgroundColor: 'rgba(30, 144, 255, 0.2)',
+                            borderWidth: 6,
                             fill: false,
-                            pointRadius: 6,
-                            pointHoverRadius: 10,
+                            pointRadius: 10,
+                            pointHoverRadius: 14,
                             pointBackgroundColor: '#fff',
-                            pointBorderColor: '#36a2eb',
-                            pointBorderWidth: 3,
-                            tension: 0.4
+                            pointBorderColor: '#1e90ff',
+                            pointBorderWidth: 4,
+                            tension: 0.3
                         },
                         {
                             label: 'Sellersburg A-Repair',
@@ -972,18 +978,18 @@
                             borderColor: function(context) {
                                 const chart = context.chart;
                                 const { ctx, chartArea } = chart;
-                                if (!chartArea) return '#ff9f40';
-                                return createGradient(ctx, chartArea, '#ff9f40', '#ffcd56');
+                                if (!chartArea) return '#ff8c00'; // Brighter orange
+                                return createGradient(ctx, chartArea, '#ff8c00', '#ffd700');
                             },
-                            backgroundColor: 'rgba(255, 159, 64, 0.2)',
-                            borderWidth: 4,
+                            backgroundColor: 'rgba(255, 140, 0, 0.2)',
+                            borderWidth: 6,
                             fill: false,
-                            pointRadius: 6,
-                            pointHoverRadius: 10,
+                            pointRadius: 10,
+                            pointHoverRadius: 14,
                             pointBackgroundColor: '#fff',
-                            pointBorderColor: '#ff9f40',
-                            pointBorderWidth: 3,
-                            tension: 0.4
+                            pointBorderColor: '#ff8c00',
+                            pointBorderWidth: 4,
+                            tension: 0.3
                         },
                         {
                             label: 'Williamsport FTN',
@@ -991,18 +997,18 @@
                             borderColor: function(context) {
                                 const chart = context.chart;
                                 const { ctx, chartArea } = chart;
-                                if (!chartArea) return '#cc65fe';
-                                return createGradient(ctx, chartArea, '#cc65fe', '#4bc0c0');
+                                if (!chartArea) return '#9400d3'; // Brighter purple
+                                return createGradient(ctx, chartArea, '#9400d3', '#da70d6');
                             },
-                            backgroundColor: 'rgba(204, 101, 254, 0.2)',
-                            borderWidth: 4,
+                            backgroundColor: 'rgba(148, 0, 211, 0.2)',
+                            borderWidth: 6,
                             fill: false,
-                            pointRadius: 6,
-                            pointHoverRadius: 10,
+                            pointRadius: 10,
+                            pointHoverRadius: 14,
                             pointBackgroundColor: '#fff',
-                            pointBorderColor: '#cc65fe',
-                            pointBorderWidth: 3,
-                            tension: 0.4
+                            pointBorderColor: '#9400d3',
+                            pointBorderWidth: 4,
+                            tension: 0.3
                         },
                         {
                             label: 'Williamsport VV',
@@ -1010,18 +1016,18 @@
                             borderColor: function(context) {
                                 const chart = context.chart;
                                 const { ctx, chartArea } = chart;
-                                if (!chartArea) return '#ffce56';
-                                return createGradient(ctx, chartArea, '#ffce56', '#9966ff');
+                                if (!chartArea) return '#ffd700'; // Brighter gold
+                                return createGradient(ctx, chartArea, '#ffd700', '#fffacd');
                             },
-                            backgroundColor: 'rgba(255, 206, 86, 0.2)',
-                            borderWidth: 4,
+                            backgroundColor: 'rgba(255, 215, 0, 0.2)',
+                            borderWidth: 6,
                             fill: false,
-                            pointRadius: 6,
-                            pointHoverRadius: 10,
+                            pointRadius: 10,
+                            pointHoverRadius: 14,
                             pointBackgroundColor: '#fff',
-                            pointBorderColor: '#ffce56',
-                            pointBorderWidth: 3,
-                            tension: 0.4
+                            pointBorderColor: '#ffd700',
+                            pointBorderWidth: 4,
+                            tension: 0.3
                         },
                         {
                             label: 'Williamsport A-Repair',
@@ -1029,18 +1035,18 @@
                             borderColor: function(context) {
                                 const chart = context.chart;
                                 const { ctx, chartArea } = chart;
-                                if (!chartArea) return '#ff9f40';
-                                return createGradient(ctx, chartArea, '#ff9f40', '#ffcd56');
+                                if (!chartArea) return '#ff4500'; // Brighter red-orange
+                                return createGradient(ctx, chartArea, '#ff4500', '#ff8c69');
                             },
-                            backgroundColor: 'rgba(255, 159, 64, 0.2)',
-                            borderWidth: 4,
+                            backgroundColor: 'rgba(255, 69, 0, 0.2)',
+                            borderWidth: 6,
                             fill: false,
-                            pointRadius: 6,
-                            pointHoverRadius: 10,
+                            pointRadius: 10,
+                            pointHoverRadius: 14,
                             pointBackgroundColor: '#fff',
-                            pointBorderColor: '#ff9f40',
-                            pointBorderWidth: 3,
-                            tension: 0.4
+                            pointBorderColor: '#ff4500',
+                            pointBorderWidth: 4,
+                            tension: 0.3
                         },
                         {
                             label: 'North Las Vegas FTN',
@@ -1048,18 +1054,18 @@
                             borderColor: function(context) {
                                 const chart = context.chart;
                                 const { ctx, chartArea } = chart;
-                                if (!chartArea) return '#4bc0c0';
-                                return createGradient(ctx, chartArea, '#4bc0c0', '#ff9f40');
+                                if (!chartArea) return '#00ced1'; // Brighter turquoise
+                                return createGradient(ctx, chartArea, '#00ced1', '#40e0d0');
                             },
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            borderWidth: 4,
+                            backgroundColor: 'rgba(0, 206, 209, 0.2)',
+                            borderWidth: 6,
                             fill: false,
-                            pointRadius: 6,
-                            pointHoverRadius: 10,
+                            pointRadius: 10,
+                            pointHoverRadius: 14,
                             pointBackgroundColor: '#fff',
-                            pointBorderColor: '#4bc0c0',
-                            pointBorderWidth: 3,
-                            tension: 0.4
+                            pointBorderColor: '#00ced1',
+                            pointBorderWidth: 4,
+                            tension: 0.3
                         },
                         {
                             label: 'North Las Vegas VV',
@@ -1067,18 +1073,18 @@
                             borderColor: function(context) {
                                 const chart = context.chart;
                                 const { ctx, chartArea } = chart;
-                                if (!chartArea) return '#9966ff';
-                                return createGradient(ctx, chartArea, '#9966ff', '#cc65fe');
+                                if (!chartArea) return '#6a5acd'; // Brighter slate blue
+                                return createGradient(ctx, chartArea, '#6a5acd', '#ba55d3');
                             },
-                            backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                            borderWidth: 4,
+                            backgroundColor: 'rgba(106, 90, 205, 0.2)',
+                            borderWidth: 6,
                             fill: false,
-                            pointRadius: 6,
-                            pointHoverRadius: 10,
+                            pointRadius: 10,
+                            pointHoverRadius: 14,
                             pointBackgroundColor: '#fff',
-                            pointBorderColor: '#9966ff',
-                            pointBorderWidth: 3,
-                            tension: 0.4
+                            pointBorderColor: '#6a5acd',
+                            pointBorderWidth: 4,
+                            tension: 0.3
                         },
                         {
                             label: 'North Las Vegas A-Repair',
@@ -1086,18 +1092,18 @@
                             borderColor: function(context) {
                                 const chart = context.chart;
                                 const { ctx, chartArea } = chart;
-                                if (!chartArea) return '#ff9f40';
-                                return createGradient(ctx, chartArea, '#ff9f40', '#4bc0c0');
+                                if (!chartArea) return '#ff6347'; // Brighter tomato
+                                return createGradient(ctx, chartArea, '#ff6347', '#ff8c69');
                             },
-                            backgroundColor: 'rgba(255, 159, 64, 0.2)',
-                            borderWidth: 4,
+                            backgroundColor: 'rgba(255, 99, 71, 0.2)',
+                            borderWidth: 6,
                             fill: false,
-                            pointRadius: 6,
-                            pointHoverRadius: 10,
+                            pointRadius: 10,
+                            pointHoverRadius: 14,
                             pointBackgroundColor: '#fff',
-                            pointBorderColor: '#ff9f40',
-                            pointBorderWidth: 3,
-                            tension: 0.4
+                            pointBorderColor: '#ff6347',
+                            pointBorderWidth: 4,
+                            tension: 0.3
                         }
                     ]
                 },
@@ -1109,9 +1115,9 @@
                             display: true,
                             position: 'top',
                             labels: {
-                                font: { size: 20, weight: 'bold', family: 'Poppins' },
-                                padding: 20,
-                                boxWidth: 24,
+                                font: { size: 32, weight: 'bold', family: 'Poppins' }, // Larger font for legend
+                                padding: 30,
+                                boxWidth: 30,
                                 usePointStyle: true,
                                 pointStyle: 'circle',
                                 generateLabels: (chart) => {
@@ -1124,7 +1130,7 @@
                                         hidden: !chart.isDatasetVisible(i),
                                         datasetIndex: i,
                                         pointStyle: 'circle',
-                                        borderRadius: 6
+                                        borderRadius: 8
                                     }));
                                 }
                             },
@@ -1143,11 +1149,11 @@
                         tooltip: {
                             enabled: true,
                             backgroundColor: 'rgba(0, 0, 0, 0.9)',
-                            titleFont: { size: 20, weight: 'bold', family: 'Poppins' },
-                            bodyFont: { size: 18, family: 'Poppins' },
-                            padding: 14,
-                            cornerRadius: 10,
-                            boxPadding: 8,
+                            titleFont: { size: 36, weight: 'bold', family: 'Poppins' }, // Larger tooltip font
+                            bodyFont: { size: 32, family: 'Poppins' },
+                            padding: 20,
+                            cornerRadius: 12,
+                            boxPadding: 10,
                             callbacks: {
                                 title: (tooltipItems) => {
                                     return `Hour: ${tooltipItems[0].label}`;
@@ -1161,17 +1167,20 @@
                         },
                         zoom: {
                             zoom: {
-                                wheel: { enabled: true, speed: 0.1 },
+                                wheel: { enabled: true, speed: 0.05 }, // Slower, smoother zoom
                                 pinch: { enabled: true },
-                                mode: 'xy'
+                                mode: 'xy',
+                                speed: 0.05
                             },
                             pan: {
                                 enabled: true,
-                                mode: 'xy'
+                                mode: 'xy',
+                                speed: 10,
+                                threshold: 10
                             },
                             limits: {
-                                x: { min: 0, max: 23 },
-                                y: { min: 0 }
+                                x: { min: 0, max: 23, minRange: 2 }, // Prevent over-zooming on x-axis
+                                y: { min: 0, minRange: 10 } // Prevent over-zooming on y-axis
                             }
                         }
                     },
@@ -1180,39 +1189,43 @@
                             title: {
                                 display: true,
                                 text: 'Hour of Day (Local Time)',
-                                font: { size: 24, weight: 'bold', family: 'Poppins' },
-                                color: '#1e40af',
-                                padding: 15
+                                font: { size: 40, weight: 'bold', family: 'Poppins' }, // Larger font
+                                color: '#003087', // Darker blue for contrast
+                                padding: 20
                             },
                             grid: {
                                 display: true,
-                                color: 'rgba(0, 87, 184, 0.15)',
-                                lineWidth: 2
+                                color: 'rgba(0, 48, 135, 0.2)', // Darker grid lines
+                                lineWidth: 2,
+                                tickLength: 10
                             },
                             ticks: {
-                                font: { size: 18, family: 'Poppins' },
-                                color: '#1e40af',
-                                padding: 12
+                                font: { size: 32, family: 'Poppins' }, // Larger ticks
+                                color: '#003087',
+                                padding: 15,
+                                maxTicksLimit: 12 // Reduce tick density
                             }
                         },
                         y: {
                             title: {
                                 display: true,
                                 text: 'Production Rate (Units/Hour)',
-                                font: { size: 24, weight: 'bold', family: 'Poppins' },
-                                color: '#1e40af',
-                                padding: 15
+                                font: { size: 40, weight: 'bold', family: 'Poppins' },
+                                color: '#003087',
+                                padding: 20
                             },
                             grid: {
                                 display: true,
-                                color: 'rgba(0, 87, 184, 0.15)',
-                                lineWidth: 2
+                                color: 'rgba(0, 48, 135, 0.2)',
+                                lineWidth: 2,
+                                tickLength: 10
                             },
                             ticks: {
-                                font: { size: 18, family: 'Poppins' },
-                                color: '#1e40af',
+                                font: { size: 32, family: 'Poppins' },
+                                color: '#003087',
                                 beginAtZero: true,
-                                padding: 12,
+                                padding: 15,
+                                maxTicksLimit: 8, // Reduce tick density
                                 callback: function(value) {
                                     return Number.isInteger(value) ? value : null;
                                 }
@@ -1222,13 +1235,13 @@
                     },
                     elements: {
                         line: {
-                            tension: 0.4,
+                            tension: 0.3,
                             borderCapStyle: 'round',
                             borderJoinStyle: 'round'
                         },
                         point: {
                             hoverBackgroundColor: '#fff',
-                            hoverBorderWidth: 4,
+                            hoverBorderWidth: 6,
                             pointStyle: function(context) {
                                 const hour = context.dataIndex;
                                 const currentHour = new Date().getHours();
@@ -1237,21 +1250,21 @@
                             radius: function(context) {
                                 const hour = context.dataIndex;
                                 const currentHour = new Date().getHours();
-                                return hour === currentHour ? 8 : 6;
+                                return hour === currentHour ? 14 : 10; // Larger points
                             },
                             backgroundColor: function(context) {
                                 const hour = context.dataIndex;
                                 const currentHour = new Date().getHours();
-                                return hour === currentHour ? '#ffcd56' : '#fff';
+                                return hour === currentHour ? '#ffd700' : '#fff'; // Gold for current hour
                             }
                         }
                     },
                     layout: {
                         padding: {
-                            left: 30,
-                            right: 30,
-                            top: 30,
-                            bottom: 30
+                            left: 50,
+                            right: 50,
+                            top: 50,
+                            bottom: 50
                         }
                     },
                     animation: {
@@ -1260,6 +1273,24 @@
                     }
                 }
             });
+    
+            // Add event listeners for zoom buttons
+            const zoomInButton = document.getElementById('zoomInButton');
+            const zoomOutButton = document.getElementById('zoomOutButton');
+    
+            if (zoomInButton) {
+                zoomInButton.addEventListener('click', () => {
+                    productionChart.zoom(1.2); // Zoom in by 20%
+                    showNotification('Zoomed in');
+                });
+            }
+    
+            if (zoomOutButton) {
+                zoomOutButton.addEventListener('click', () => {
+                    productionChart.zoom(0.8); // Zoom out by 20%
+                    showNotification('Zoomed out');
+                });
+            }
         } catch (err) {
             console.error('Error initializing chart:', err);
             showNotification('Failed to initialize production chart.');
