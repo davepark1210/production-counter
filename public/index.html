@@ -899,7 +899,6 @@
         const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
         console.log('Graph labels:', labels);
     
-        // Define gradient function
         function createGradient(ctx, chartArea, colorStart, colorEnd) {
             const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
             gradient.addColorStop(0, colorStart);
@@ -1046,7 +1045,7 @@
                         tension: 0.4
                     },
                     {
-                        label: 'North Las Vegas VV',
+                        label: 'North Las Vegas VV'VV',
                         data: Array(24).fill(0),
                         borderColor: function(context) {
                             const chart = context.chart;
@@ -1122,12 +1121,6 @@
                                 ci.show(index);
                                 legendItem.hidden = false;
                             }
-                        },
-                        onHover: (event) => {
-                            event.native.target.style.cursor = 'pointer';
-                        },
-                        onLeave: (event) => {
-                            event.native.target.style.cursor = 'default';
                         }
                     },
                     tooltip: {
@@ -1207,10 +1200,7 @@
                                 return Number.isInteger(value) ? value : null;
                             }
                         },
-                        suggestedMax: () => {
-                            const maxDataValue = Math.max(...productionChart.data.datasets.map(ds => Math.max(...ds.data)));
-                            return Math.ceil(maxDataValue * 1.3);
-                        }
+                        suggestedMax: 100
                     }
                 },
                 elements: {
@@ -1480,7 +1470,6 @@
                     if (backButton) backButton.classList.add('hidden');
                 }
             });
-            // Show graph in focused mode
             if (graphSection && toggleGraphButton) {
                 graphSection.style.display = 'block';
                 toggleGraphButton.textContent = 'Hide Hourly Production Rates';
