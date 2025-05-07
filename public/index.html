@@ -330,29 +330,63 @@
             width: 100%;
             background-color: #e5e7eb;
             border-radius: 8px;
-            height: 10px;
+            height: 16px;
             overflow: hidden;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
             position: relative;
             transition: height 0.3s ease, box-shadow 0.3s ease;
         }
         .progress-bar:hover {
-            height: 12px;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 8px rgba(0, 87, 184, 0.3);
+            height: 18px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 0 8px rgba(0, 87, 184, 0.4);
         }
         .progress-bar-fill {
             height: 100%;
-            background: linear-gradient(90deg, #003087, #60a5fa, #003087);
+            background: linear-gradient(90deg, #003087, #60a5fa);
             border-radius: 8px;
-            transition: width 1s ease-in-out;
+            position: relative;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        .progress-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                45deg,
+                rgba(255, 255, 255, 0.1) 25%,
+                transparent 25%,
+                transparent 50%,
+                rgba(255, 255, 255, 0.1) 50%,
+                rgba(255, 255, 255, 0.1) 75%,
+                transparent 75%,
+                transparent
+            );
+            background-size: 30px 30px;
+            animation: move 4s linear infinite;
+        }
+        @keyframes move {
+            0% { background-position: 0 0; }
+            100% { background-position: 30px 30px; }
         }
         .progress-bar-fill.increase {
-            animation: grow 1s ease-in-out;
+            animation: grow 1.5s ease-in-out;
+        }
+        .progress-bar-fill.completed {
+            animation: bounce 0.5s ease-in-out;
         }
         @keyframes grow {
-            0% { background: linear-gradient(90deg, #ff6384, #36a2eb, #ff6384); }
-            50% { background: linear-gradient(90deg, #36a2eb, #ff6384, #36a2eb); }
-            100% { background: linear-gradient(90deg, #003087, #60a5fa, #003087); }
+            0% { background: linear-gradient(90deg, #ff6384, #36a2eb); width: 0%; }
+            50% { background: linear-gradient(90deg, #36a2eb, #60a5fa); }
+            100% { background: linear-gradient(90deg, #003087, #60a5fa); }
+        }
+        @keyframes bounce {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
         .progress-bar.past-peak {
             position: relative;
@@ -388,6 +422,38 @@
             0% { transform: translateX(-50%) scale(1); opacity: 1; }
             50% { transform: translateX(-50%) scale(1.5); opacity: 0.5; }
             100% { transform: translateX(-50%) scale(1); opacity: 1; }
+        }
+        .progress-percentage {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .progress-bar-fill:hover .progress-percentage {
+            opacity: 1;
+        }
+        .progress-tooltip {
+            visibility: hidden;
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 10;
+        }
+        .progress-bar:hover .progress-tooltip {
+            visibility: visible;
         }
         .total-production {
             font-size: 1.5rem;
@@ -550,6 +616,15 @@
             footer {
                 font-size: 0.8rem;
             }
+            .progress-bar {
+                height: 14px;
+            }
+            .progress-bar:hover {
+                height: 16px;
+            }
+            .progress-percentage {
+                font-size: 0.7rem;
+            }
         }
     </style>
 </head>
@@ -617,7 +692,10 @@
                     <div class="peak-metric text-left">
                         Progress to All-Time Peak Day:
                         <div class="progress-bar" id="Sellersburg_Certified_Center_Progress_Container">
-                            <div class="progress-bar-fill" id="Sellersburg_Certified_Center_Progress" style="width: 0%"></div>
+                            <div class="progress-bar-fill" id="Sellersburg_Certified_Center_Progress" style="width: 0%">
+                                <span class="progress-percentage" id="Sellersburg_Certified_Center_Progress_Percentage">0%</span>
+                            </div>
+                            <span class="progress-tooltip" id="Sellersburg_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
                 </div>
@@ -650,7 +728,10 @@
                     <div class="peak-metric text-left">
                         Progress to All-Time Peak Day:
                         <div class="progress-bar" id="Williamsport_Certified_Center_Progress_Container">
-                            <div class="progress-bar-fill" id="Williamsport_Certified_Center_Progress" style="width: 0%"></div>
+                            <div class="progress-bar-fill" id="Williamsport_Certified_Center_Progress" style="width: 0%">
+                                <span class="progress-percentage" id="Williamsport_Certified_Center_Progress_Percentage">0%</span>
+                            </div>
+                            <span class="progress-tooltip" id="Williamsport_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
                 </div>
@@ -683,7 +764,10 @@
                     <div class="peak-metric text-left">
                         Progress to All-Time Peak Day:
                         <div class="progress-bar" id="North_Las_Vegas_Certified_Center_Progress_Container">
-                            <div class="progress-bar-fill" id="North_Las_Vegas_Certified_Center_Progress" style="width: 0%"></div>
+                            <div class="progress-bar-fill" id="North_Las_Vegas_Certified_Center_Progress" style="width: 0%">
+                                <span class="progress-percentage" id="North_Las_Vegas_Certified_Center_Progress_Percentage">0%</span>
+                            </div>
+                            <span class="progress-tooltip" id="North_Las_Vegas_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
                 </div>
@@ -962,14 +1046,20 @@
                 const peakDayElement = document.getElementById(`${facility}_Peak_AllTime`);
                 if (peakDayElement) peakDayElement.textContent = '0';
                 const progressElement = document.getElementById(`${facility}_Progress`);
-                if (progressElement) progressElement.style.width = '0%';
+                if (progressElement) {
+                    progressElement.style.width = '0%';
+                    progressElement.classList.remove('increase', 'completed');
+                }
+                const percentageElement = document.getElementById(`${facility}_Progress_Percentage`);
+                if (percentageElement) percentageElement.textContent = '0%';
+                const tooltipElement = document.getElementById(`${facility}_Progress_Tooltip`);
+                if (tooltipElement) tooltipElement.textContent = '0% of Peak';
             });
             productionChart.data.datasets.forEach(dataset => {
                 dataset.data = Array(24).fill(0);
             });
             productionChart.update();
             document.getElementById('totalProduction').classList.add('hidden');
-            // Clear caches
             Object.keys(hourlyRatesCache).forEach(key => delete hourlyRatesCache[key]);
             Object.keys(peakProductionCache).forEach(key => delete peakProductionCache[key]);
             updateFacilityGrid();
@@ -1110,7 +1200,6 @@
                     overallPeakDay = Math.max(overallPeakDay, peakProduction[facility].peakDay);
                 }
             });
-
             // Update total production and progress bar
             facilities.forEach(facility => {
                 const ftnCount = data[facility]?.['FTN']?.count || 0;
@@ -1123,29 +1212,42 @@
                     animateCountUp(totalElement, previousTotal, total, 500);
                     totalElement.classList.add('update');
                 }
-
+            
                 // Update progress bar
                 const progressElement = document.getElementById(`${facility}_Progress`);
                 const progressContainer = document.getElementById(`${facility}_Progress_Container`);
+                const percentageElement = document.getElementById(`${facility}_Progress_Percentage`);
+                const tooltipElement = document.getElementById(`${facility}_Progress_Tooltip`);
                 const percentage = overallPeakDay > 0 ? (total / overallPeakDay) * 100 : 0;
                 const previousTotal = previousTotals[facility] || 0;
                 const previousPercentage = overallPeakDay > 0 ? (previousTotal / overallPeakDay) * 100 : 0;
-
+            
                 if (percentage > previousPercentage) {
                     progressElement.classList.add('increase');
+                } else {
+                    progressElement.classList.remove('increase');
                 }
-
+            
                 if (overallPeakDay > 0 && total >= overallPeakDay && previousTotal < overallPeakDay) {
                     progressContainer.classList.add('past-peak');
+                    progressElement.classList.add('completed');
                     setTimeout(() => {
                         progressContainer.classList.remove('past-peak');
+                        progressElement.classList.remove('completed');
                     }, 5000);
                 }
                 if (overallPeakDay > 0 && total > overallPeakDay && previousTotal <= overallPeakDay) {
                     progressContainer.classList.add('starburst');
                 }
-
-                progressElement.style.width = `${Math.min(percentage, 100)}%`;
+            
+                const displayPercentage = Math.min(Math.round(percentage), 100);
+                progressElement.style.width = `${displayPercentage}%`;
+                if (percentageElement) {
+                    percentageElement.textContent = `${displayPercentage}%`;
+                }
+                if (tooltipElement) {
+                    tooltipElement.textContent = `${displayPercentage}% of Peak`;
+                }
                 previousTotals[facility] = total;
             });
 
