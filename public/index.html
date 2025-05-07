@@ -30,9 +30,10 @@
             100% { transform: translateY(0); opacity: 1; }
         }
         .facility-card:hover {
-            transform: translateY(-8px) scale(1.03);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15), 0 0 10px rgba(0, 87, 184, 0.3);
+            transform: translateY(-10px) scale(1.04);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2), 0 0 12px rgba(0, 87, 184, 0.4);
             background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
+            border-color: #0057b8;
         }
         .facility-card.top-performer {
             background: linear-gradient(145deg, rgba(255, 215, 0, 0.1), rgba(255, 245, 157, 0.1));
@@ -207,16 +208,18 @@
             transform: translateX(-50%);
             background: linear-gradient(45deg, #003087, #0057b8);
             color: white;
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 1.2rem 2.5rem;
+            border-radius: 10px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
             opacity: 0;
-            transition: opacity 0.5s ease-in-out;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
             z-index: 1000;
-            font-weight: 500;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
         }
         .notification.visible {
             opacity: 1;
+            transform: translateX(-50%) translateY(10px);
         }
         .graph-section {
             border: 1px solid #d1d5db;
@@ -666,6 +669,13 @@
             footer {
                 font-size: 0.8rem;
             }
+            .graph-section {
+                animation: fadeIn 1s ease-out forwards;
+            }
+            @keyframes fadeIn {
+                0% { opacity: 0; transform: translateY(20px); }
+                100% { opacity: 1; transform: translateY(0); }
+            }
         }
     </style>
 </head>
@@ -848,23 +858,30 @@
     <script>
         // Initialize Chart.js
         const ctx = document.getElementById('productionChart').getContext('2d');
-        // Fixed x-axis labels from 0:00 to 23:00
         const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
-        console.log('Graph labels:', labels);
+        
+        // Create gradient for fill
+        const createGradient = (ctx, chartArea) => {
+            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+            gradient.addColorStop(0, 'rgba(54, 162, 235, 0.1)');
+            gradient.addColorStop(1, 'rgba(54, 162, 235, 0.4)');
+            return gradient;
+        };
+        
         const productionChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'Sellersburg FTN', data: Array(24).fill(0), borderColor: '#ff6384', backgroundColor: 'rgba(255, 99, 132, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
-                    { label: 'Sellersburg VV', data: Array(24).fill(0), borderColor: '#36a2eb', backgroundColor: 'rgba(54, 162, 235, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
-                    { label: 'Sellersburg A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: 'rgba(255, 159, 64, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
-                    { label: 'Williamsport FTN', data: Array(24).fill(0), borderColor: '#cc65fe', backgroundColor: 'rgba(204, 101, 254, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
-                    { label: 'Williamsport VV', data: Array(24).fill(0), borderColor: '#ffce56', backgroundColor: 'rgba(255, 206, 86, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
-                    { label: 'Williamsport A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: 'rgba(255, 159, 64, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
-                    { label: 'North Las Vegas FTN', data: Array(24).fill(0), borderColor: '#4bc0c0', backgroundColor: 'rgba(75, 192, 192, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
-                    { label: 'North Las Vegas VV', data: Array(24).fill(0), borderColor: '#9966ff', backgroundColor: 'rgba(153, 102, 255, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 },
-                    { label: 'North Las Vegas A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: 'rgba(255, 159, 64, 0.2)', borderWidth: 2, fill: false, pointRadius: 4, pointHoverRadius: 6 }
+                    { label: 'Sellersburg FTN', data: Array(24).fill(0), borderColor: '#ff6384', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
+                    { label: 'Sellersburg VV', data: Array(24).fill(0), borderColor: '#36a2eb', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
+                    { label: 'Sellersburg A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
+                    { label: 'Williamsport FTN', data: Array(24).fill(0), borderColor: '#cc65fe', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
+                    { label: 'Williamsport VV', data: Array(24).fill(0), borderColor: '#ffce56', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
+                    { label: 'Williamsport A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
+                    { label: 'North Las Vegas FTN', data: Array(24).fill(0), borderColor: '#4bc0c0', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
+                    { label: 'North Las Vegas VV', data: Array(24).fill(0), borderColor: '#9966ff', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' },
+                    { label: 'North Las Vegas A-Repair', data: Array(24).fill(0), borderColor: '#ff9f40', backgroundColor: createGradient, borderWidth: 3, fill: true, pointRadius: 5, pointHoverRadius: 8, pointStyle: 'circle' }
                 ]
             },
             options: {
@@ -875,8 +892,8 @@
                         display: true,
                         position: 'top',
                         labels: {
-                            font: { size: 14, weight: 'bold' },
-                            padding: 10,
+                            font: { size: 14, weight: 'bold', family: 'Poppins' },
+                            padding: 15,
                             boxWidth: 20,
                             usePointStyle: true,
                             pointStyle: 'circle'
@@ -884,11 +901,16 @@
                     },
                     tooltip: {
                         enabled: true,
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleFont: { size: 14 },
-                        bodyFont: { size: 12 },
-                        padding: 10,
-                        cornerRadius: 6
+                        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                        titleFont: { size: 14, family: 'Poppins' },
+                        bodyFont: { size: 12, family: 'Poppins' },
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y} units/hour`;
+                            }
+                        }
                     }
                 },
                 scales: {
@@ -896,17 +918,18 @@
                         title: {
                             display: true,
                             text: 'Hour of Day (Local Time)',
-                            font: { size: 16, weight: 'bold' },
-                            color: '#374151',
+                            font: { size: 16, weight: 'bold', family: 'Poppins' },
+                            color: '#1e40af',
                             padding: 10
                         },
                         grid: {
                             display: true,
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(0, 87, 184, 0.1)',
+                            lineWidth: 1
                         },
                         ticks: {
-                            font: { size: 12 },
-                            color: '#374151',
+                            font: { size: 12, family: 'Poppins' },
+                            color: '#1e40af',
                             padding: 10
                         }
                     },
@@ -914,17 +937,18 @@
                         title: {
                             display: true,
                             text: 'Production Rate (Units/Hour)',
-                            font: { size: 16, weight: 'bold' },
-                            color: '#374151',
+                            font: { size: 16, weight: 'bold', family: 'Poppins' },
+                            color: '#1e40af',
                             padding: 10
                         },
                         grid: {
                             display: true,
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(0, 87, 184, 0.1)',
+                            lineWidth: 1
                         },
                         ticks: {
-                            font: { size: 12 },
-                            color: '#374151',
+                            font: { size: 12, family: 'Poppins' },
+                            color: '#1e40af',
                             beginAtZero: true,
                             padding: 10
                         }
@@ -932,11 +956,16 @@
                 },
                 elements: {
                     line: {
-                        tension: 0.3,
+                        tension: 0.4, // Smoother curves
                         shadowOffsetX: 0,
                         shadowOffsetY: 0,
-                        shadowBlur: 0,
-                        shadowColor: 'rgba(0, 0, 0, 0)'
+                        shadowBlur: 10,
+                        shadowColor: 'rgba(0, 0, 0, 0.2)'
+                    },
+                    point: {
+                        pointStyle: 'circle',
+                        backgroundColor: '#ffffff',
+                        borderWidth: 2
                     }
                 },
                 layout: {
@@ -950,10 +979,8 @@
                 onHover: (event, elements) => {
                     elements.forEach(element => {
                         const dataset = element.element.$context.dataset;
-                        dataset.shadowOffsetX = 0;
-                        dataset.shadowOffsetY = 0;
-                        dataset.shadowBlur = 10;
-                        dataset.shadowColor = dataset.borderColor.replace(')', ', 0.5)').replace('rgb', 'rgba');
+                        dataset.shadowBlur = 15;
+                        dataset.shadowColor = dataset.borderColor.replace(')', ', 0.6)').replace('rgb', 'rgba');
                     });
                 }
             }
@@ -1254,10 +1281,12 @@
             console.log(`Updating UI for date: ${date}`);
             console.log('Received data:', JSON.stringify(data));
             updateDateTime();
-            const currentHour = new Date().getHours();
-            const timezoneOffsetHours = new Date().getTimezoneOffset() / 60;
-            console.log(`Current local hour: ${currentHour}, Timezone offset: ${timezoneOffsetHours} hours`);
-
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinutes = now.getMinutes();
+            const timezoneOffsetHours = now.getTimezoneOffset() / 60;
+            console.log(`Current local hour: ${currentHour}, Minutes: ${currentMinutes}, Timezone offset: ${timezoneOffsetHours} hours`);
+        
             // Calculate total production for each facility
             const facilityTotals = facilities.map(facility => {
                 const ftnCount = data[facility]?.['FTN']?.count || 0;
@@ -1266,15 +1295,15 @@
                 const total = ftnCount + vvCount + aRepairCount;
                 return { facility, total };
             });
-
+        
             // Sort facilities by total production
             facilityTotals.sort((a, b) => b.total - a.total);
-
+        
             // Check for ranking changes
             const currentRanking = facilityTotals.map(ft => ft.facility);
             const rankingChanged = previousRanking.length > 0 && !currentRanking.every((facility, index) => facility === previousRanking[index]);
             previousRanking = currentRanking;
-
+        
             // Find the overall peak day production
             let overallPeakDay = 0;
             facilities.forEach(facility => {
@@ -1282,6 +1311,7 @@
                     overallPeakDay = Math.max(overallPeakDay, peakProduction[facility].peakDay);
                 }
             });
+        
             // Update total production, progress bar, and forecast
             facilities.forEach(facility => {
                 const ftnCount = data[facility]?.['FTN']?.count || 0;
@@ -1294,7 +1324,7 @@
                     animateCountUp(totalElement, previousTotal, total, 500);
                     totalElement.classList.add('update');
                 }
-            
+        
                 // Update progress bar
                 const progressElement = document.getElementById(`${facility}_Progress`);
                 const progressContainer = document.getElementById(`${facility}_Progress_Container`);
@@ -1303,13 +1333,13 @@
                 const percentage = overallPeakDay > 0 ? (total / overallPeakDay) * 100 : 0;
                 const previousTotal = previousTotals[facility] || 0;
                 const previousPercentage = overallPeakDay > 0 ? (previousTotal / overallPeakDay) * 100 : 0;
-            
+        
                 if (percentage > previousPercentage) {
                     progressElement.classList.add('increase');
                 } else {
                     progressElement.classList.remove('increase');
                 }
-            
+        
                 if (overallPeakDay > 0 && total >= overallPeakDay && previousTotal < overallPeakDay) {
                     progressContainer.classList.add('past-peak');
                     progressElement.classList.add('completed');
@@ -1321,7 +1351,7 @@
                 if (overallPeakDay > 0 && total > overallPeakDay && previousTotal <= overallPeakDay) {
                     progressContainer.classList.add('starburst');
                 }
-            
+        
                 const displayPercentage = Math.min(Math.round(percentage), 100);
                 progressElement.style.width = `${displayPercentage}%`;
                 if (percentageElement) {
@@ -1331,28 +1361,23 @@
                     tooltipElement.textContent = `${displayPercentage}% of Peak`;
                 }
                 previousTotals[facility] = total;
-            
+        
                 // Calculate forecasted daily production
                 const forecastElement = document.getElementById(`${facility}_Forecast`);
                 if (forecastElement) {
-                    const now = new Date();
-                    const currentHour = now.getHours();
-                    const currentMinutes = now.getMinutes();
                     const isOperational = currentHour >= 6 && (currentHour < 16 || (currentHour === 16 && currentMinutes <= 30));
-                    const timezoneOffsetHours = new Date().getTimezoneOffset() / 60;
-            
                     if (!isOperational || !hourlyRates[facility]) {
                         forecastElement.textContent = 'N/A (Outside operational hours)';
                         return;
                     }
-            
-                    // Calculate average production rate from 6:00 AM to current hour
+        
+                    // Calculate average production rate from 6:00 AM to current time
                     let totalRate = 0;
                     let hoursCounted = 0;
                     const startHour = 6; // 6:00 AM
                     const endHour = Math.min(currentHour, 16); // Up to current hour or 4:00 PM
                     for (let h = startHour; h <= endHour; h++) {
-                        if (h === 16 && currentMinutes > 30) continue; // Exclude partial hour after 4:30 PM
+                        if (h === 16 && currentMinutes > 30) continue;
                         const utcHour = (h + timezoneOffsetHours + 24) % 24;
                         const ftnRate = hourlyRates[facility]['FTN']?.[utcHour] || 0;
                         const vvRate = hourlyRates[facility]['VV']?.[utcHour] || 0;
@@ -1360,19 +1385,19 @@
                         totalRate += ftnRate + vvRate + aRepairRate;
                         hoursCounted++;
                     }
-            
+        
                     const avgRate = hoursCounted > 0 ? totalRate / hoursCounted : 0;
-            
+        
                     // Calculate remaining hours until 4:30 PM
                     const endTime = new Date(now);
-                    endTime.setHours(16, 30, 0, 0); // 4:30 PM
+                    endTime.setHours(16, 30, 0, 0);
                     const remainingMs = endTime - now;
                     const remainingHours = remainingMs > 0 ? remainingMs / (1000 * 60 * 60) : 0;
-            
+        
                     // Forecast: current total + (average rate * remaining hours)
                     const forecast = total + (avgRate * remainingHours);
                     const roundedForecast = Math.round(forecast);
-            
+        
                     if (forecastElement.textContent !== `${roundedForecast} units`) {
                         forecastElement.textContent = `${roundedForecast} units`;
                         forecastElement.parentElement.classList.add('forecast-updated');
@@ -1382,7 +1407,7 @@
                     }
                 }
             });
-
+        
             // Update facility cards with ranking
             facilities.forEach(facility => {
                 const rankIconElement = document.getElementById(`${facility}_Rank`);
@@ -1406,7 +1431,7 @@
                     rankIconElement.textContent = rankIcon;
                 }
             });
-
+        
             // Reorder facility cards if ranking changed
             if (rankingChanged) {
                 const facilityGridChildren = Array.from(facilityGrid.children);
@@ -1419,7 +1444,7 @@
                     }
                 });
             }
-
+        
             // Update counts, rates, and peak production
             facilities.forEach(facility => {
                 lines.forEach(line => {
@@ -1429,10 +1454,11 @@
                     }
                     const count = data[facility][line].count;
                     const rateData = hourlyRates[facility][line];
-                    // Map current local hour to UTC hour for rate lookup
                     const utcHour = (currentHour + timezoneOffsetHours + 24) % 24;
                     const rate = rateData[utcHour] || 0;
-                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${rate} (Local Hour: ${currentHour}, UTC Hour: ${utcHour})`);
+                    const fractionalHour = currentMinutes / 60;
+                    const adjustedRate = rate * fractionalHour; // Scale rate by fraction of hour
+                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${adjustedRate.toFixed(2)} (Local Hour: ${currentHour}, Minutes: ${currentMinutes}, UTC Hour: ${utcHour})`);
                     const countElement = document.getElementById(`${facility}_${line}`);
                     const rateElement = document.getElementById(`${facility}_${line}_Rate`);
                     if (countElement && rateElement) {
@@ -1445,17 +1471,17 @@
                         currentCounts[key] = count;
                         countElement.textContent = count;
                         countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
-                        rateElement.innerHTML = `Units/Hour: ${rate}<span class="rate-tooltip">${rate === 0 ? 'No data for current hour' : 'Rate based on production events'}</span>`;
+                        rateElement.innerHTML = `Units/Hour: ${adjustedRate.toFixed(2)}<span class="rate-tooltip">${adjustedRate === 0 ? 'No data for current hour' : `Rate based on ${currentMinutes} minutes`}</span>`;
                     }
                 });
-
+        
                 // Update peak production values
                 if (peakProduction && peakProduction[facility]) {
                     document.getElementById(`${facility}_Peak_Weekly`).textContent = peakProduction[facility].peakWeekly;
                     document.getElementById(`${facility}_Peak_AllTime`).textContent = peakProduction[facility].peakDay;
                 }
             });
-
+        
             // Update chart with hourly rates
             if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
                 console.log('Raw hourly rates data (UTC):', hourlyRates);
@@ -1475,10 +1501,13 @@
                         shiftedData[localHour] = rawData[i];
                         console.log(`Mapping ${facility} ${line} UTC hour ${utcHour} to local hour ${localHour}`);
                     }
+                    // Adjust current hour's rate based on minutes
+                    const currentLocalHour = (utcHour - timezoneOffsetHours + 24) % 24;
+                    shiftedData[currentLocalHour] = shiftedData[currentLocalHour] * (currentMinutes / 60);
                     console.log(`Shifted data for ${dataset.label}:`, shiftedData);
                     return shiftedData;
                 });
-
+        
                 productionChart.data.datasets.forEach((dataset, index) => {
                     dataset.data = datasets[index];
                 });
@@ -1488,14 +1517,14 @@
                 console.error('Incomplete hourly rates data:', hourlyRates);
                 showNotification('Hourly production rates unavailable.');
             }
-
+        
             if (totalProduction !== null) {
                 document.getElementById('totalProductionValue').textContent = totalProduction;
                 document.getElementById('totalProduction').classList.remove('hidden');
             } else {
                 document.getElementById('totalProduction').classList.add('hidden');
             }
-
+        
             // Apply facility filter
             updateFacilityGrid();
         }, 100);
