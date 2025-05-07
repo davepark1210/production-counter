@@ -69,28 +69,52 @@
             100% { transform: scale(1); }
         }
         .facility-card-focused {
-            max-width: 600px;
-            padding: 2rem;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2), 0 0 20px rgba(0, 87, 184, 0.4);
-            border: 3px solid #0057b8;
-            transform: scale(1.1);
+            max-width: 800px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), 0 0 25px rgba(0, 87, 184, 0.5);
+            border: 4px solid #003087;
+            transform: scale(1.15);
+            z-index: 20;
+            background: linear-gradient(145deg, #ffffff, #e6f0fa);
         }
         .facility-card-focused h2 {
-            font-size: 2.5rem;
+            font-size: 3rem;
             color: #003087;
         }
         .facility-card-focused .total-production {
-            font-size: 2rem;
+            font-size: 2.5rem;
             color: #1e40af;
         }
         .facility-card-focused .counter {
-            font-size: 3rem;
+            font-size: 4rem;
         }
         .facility-card-focused .text-xl {
-            font-size: 1.5rem;
+            font-size: 2rem;
         }
         .facility-card-focused .text-base {
+            font-size: 1.5rem;
+        }
+        .facility-card-focused .peak-metric {
             font-size: 1.2rem;
+        }
+        .facility-card-focused .back-button {
+            display: block;
+        }
+        .back-button {
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .back-button:hover {
+            background-color: #003087;
+        }
+        .focus-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 10;
+            pointer-events: none;
         }
         .rank-icon {
             position: absolute;
@@ -603,17 +627,36 @@
                 padding: 1px;
             }
             .facility-card-focused {
+                max-width: 100%;
+                padding: 2rem;
                 transform: scale(1.05);
-                padding: 1.5rem;
             }
             .facility-card-focused h2 {
-                font-size: 2rem;
+                font-size: 2.2rem;
             }
             .facility-card-focused .total-production {
-                font-size: 1.5rem;
+                font-size: 1.8rem;
             }
             .facility-card-focused .counter {
-                font-size: 2.5rem;
+                font-size: 3rem;
+            }
+            .facility-card-focused .text-xl {
+                font-size: 1.5rem;
+            }
+            .facility-card-focused .text-base {
+                font-size: 1.2rem;
+            }
+            .facility-card-focused .peak-metric {
+                font-size: 1rem;
+            }
+            .progress-bar {
+                height: 14px;
+            }
+            .progress-bar:hover {
+                height: 16px;
+            }
+            .progress-percentage {
+                font-size: 0.7rem;
             }
             .date-time-container {
                 font-size: 1rem;
@@ -624,15 +667,6 @@
             }
             footer {
                 font-size: 0.8rem;
-            }
-            .progress-bar {
-                height: 14px;
-            }
-            .progress-bar:hover {
-                height: 16px;
-            }
-            .progress-percentage {
-                font-size: 0.7rem;
             }
         }
     </style>
@@ -709,6 +743,7 @@
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="Sellersburg_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
+                <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
         </div>
 
@@ -746,6 +781,7 @@
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="Williamsport_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
+                <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
         </div>
 
@@ -783,6 +819,7 @@
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="North_Las_Vegas_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
+                <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
         </div>
     </main>
@@ -1011,31 +1048,72 @@
             updateFacilityGrid();
             showNotification(`Showing ${selectedFacility ? facilitySelect.options[facilitySelect.selectedIndex].text : 'All Facilities'}`);
         });
-
+        
         function updateFacilityGrid() {
             const facilityGrid = document.getElementById('facilityGrid');
             const facilityCards = facilityGrid.querySelectorAll('.facility-card');
+            const overlay = document.getElementById('focusOverlay') || document.createElement('div');
+            overlay.id = 'focusOverlay';
+            overlay.className = 'focus-overlay';
+            if (!document.getElementById('focusOverlay')) {
+                document.body.appendChild(overlay);
+            }
+        
             if (selectedFacility) {
                 facilityGrid.classList.add('facility-grid-single');
                 facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                overlay.style.display = 'block';
                 facilityCards.forEach(card => {
                     if (card.id === selectedFacility) {
                         card.style.display = 'block';
                         card.classList.add('facility-card-focused');
+                        const backButton = card.querySelector('.back-button');
+                        if (backButton) backButton.classList.remove('hidden');
                     } else {
                         card.style.display = 'none';
                         card.classList.remove('facility-card-focused');
+                        const backButton = card.querySelector('.back-button');
+                        if (backButton) backButton.classList.add('hidden');
                     }
                 });
             } else {
                 facilityGrid.classList.remove('facility-grid-single');
                 facilityGrid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                overlay.style.display = 'none';
                 facilityCards.forEach(card => {
                     card.style.display = 'block';
                     card.classList.remove('facility-card-focused');
+                    const backButton = card.querySelector('.back-button');
+                    if (backButton) backButton.classList.add('hidden');
                 });
             }
         }
+        
+        function exitFocusMode() {
+            selectedFacility = '';
+            facilitySelect.value = '';
+            updateFacilityGrid();
+            showNotification('Showing All Facilities');
+        }
+        
+        // Initialize focused mode from URL query parameter
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const facilityParam = urlParams.get('facility');
+            const validFacilities = [
+                'Sellersburg_Certified_Center',
+                'Williamsport_Certified_Center',
+                'North_Las_Vegas_Certified_Center'
+            ];
+            if (facilityParam && validFacilities.includes(facilityParam)) {
+                selectedFacility = facilityParam;
+                facilitySelect.value = selectedFacility;
+                updateFacilityGrid();
+                showNotification(`Showing ${facilitySelect.options[facilitySelect.selectedIndex].text}`);
+            } else {
+                updateFacilityGrid();
+            }
+        });
 
         // Clear UI function
         function clearUI() {
