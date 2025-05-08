@@ -62,13 +62,13 @@
             box-shadow: 0 15px 30px rgba(205, 127, 50, 0.4), 0 0 15px rgba(205, 127, 50, 0.5);
             background: linear-gradient(145deg, rgba(205, 127, 50, 0.15), rgba(231, 171, 111, 0.15));
         }
-        .facility-card.rank-changed {
-            animation: pulse 1s ease-in-out;
+        @keyframes slide {
+            0% { transform: translateX(100%); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
         }
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+        
+        .facility-card.rank-changed {
+            animation: slide 0.8s ease-in-out forwards;
         }
         .facility-card-focused {
             max-width: 90rem; /* Wider for 1080p/4K TVs, ~1440px */
