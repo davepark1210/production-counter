@@ -1267,6 +1267,7 @@
                     const backButton = card.querySelector('.back-button');
                     if (backButton) backButton.classList.add('hidden');
                 });
+                // Maintain current DOM order (already sorted by updateUI)
             }
         }
         
@@ -1442,6 +1443,25 @@
                 console.warn(`Received data for ${date}, but currentDate is ${currentDate}. Ignoring.`);
                 return;
             }
+            // Sort facilities by total production on initial update
+            const facilityTotals = facilities.map(facility => {
+                const ftnCount = data[facility]?.['FTN']?.count || 0;
+                const vvCount = data[facility]?.['VV']?.count || 0;
+                const aRepairCount = data[facility]?.['A-Repair']?.count || 0;
+                const total = ftnCount + vvCount + aRepairCount;
+                return { facility, total };
+            });
+            facilityTotals.sort((a, b) => b.total - a.total);
+            
+            // Reorder facility cards in the DOM
+            const facilityGridChildren = Array.from(facilityGrid.children);
+            facilityGrid.innerHTML = '';
+            facilityTotals.forEach(({ facility }) => {
+                const card = facilityGridChildren.find(child => child.id === facility);
+                if (card) {
+                    facilityGrid.appendChild(card);
+                }
+            });
             console.log(`Updating UI for date: ${date}`);
             console.log('Received data:', JSON.stringify(data));
             updateDateTime();
@@ -1494,17 +1514,19 @@
                 const progressContainer = document.getElementById(`${facility}_Progress_Container`);
                 const percentageElement = document.getElementById(`${facility}_Progress_Percentage`);
                 const tooltipElement = document.getElementById(`${facility}_Progress_Tooltip`);
-                const percentage = overallPeakDay > 0 ? (total / overallPeakDay) * 100 : 0;
+                // Use facility-specific peak day instead of overall peak
+                const facilityPeakDay = peakProduction && peakProduction[facility] ? peakProduction[facility].peakDay : 0;
+                const percentage = facilityPeakDay > 0 ? (total / facilityPeakDay) * 100 : 0;
                 const previousTotal = previousTotals[facility] || 0;
-                const previousPercentage = overallPeakDay > 0 ? (previousTotal / overallPeakDay) * 100 : 0;
-        
+                const previousPercentage = facilityPeakDay > 0 ? (previousTotal / facilityPeakDay) * 100 : 0;
+                
                 if (percentage > previousPercentage) {
                     progressElement.classList.add('increase');
                 } else {
                     progressElement.classList.remove('increase');
                 }
-        
-                if (overallPeakDay > 0 && total >= overallPeakDay && previousTotal < overallPeakDay) {
+                
+                if (facilityPeakDay > 0 && total >= facilityPeakDay && previousTotal < facilityPeakDay) {
                     progressContainer.classList.add('past-peak');
                     progressElement.classList.add('completed');
                     setTimeout(() => {
@@ -1512,10 +1534,10 @@
                         progressElement.classList.remove('completed');
                     }, 5000);
                 }
-                if (overallPeakDay > 0 && total > overallPeakDay && previousTotal <= overallPeakDay) {
+                if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay) {
                     progressContainer.classList.add('starburst');
                 }
-        
+                
                 const displayPercentage = Math.min(Math.round(percentage), 100);
                 progressElement.style.width = `${displayPercentage}%`;
                 if (percentageElement) {
