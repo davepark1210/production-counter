@@ -485,10 +485,15 @@
             visibility: visible;
         }
         .total-production {
-            font-size: 1.5rem;
+            font-size: 1.75rem; /* Increased from 1.5rem */
             font-weight: 700;
-            color: #1e40af;
-            text-align: center;
+            color: #1e3a8a; /* Slightly darker blue */
+            text-align: left; /* Align with card content */
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .total-production:hover {
+            box-shadow: 0 0 8px rgba(0, 87, 184, 0.3); /* Subtle glow */
+            transform: translateY(-2px);
         }
         .total-production span {
             transition: transform 0.3s ease, color 0.3s ease;
@@ -498,9 +503,9 @@
             animation: highlight 0.5s ease-in-out;
         }
         @keyframes highlight {
-            0% { transform: scale(1); color: #1e40af; }
+            0% { transform: scale(1); color: #1e3a8a; }
             50% { transform: scale(1.1); color: #dc2626; }
-            100% { transform: scale(1); color: #1e40af; }
+            100% { transform: scale(1); color: #1e3a8a; }
         }
         .reset-container {
             position: fixed;
@@ -590,6 +595,21 @@
             max-width: 400px;
             margin: 0 auto;
         }
+        #totalProduction {
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+        #totalProduction span.update {
+            animation: highlightTotal 0.5s ease-in-out;
+        }
+        @keyframes highlightTotal {
+            0% { transform: scale(1); color: #1e3a8a; }
+            50% { transform: scale(1.05); color: #dc2626; }
+            100% { transform: scale(1); color: #1e3a8a; }
+        }
+        .facility-card-focused .total-production {
+            font-size: 3rem; /* Match focused card scaling */
+            color: #1e3a8a;
+        }
         @media (max-width: 640px) {
             .facility-card h2 {
                 font-size: 1.5rem;
@@ -676,6 +696,14 @@
                 0% { opacity: 0; transform: translateY(20px); }
                 100% { opacity: 1; transform: translateY(0); }
             }
+            #totalProduction {
+                font-size: 1.75rem; /* Slightly smaller for mobile */
+                padding: 0.5rem 1rem;
+            }
+            .total-production {
+                font-size: 1.5rem; /* Slightly smaller for mobile */
+                padding: 0.5rem 0.75rem;
+            }
         }
     </style>
 </head>
@@ -691,7 +719,7 @@
 
     <div class="w-full max-w-6xl mb-8 flex flex-col items-center">
         <div id="loadingSpinner" class="loading-spinner"></div>
-        <div id="totalProduction" class="text-3xl font-semibold text-blue-800 mb-4 hidden">
+        <div id="totalProduction" class="text-4xl font-bold text-blue-900 mb-4 hidden bg-blue-50 rounded-lg px-4 py-2 shadow-sm">
             Total Daily Production: <span id="totalProductionValue">0</span> units
         </div>
         <div class="w-full max-w-6xl mb-4">
@@ -721,7 +749,7 @@
             <span class="rank-icon" id="Sellersburg_Certified_Center_Rank"></span>
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">Sellersburg Certified Center</h2>
             <div class="space-y-4">
-                <div class="total-production">Total Production: <span id="Sellersburg_Certified_Center_Total">0</span> units</div>
+            <div class="total-production bg-blue-50 rounded-md px-3 py-2 shadow-inner">Total Production: <span id="Sellersburg_Certified_Center_Total">0</span> units</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-vv">VV:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_VV">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_VV_Tooltip"></span></span>
