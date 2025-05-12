@@ -1296,7 +1296,12 @@
         
         function updateFacilityGrid() {
             const facilityGrid = document.getElementById('facilityGrid');
+            if (!facilityGrid) {
+                console.error('Facility grid not found during updateFacilityGrid');
+                return;
+            }
             const facilityCards = facilityGrid.querySelectorAll('.facility-card');
+            console.log(`Updating facility grid, selectedFacility: ${selectedFacility}, cards found: ${facilityCards.length}`);
         
             if (selectedFacility) {
                 facilityGrid.classList.add('facility-grid-single');
@@ -1307,6 +1312,15 @@
                         card.classList.add('facility-card-focused');
                         const backButton = card.querySelector('.back-button');
                         if (backButton) backButton.classList.remove('hidden');
+                        // Verify A-Repair elements
+                        const aRepairCount = card.querySelector(`#${selectedFacility}_A_Repair`);
+                        const aRepairRate = card.querySelector(`#${selectedFacility}_A_Repair_Rate`);
+                        if (!aRepairCount || !aRepairRate) {
+                            console.error(`A-Repair elements missing in ${selectedFacility}:`, {
+                                aRepairCount,
+                                aRepairRate
+                            });
+                        }
                     } else {
                         card.style.display = 'none';
                         card.classList.remove('facility-card-focused');
@@ -1322,6 +1336,16 @@
                     card.classList.remove('facility-card-focused');
                     const backButton = card.querySelector('.back-button');
                     if (backButton) backButton.classList.add('hidden');
+                    // Verify A-Repair elements
+                    const facilityId = card.id;
+                    const aRepairCount = card.querySelector(`#${facilityId}_A_Repair`);
+                    const aRepairRate = card.querySelector(`#${facilityId}_A_Repair_Rate`);
+                    if (!aRepairCount || !aRepairRate) {
+                        console.error(`A-Repair elements missing in ${facilityId}:`, {
+                            aRepairCount,
+                            aRepairRate
+                        });
+                    }
                 });
                 // Maintain current DOM order (already sorted by updateUI)
             }
@@ -1360,13 +1384,27 @@
             async function initializeRankings() {
                 try {
                     console.log('Initializing rankings on page load...');
-                    // Ensure DOM is fully loaded before proceeding
-                    if (!document.getElementById('facilityGrid')) {
+                    // Ensure DOM is fully loaded with all facility elements
+                    const facilityGrid = document.getElementById('facilityGrid');
+                    if (!facilityGrid) {
                         console.error('Facility grid not found in DOM');
                         showNotification('Error: UI elements not loaded');
                         return;
                     }
-                    console.log('Facility grid found, DOM ready');
+                    const requiredElements = facilities.flatMap(facility =>
+                        lines.map(line => [
+                            `${facility}_${line.replace('-', '_')}`,
+                            `${facility}_${line.replace('-', '_')}_Rate`
+                        ])
+                    ).flat();
+                    for (const id of requiredElements) {
+                        if (!document.getElementById(id)) {
+                            console.error(`Element ${id} not found in DOM`);
+                            showNotification(`Error: UI element ${id} not loaded`);
+                            return;
+                        }
+                    }
+                    console.log('All required DOM elements found');
                     const dateSelect = document.getElementById('dateSelect');
                     const selectedDate = dateSelect.value || new Date().toISOString().split('T')[0];
                     currentDate = selectedDate;
@@ -1709,7 +1747,8 @@
                // Update counts, rates, and peak production
                 facilities.forEach(facility => {
                     lines.forEach(line => {
-                        console.log(`Processing ${facility} ${line}`);
+                        const elementId = `${facility}_${line.replace('-', '_')}`; // Handle hyphen in A-Repair
+                        console.log(`Processing ${facility} ${line}, ID: ${elementId}`);
                         if (!data[facility] || !data[facility][line] || !hourlyRates[facility] || !hourlyRates[facility][line]) {
                             console.error(`Missing data for ${facility} ${line}:`, {
                                 data: data[facility]?.[line],
@@ -1725,25 +1764,39 @@
                         const adjustedRate = rate * fractionalHour;
                         console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${adjustedRate.toFixed(2)} (Local Hour: ${currentHour}, Minutes: ${currentMinutes}, UTC Hour: ${utcHour})`);
                         console.log(`Raw rate data for ${facility} ${line} (UTC hour ${utcHour}): ${rate}`);
-                        const countElement = document.getElementById(`${facility}_${line}`);
-                        const rateElement = document.getElementById(`${facility}_${line}_Rate`);
+                        const countElement = document.getElementById(elementId);
+                        const rateElement = document.getElementById(`${elementId}_Rate`);
                         if (!countElement || !rateElement) {
                             console.error(`DOM elements missing for ${facility} ${line}:`, {
                                 countElement: countElement,
                                 rateElement: rateElement,
-                                facilityGridExists: !!document.getElementById('facilityGrid')
+                                elementId: elementId,
+                                facilityGridExists: !!document.getElementById('facilityGrid'),
+                                facilityCardExists: !!document.getElementById(facility)
                             });
-                            // Attempt to re-query elements
-                            setTimeout(() => {
-                                const retryCountElement = document.getElementById(`${facility}_${line}`);
-                                const retryRateElement = document.getElementById(`${facility}_${line}_Rate`);
-                                if (retryCountElement && retryRateElement) {
-                                    console.log(`Retry successful for ${facility} ${line}`);
-                                    updateElement(retryCountElement, retryRateElement, count, adjustedRate, facility, line);
-                                } else {
-                                    console.error(`Retry failed for ${facility} ${line}`);
+                            // Retry multiple times
+                            let retryCount = 0;
+                            const maxRetries = 3;
+                            const retryDelay = 500;
+                            function retry() {
+                                if (retryCount >= maxRetries) {
+                                    console.error(`All retries failed for ${facility} ${line}`);
+                                    return;
                                 }
-                            }, 100);
+                                retryCount++;
+                                setTimeout(() => {
+                                    const retryCountElement = document.getElementById(elementId);
+                                    const retryRateElement = document.getElementById(`${elementId}_Rate`);
+                                    if (retryCountElement && retryRateElement) {
+                                        console.log(`Retry ${retryCount} successful for ${facility} ${line}`);
+                                        updateElement(retryCountElement, retryRateElement, count, adjustedRate, facility, line);
+                                    } else {
+                                        console.warn(`Retry ${retryCount} failed for ${facility} ${line}`);
+                                        retry();
+                                    }
+                                }, retryDelay);
+                            }
+                            retry();
                             return;
                         }
                         updateElement(countElement, rateElement, count, adjustedRate, facility, line);
@@ -1764,15 +1817,28 @@
                     rateElement.innerHTML = `Units/Hour: ${adjustedRate.toFixed(2)}<span class="rate-tooltip">${adjustedRate === 0 ? 'No data for current hour' : `Rate based on ${currentMinutes} minutes`}</span>`;
                 }
                 facilities.forEach(facility => {
+                    const peakWeeklyElement = document.getElementById(`${facility}_Peak_Weekly`);
+                    const peakAllTimeElement = document.getElementById(`${facility}_Peak_AllTime`);
+                    if (!peakWeeklyElement || !peakAllTimeElement) {
+                        console.error(`Peak production elements missing for ${facility}:`, {
+                            peakWeeklyElement,
+                            peakAllTimeElement
+                        });
+                        return;
+                    }
                     if (peakProduction && peakProduction[facility]) {
-                        document.getElementById(`${facility}_Peak_Weekly`).textContent = peakProduction[facility].peakWeekly || 0;
-                        document.getElementById(`${facility}_Peak_AllTime`).textContent = peakProduction[facility].peakDay || 0;
+                        console.log(`Updating peak production for ${facility}:`, {
+                            peakWeekly: peakProduction[facility].peakWeekly,
+                            peakDay: peakProduction[facility].peakDay
+                        });
+                        peakWeeklyElement.textContent = peakProduction[facility].peakWeekly || 0;
+                        peakAllTimeElement.textContent = peakProduction[facility].peakDay || 0;
                     } else {
                         console.warn(`No peak production data for ${facility}`);
-                        document.getElementById(`${facility}_Peak_Weekly`).textContent = '0';
-                        document.getElementById(`${facility}_Peak_AllTime`).textContent = '0';
+                        peakWeeklyElement.textContent = '0';
+                        peakAllTimeElement.textContent = '0';
                     }
-                });        
+                });    
             
                // Update chart with hourly rates
                if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
