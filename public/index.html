@@ -262,8 +262,8 @@
             padding: 2px 6px;
             border-radius: 4px;
         }
-        .counter:hover .counter-tooltip {
-            visibility: visible;
+        .counter:hover > .counter-tooltip {
+            visibility: visible !important;
         }
         .counter-tooltip {
             visibility: hidden;
@@ -344,10 +344,24 @@
             background-color: #ff9f40;
         }
         .peak-metric {
-            font-size: 0.95rem;
-            color: #6b7280;
             position: relative;
-            transition: color 0.3s ease;
+        }
+        .peak-metric:hover .peak-tooltip {
+            visibility: visible !important;
+        }
+        .peak-tooltip {
+            visibility: hidden;
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 10;
         }
         .peak-metric.forecast-updated {
             animation: highlight-forecast 1s ease-in-out;
@@ -747,7 +761,10 @@
                 </div>
                 <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
-                    <div class="peak-metric text-left">Peak Weekly Production: <span id="Sellersburg_Certified_Center_Peak_Weekly">0</span> units</div>
+                    <div class="peak-metric text-left">
+                        Peak Weekly Production: <span id="Sellersburg_Certified_Center_Peak_Weekly">0</span> units
+                        <span class="peak-tooltip">Highest daily total in the last 7 days</span>
+                    </div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="Sellersburg_Certified_Center_Peak_AllTime">0</span> units</div>
                     <div class="peak-metric text-left">
                         Progress to All-Time Peak Day:
@@ -758,7 +775,7 @@
                             <span class="progress-tooltip" id="Sellersburg_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
-                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="Sellersburg_Certified_Center_Forecast">Calculating...</span> units</div>
+                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="Sellersburg_Certified_Center_Forecast">Calculating...</span></div>
                 </div>
                 <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
@@ -785,7 +802,10 @@
                 </div>
                 <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
-                    <div class="peak-metric text-left">Peak Weekly Production: <span id="Williamsport_Certified_Center_Peak_Weekly">0</span> units</div>
+                    <div class="peak-metric text-left">
+                        Peak Weekly Production: <span id="Williamsport_Certified_Center_Peak_Weekly">0</span> units
+                        <span class="peak-tooltip">Highest daily total in the last 7 days</span>
+                    </div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="Williamsport_Certified_Center_Peak_AllTime">0</span> units</div>
                     <div class="peak-metric text-left">
                         Progress to All-Time Peak Day:
@@ -796,7 +816,7 @@
                             <span class="progress-tooltip" id="Williamsport_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
-                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="Williamsport_Certified_Center_Forecast">Calculating...</span> units</div>
+                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="Williamsport_Certified_Center_Forecast">Calculating...</span></div>
                 </div>
                 <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
@@ -823,7 +843,10 @@
                 </div>
                 <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
-                    <div class="peak-metric text-left">Peak Weekly Production: <span id="North_Las_Vegas_Certified_Center_Peak_Weekly">0</span> units</div>
+                    <div class="peak-metric text-left">
+                        Peak Weekly Production: <span id="North_Las_Vegas_Certified_Center_Peak_Weekly">0</span> units
+                        <span class="peak-tooltip">Highest daily total in the last 7 days</span>
+                    </div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="North_Las_Vegas_Certified_Center_Peak_AllTime">0</span> units</div>
                     <div class="peak-metric text-left">
                         Progress to All-Time Peak Day:
@@ -834,7 +857,7 @@
                             <span class="progress-tooltip" id="North_Las_Vegas_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
-                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="North_Las_Vegas_Certified_Center_Forecast">Calculating...</span> units</div>
+                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="North_Las_Vegas_Certified_Center_Forecast">Calculating...</span></div>
                 </div>
                 <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
@@ -1677,40 +1700,41 @@
                });
         
                // Update counts, rates, and peak production
-               facilities.forEach(facility => {
-                   lines.forEach(line => {
-                       if (!data[facility] || !data[facility][line] || !hourlyRates[facility] || !hourlyRates[facility][line]) {
-                           console.error(`Missing data for ${facility} ${line}:`, data[facility], hourlyRates[facility]);
-                           return;
-                       }
-                       const count = data[facility][line].count;
-                       const rateData = hourlyRates[facility][line];
-                       const utcHour = (currentHour + timezoneOffsetHours + 24) % 24;
-                       const rate = rateData[utcHour] || 0;
-                       const fractionalHour = currentMinutes / 60;
-                       const adjustedRate = rate * fractionalHour;
-                       console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${adjustedRate.toFixed(2)} (Local Hour: ${currentHour}, Minutes: ${currentMinutes}, UTC Hour: ${utcHour})`);
-                       const countElement = document.getElementById(`${facility}_${line}`);
-                       const rateElement = document.getElementById(`${facility}_${line}_Rate`);
-                       if (countElement && rateElement) {
-                           const key = `${facility}_${line}`;
-                           if (currentCounts[key] !== undefined && currentCounts[key] !== count) {
-                               console.log(`Count for ${facility} ${line} changed from ${currentCounts[key]} to ${count}`);
-                               countElement.classList.add('update');
-                               lastUpdateTimestamps[key] = new Date().toLocaleTimeString();
-                           }
-                           currentCounts[key] = count;
-                           countElement.textContent = count;
-                           countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
-                           rateElement.innerHTML = `Units/Hour: ${adjustedRate.toFixed(2)}<span class="rate-tooltip">${adjustedRate === 0 ? 'No data for current hour' : `Rate based on ${currentMinutes} minutes`}</span>`;
-                       }
-                   });
-        
-                   if (peakProduction && peakProduction[facility]) {
-                       document.getElementById(`${facility}_Peak_Weekly`).textContent = peakProduction[facility].peakWeekly;
-                       document.getElementById(`${facility}_Peak_AllTime`).textContent = peakProduction[facility].peakDay;
-                   }
-               });
+                facilities.forEach(facility => {
+                    lines.forEach(line => {
+                        if (!data[facility] || !data[facility][line] || !hourlyRates[facility] || !hourlyRates[facility][line]) {
+                            console.error(`Missing data for ${facility} ${line}:`, {
+                                data: data[facility],
+                                hourlyRates: hourlyRates[facility]
+                            });
+                            return;
+                        }
+                        const count = data[facility][line].count;
+                        const rateData = hourlyRates[facility][line];
+                        const utcHour = (currentHour + timezoneOffsetHours + 24) % 24;
+                        const rate = rateData[utcHour] || 0;
+                        const fractionalHour = currentMinutes / 60;
+                        const adjustedRate = rate * fractionalHour;
+                        console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${adjustedRate.toFixed(2)} (Local Hour: ${currentHour}, Minutes: ${currentMinutes}, UTC Hour: ${utcHour})`);
+                        const countElement = document.getElementById(`${facility}_${line}`);
+                        const rateElement = document.getElementById(`${facility}_${line}_Rate`);
+                        if (countElement && rateElement) {
+                            const key = `${facility}_${line}`;
+                            if (currentCounts[key] !== undefined && currentCounts[key] !== count) {
+                                console.log(`Count for ${facility} ${line} changed from ${currentCounts[key]} to ${count}`);
+                                countElement.classList.add('update');
+                                lastUpdateTimestamps[key] = new Date().toLocaleTimeString();
+                            }
+                            currentCounts[key] = count;
+                            console.log(`Setting tooltip for ${facility}_${line}: Last updated: ${lastUpdateTimestamps[key] || 'N/A'}`);
+                            countElement.textContent = count;
+                            countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
+                            rateElement.innerHTML = `Units/Hour: ${adjustedRate.toFixed(2)}<span class="rate-tooltip">${adjustedRate === 0 ? 'No data for current hour' : `Rate based on ${currentMinutes} minutes`}</span>`;
+                        } else {
+                            console.error(`Element missing for ${facility} ${line}:`, { countElement, rateElement });
+                        }
+                    });
+                });
         
                // Update chart with hourly rates
                if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
