@@ -327,6 +327,13 @@ async function getHourlyRates(date = currentDate) {
   const client = await pool.connect();
   try {
     console.log(`Fetching hourly rates for date: ${date}`);
+    const rawEvents = await client.query(
+      `SELECT facility, line, delta, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour
+       FROM ProductionEvents
+       WHERE date = $1 AND facility = 'North_Las_Vegas_Certified_Center' AND line = 'VV'`,
+      [date]
+    );
+    console.log(`Raw ProductionEvents for North Las Vegas VV on ${date}:`, rawEvents.rows);
     const result = await client.query(
       `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
        FROM ProductionEvents
