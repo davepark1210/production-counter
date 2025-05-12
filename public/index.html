@@ -19,16 +19,10 @@
             position: relative;
             background: white;
             border: 1px solid #d1d5db;
-            animation: slideUp 0.5s ease-out forwards;
-            opacity: 0;
         }
         .facility-card:nth-child(1) { animation-delay: 0.1s; }
         .facility-card:nth-child(2) { animation-delay: 0.2s; }
         .facility-card:nth-child(3) { animation-delay: 0.3s; }
-        @keyframes slideUp {
-            0% { transform: translateY(20px); opacity: 0; }
-            100% { transform: translateY(0); opacity: 1; }
-        }
         .facility-card:hover {
             transform: translateY(-10px) scale(1.04);
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2), 0 0 12px rgba(0, 87, 184, 0.4);
@@ -1295,7 +1289,27 @@
             } else {
                 updateFacilityGrid();
             }
+        
+            // Fetch initial data to set rankings
+            initializeRankings();
         });
+
+        // Fetch initial data and set rankings
+        async function initializeRankings() {
+            try {
+                console.log('Initializing rankings on page load...');
+                const dateSelect = document.getElementById('dateSelect');
+                const selectedDate = dateSelect.value || new Date().toISOString().split('T')[0];
+                currentDate = selectedDate;
+                ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
+                ws.send(JSON.stringify({ action: 'requestCurrentData' }));
+                // Fetch historical dates to populate dropdown
+                loadHistoricalDates();
+            } catch (err) {
+                console.error('Failed to initialize rankings:', err);
+                showNotification('Error initializing rankings.');
+            }
+        }
 
         // Clear UI function
         function clearUI() {
@@ -1348,7 +1362,6 @@
                 console.log('Received historical dates:', dates);
                 const dateSelect = document.getElementById('dateSelect');
                 const today = new Date().toISOString().split('T')[0];
-                // Filter out today's date to avoid duplication
                 const filteredDates = dates.filter(date => date !== today);
                 dateSelect.innerHTML = `<option value="">Current Day (${today})</option>`;
                 filteredDates.forEach(date => {
@@ -1361,6 +1374,12 @@
                     console.log('Confirmed 5/4/2025 is in dropdown options.');
                 } else {
                     console.warn('5/4/2025 not found in historical dates.');
+                }
+                // Trigger ranking update for selected date
+                if (dateSelect.value) {
+                    currentDate = dateSelect.value;
+                    ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
+                    ws.send(JSON.stringify({ action: 'requestCurrentData' }));
                 }
             } catch (err) {
                 console.error('Failed to load historical dates:', err);
@@ -1395,6 +1414,7 @@
             console.log(`Date selected: ${selectedDate}`);
             try {
                 clearUI();
+                previousRanking = []; // Reset ranking to force reorder
                 if (!selectedDate) {
                     currentDate = new Date().toISOString().split('T')[0];
                     console.log(`Resetting to current date: ${currentDate}`);
@@ -1477,16 +1497,16 @@
                 rankChanges[facility] = previousRank >= 0 && currentRank !== previousRank;
             });
         
-            // Only reorder DOM if at least one rank has changed
-            const rankingChanged = Object.values(rankChanges).some(changed => changed);
+            // Force DOM reordering on first update or if ranks changed
+            const isFirstUpdate = previousRanking.length === 0;
+            const rankingChanged = Object.values(rankChanges).some(changed => changed) || isFirstUpdate;
             if (rankingChanged) {
                 const facilityGridChildren = Array.from(facilityGrid.children);
                 facilityGrid.innerHTML = '';
                 facilityTotals.forEach(({ facility }) => {
                     const card = facilityGridChildren.find(child => child.id === facility);
-                    if (card && rankChanges[facility]) {
+                    if (card && (rankChanges[facility] || isFirstUpdate)) {
                         card.classList.add('rank-changed');
-                        // Remove animation class after animation completes
                         setTimeout(() => {
                             card.classList.remove('rank-changed');
                         }, 800); // Match animation duration (0.8s)
