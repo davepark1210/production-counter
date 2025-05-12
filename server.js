@@ -397,21 +397,12 @@ async function getPeakProduction() {
        ORDER BY facility, daily_total DESC`
     );
 
-    // Calculate peak production for the last 7 days
-    const weekStart = new Date(currentDate);
-    weekStart.setDate(weekStart.getDate() - 7);
-    const weekStartDate = weekStart.toISOString().split('T')[0];
-
-    const weeklyResult = await client.query(
-      `SELECT facility, MAX(daily_total) as peak_weekly
-       FROM (
-         SELECT facility, SUM(count) as daily_total
-         FROM ProductionCounts
-         WHERE Date >= $1 AND Date <= $2
-         GROUP BY facility, date
-       ) as daily_totals
-       GROUP BY facility`,
-      [weekStartDate, currentDate]
+    // Calculate peak weekly production (max sum of daily totals over any 7-day period)
+    const allDailyTotals = await client.query(
+      `SELECT facility, date, SUM(count) as daily_total
+       FROM ProductionCounts
+       GROUP BY facility, date
+       ORDER BY facility, date`
     );
 
     const peakProduction = {};
@@ -420,10 +411,25 @@ async function getPeakProduction() {
       const facilityRows = peakDayResult.rows.filter(row => row.facility === f);
       const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
 
-      const weeklyRow = weeklyResult.rows.find(row => row.facility === f);
+      // Calculate max weekly sum for this facility
+      const facilityDailyTotals = allDailyTotals.rows
+        .filter(row => row.facility === f)
+        .map(row => ({
+          date: row.date,
+          daily_total: parseInt(row.daily_total)
+        }))
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      let maxWeeklySum = 0;
+      for (let i = 0; i <= facilityDailyTotals.length - 7; i++) {
+        const weekTotals = facilityDailyTotals.slice(i, i + 7);
+        const weekSum = weekTotals.reduce((sum, day) => sum + day.daily_total, 0);
+        maxWeeklySum = Math.max(maxWeeklySum, weekSum);
+      }
+
       peakProduction[f] = {
         peakDay: peakDay,
-        peakWeekly: weeklyRow ? parseInt(weeklyRow.peak_weekly) : 0
+        peakWeekly: maxWeeklySum
       };
     });
 
