@@ -85,6 +85,13 @@
         .facility-card-focused h2 {
             font-size: 4rem; /* Larger for 20ft visibility */
             color: #003087;
+            white-space: nowrap; /* Prevent text wrapping */
+            padding-right: 80px; /* Increased padding to accommodate rank icon */
+            line-height: 1; /* Reduce line height to prevent intersection */
+        }
+        .facility-card-focused .rank-icon {
+            top: 16px; /* Move down to avoid overlap with title */
+            right: 16px; /* Move further right */
         }
         .facility-card-focused .total-production {
             font-size: 3.5rem;
@@ -698,6 +705,16 @@
             @keyframes fadeIn {
                 0% { opacity: 0; transform: translateY(20px); }
                 100% { opacity: 1; transform: translateY(0); }
+            }
+            .facility-card-focused h2 {
+                font-size: 2.5rem; /* Reduced font size for smaller screens */
+                padding-right: 60px; /* Adjusted padding */
+                white-space: normal; /* Allow wrapping on very small screens */
+                line-height: 1.2; /* Ensure proper spacing if wrapping occurs */
+            }
+            .facility-card-focused .rank-icon {
+                top: 12px; /* Adjusted for smaller screens */
+                right: 12px;
             }
         }
     </style>
