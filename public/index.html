@@ -1735,7 +1735,17 @@
                         }
                     });
                 });
-        
+                facilities.forEach(facility => {
+                    if (peakProduction && peakProduction[facility]) {
+                        document.getElementById(`${facility}_Peak_Weekly`).textContent = peakProduction[facility].peakWeekly || 0;
+                        document.getElementById(`${facility}_Peak_AllTime`).textContent = peakProduction[facility].peakDay || 0;
+                    } else {
+                        console.warn(`No peak production data for ${facility}`);
+                        document.getElementById(`${facility}_Peak_Weekly`).textContent = '0';
+                        document.getElementById(`${facility}_Peak_AllTime`).textContent = '0';
+                    }
+                });        
+            
                // Update chart with hourly rates
                if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
                    console.log('Raw hourly rates data (UTC):', hourlyRates);
