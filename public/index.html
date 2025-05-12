@@ -520,6 +520,25 @@
         .total-production span.update {
             animation: highlight 0.5s ease-in-out;
         }
+        .main-total-production {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e40af; /* Matches total-production color */
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .main-total-production span {
+            transition: transform 0.3s ease, color 0.3s ease;
+            display: inline-block;
+        }
+        .main-total-production span.update {
+            animation: highlight 0.5s ease-in-out;
+        }
+        @media (max-width: 640px) {
+            .main-total-production {
+                font-size: 1.25rem;
+            }
+        }
         @keyframes highlight {
             0% { transform: scale(1); color: #1e40af; }
             50% { transform: scale(1.1); color: #dc2626; }
@@ -717,65 +736,6 @@
                 right: 12px;
             }
         }
-        .total-production-bar {
-            width: 100%;
-            max-width: 72rem; /* Matches header max-w-6xl (6xl = 72rem) */
-            background: linear-gradient(90deg, #003087, #0057b8, #60a5fa); /* Matches header gradient */
-            color: white;
-            font-size: 3.5rem; /* Larger font size for prominence */
-            font-weight: 700;
-            text-align: center;
-            padding: 1rem 2rem;
-            border-radius: 16px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-            margin-bottom: 2rem;
-            position: relative;
-            overflow: hidden;
-            animation: slideIn 1s ease-out;
-        }
-        .total-production-bar span {
-            font-size: 4rem; /* Even larger for the number */
-            font-weight: 800;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        .total-production-bar::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                45deg,
-                rgba(255, 255, 255, 0.1) 25%,
-                transparent 25%,
-                transparent 50%,
-                rgba(255, 255, 255, 0.1) 50%,
-                rgba(255, 255, 255, 0.1) 75%,
-                transparent 75%,
-                transparent
-            );
-            background-size: 30px 30px;
-            animation: move 4s linear infinite;
-        }
-        .total-production-bar.update {
-            animation: highlightProduction 1s ease-in-out;
-        }
-        @keyframes highlightProduction {
-            0% { background: linear-gradient(90deg, #ff6384, #36a2eb, #60a5fa); }
-            50% { background: linear-gradient(90deg, #36a2eb, #60a5fa, #003087); }
-            100% { background: linear-gradient(90deg, #003087, #0057b8, #60a5fa); }
-        }
-        @media (max-width: 640px) {
-            .total-production-bar {
-                font-size: 2rem;
-                padding: 0.75rem 1.5rem;
-                border-radius: 12px;
-            }
-            .total-production-bar span {
-                font-size: 2.5rem;
-            }
-        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-6">
@@ -790,7 +750,7 @@
 
     <div class="w-full max-w-6xl mb-6 flex flex-col items-center">
         <div id="loadingSpinner" class="loading-spinner"></div>
-        <div id="totalProduction" class="total-production-bar">
+        <div id="totalProduction" class="main-total-production">
             Total Daily Production: <span id="totalProductionValue">0</span> units
         </div>
         <div class="w-full max-w-6xl mb-4">
