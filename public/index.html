@@ -763,7 +763,7 @@
                 <div class="space-y-2">
                     <div class="peak-metric text-left">
                         Peak Weekly Production: <span id="Sellersburg_Certified_Center_Peak_Weekly">0</span> units
-                        <span class="peak-tooltip">Highest daily total in the last 7 days</span>
+                        <span class="peak-tooltip">Highest weekly total over any 7-day period</span>
                     </div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="Sellersburg_Certified_Center_Peak_AllTime">0</span> units</div>
                     <div class="peak-metric text-left">
@@ -804,7 +804,7 @@
                 <div class="space-y-2">
                     <div class="peak-metric text-left">
                         Peak Weekly Production: <span id="Williamsport_Certified_Center_Peak_Weekly">0</span> units
-                        <span class="peak-tooltip">Highest daily total in the last 7 days</span>
+                        <span class="peak-tooltip">Highest weekly total over any 7-day period</span>
                     </div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="Williamsport_Certified_Center_Peak_AllTime">0</span> units</div>
                     <div class="peak-metric text-left">
@@ -845,7 +845,7 @@
                 <div class="space-y-2">
                     <div class="peak-metric text-left">
                         Peak Weekly Production: <span id="North_Las_Vegas_Certified_Center_Peak_Weekly">0</span> units
-                        <span class="peak-tooltip">Highest daily total in the last 7 days</span>
+                        <span class="peak-tooltip">Highest weekly total over any 7-day period</span>
                     </div>
                     <div class="peak-metric text-left">Peak All-Time Production Day: <span id="North_Las_Vegas_Certified_Center_Peak_AllTime">0</span> units</div>
                     <div class="peak-metric text-left">
@@ -1357,27 +1357,34 @@
            });
         
            // Fetch initial data and set rankings
-           async function initializeRankings() {
-               try {
-                   console.log('Initializing rankings on page load...');
-                   const dateSelect = document.getElementById('dateSelect');
-                   const selectedDate = dateSelect.value || new Date().toISOString().split('T')[0];
-                   currentDate = selectedDate;
-        
-                   // Wait for WebSocket to be open
-                   await waitForWebSocket(ws);
-        
-                   // Send initial WebSocket messages
-                   ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-                   ws.send(JSON.stringify({ action: 'requestCurrentData' }));
-        
-                   // Fetch historical dates to populate dropdown
-                   await loadHistoricalDates();
-               } catch (err) {
-                   console.error('Failed to initialize rankings:', err);
-                   showNotification('Error initializing rankings.');
-               }
-           }
+            async function initializeRankings() {
+                try {
+                    console.log('Initializing rankings on page load...');
+                    // Ensure DOM is fully loaded before proceeding
+                    if (!document.getElementById('facilityGrid')) {
+                        console.error('Facility grid not found in DOM');
+                        showNotification('Error: UI elements not loaded');
+                        return;
+                    }
+                    console.log('Facility grid found, DOM ready');
+                    const dateSelect = document.getElementById('dateSelect');
+                    const selectedDate = dateSelect.value || new Date().toISOString().split('T')[0];
+                    currentDate = selectedDate;
+                    
+                    // Wait for WebSocket to be open
+                    await waitForWebSocket(ws);
+                    
+                    // Send initial WebSocket messages
+                    ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
+                    ws.send(JSON.stringify({ action: 'requestCurrentData' }));
+                    
+                    // Fetch historical dates to populate dropdown
+                    await loadHistoricalDates();
+                } catch (err) {
+                    console.error('Failed to initialize rankings:', err);
+                    showNotification('Error initializing rankings.');
+                }
+            }
 
         // Clear UI function
         function clearUI() {
@@ -1702,6 +1709,7 @@
                // Update counts, rates, and peak production
                 facilities.forEach(facility => {
                     lines.forEach(line => {
+                        console.log(`Processing ${facility} ${line}`);
                         if (!data[facility] || !data[facility][line] || !hourlyRates[facility] || !hourlyRates[facility][line]) {
                             console.error(`Missing data for ${facility} ${line}:`, {
                                 data: data[facility]?.[line],
@@ -1719,23 +1727,42 @@
                         console.log(`Raw rate data for ${facility} ${line} (UTC hour ${utcHour}): ${rate}`);
                         const countElement = document.getElementById(`${facility}_${line}`);
                         const rateElement = document.getElementById(`${facility}_${line}_Rate`);
-                        if (countElement && rateElement) {
-                            const key = `${facility}_${line}`;
-                            if (currentCounts[key] !== undefined && currentCounts[key] !== count) {
-                                console.log(`Count for ${facility} ${line} changed from ${currentCounts[key]} to ${count}`);
-                                countElement.classList.add('update');
-                                lastUpdateTimestamps[key] = new Date().toLocaleTimeString();
-                            }
-                            currentCounts[key] = count;
-                            console.log(`Setting tooltip for ${facility}_${line}: Last updated: ${lastUpdateTimestamps[key] || 'N/A'}`);
-                            countElement.textContent = count;
-                            countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
-                            rateElement.innerHTML = `Units/Hour: ${adjustedRate.toFixed(2)}<span class="rate-tooltip">${adjustedRate === 0 ? 'No data for current hour' : `Rate based on ${currentMinutes} minutes`}</span>`;
-                        } else {
-                            console.error(`Element missing for ${facility} ${line}:`, { countElement, rateElement });
+                        if (!countElement || !rateElement) {
+                            console.error(`DOM elements missing for ${facility} ${line}:`, {
+                                countElement: countElement,
+                                rateElement: rateElement,
+                                facilityGridExists: !!document.getElementById('facilityGrid')
+                            });
+                            // Attempt to re-query elements
+                            setTimeout(() => {
+                                const retryCountElement = document.getElementById(`${facility}_${line}`);
+                                const retryRateElement = document.getElementById(`${facility}_${line}_Rate`);
+                                if (retryCountElement && retryRateElement) {
+                                    console.log(`Retry successful for ${facility} ${line}`);
+                                    updateElement(retryCountElement, retryRateElement, count, adjustedRate, facility, line);
+                                } else {
+                                    console.error(`Retry failed for ${facility} ${line}`);
+                                }
+                            }, 100);
+                            return;
                         }
+                        updateElement(countElement, rateElement, count, adjustedRate, facility, line);
                     });
                 });
+                
+                function updateElement(countElement, rateElement, count, adjustedRate, facility, line) {
+                    const key = `${facility}_${line}`;
+                    if (currentCounts[key] !== undefined && currentCounts[key] !== count) {
+                        console.log(`Count for ${facility} ${line} changed from ${currentCounts[key]} to ${count}`);
+                        countElement.classList.add('update');
+                        lastUpdateTimestamps[key] = new Date().toLocaleTimeString();
+                    }
+                    currentCounts[key] = count;
+                    console.log(`Setting tooltip for ${facility}_${line}: Last updated: ${lastUpdateTimestamps[key] || 'N/A'}`);
+                    countElement.textContent = count;
+                    countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
+                    rateElement.innerHTML = `Units/Hour: ${adjustedRate.toFixed(2)}<span class="rate-tooltip">${adjustedRate === 0 ? 'No data for current hour' : `Rate based on ${currentMinutes} minutes`}</span>`;
+                }
                 facilities.forEach(facility => {
                     if (peakProduction && peakProduction[facility]) {
                         document.getElementById(`${facility}_Peak_Weekly`).textContent = peakProduction[facility].peakWeekly || 0;
@@ -1802,29 +1829,31 @@
                ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
                loadHistoricalDates();
            };
-           ws.onmessage = (event) => {
-               console.log('Received WebSocket message:', event.data);
-               let message;
-               try {
-                   message = JSON.parse(event.data);
-               } catch (err) {
-                   console.error('Failed to parse WebSocket message:', err);
-                   return;
-               }
-        
-               const { date, data, hourlyRates, totalProduction, peakProduction, notification } = message;
-               if (!date || !data || !hourlyRates) {
-                   console.error('Invalid WebSocket message structure:', message);
-                   return;
-               }
-        
-               console.log(`Received data for date: ${date}`);
-               console.log(`Sellersburg FTN count: ${data['Sellersburg_Certified_Center']['FTN'].count}`);
-               updateUI(date, data, hourlyRates, totalProduction, peakProduction);
-               if (notification) {
-                   showNotification(notification);
-               }
-           };
+            ws.onmessage = (event) => {
+                console.log('Received WebSocket message:', event.data);
+                let message;
+                try {
+                    message = JSON.parse(event.data);
+                } catch (err) {
+                    console.error('Failed to parse WebSocket message:', err);
+                    return;
+                }
+                
+                const { date, data, hourlyRates, totalProduction, peakProduction, notification } = message;
+                if (!date || !data || !hourlyRates) {
+                    console.error('Invalid WebSocket message structure:', message);
+                    return;
+                }
+                
+                console.log(`Received data for date: ${date}`);
+                console.log(`Sellersburg FTN count: ${data['Sellersburg_Certified_Center']?.['FTN']?.count || 'N/A'}`);
+                console.log(`A-Repair hourly rates for Sellersburg:`, hourlyRates['Sellersburg_Certified_Center']?.['A-Repair']);
+                console.log(`Peak production data:`, peakProduction);
+                updateUI(date, data, hourlyRates, totalProduction, peakProduction);
+                if (notification) {
+                    showNotification(notification);
+                }
+            };
            ws.onclose = () => {
                console.log('WebSocket connection closed');
                document.getElementById('loadingSpinner').style.display = 'none';
