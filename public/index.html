@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
+        /* Cache-busting comment: Updated 2025-05-12 */
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
@@ -627,6 +628,12 @@
                 padding: 2.5rem;
                 transform: scale(1.05);
                 margin: 1.5rem auto; /* Smaller margin for mobile */
+            }
+            .facility-card-focused:hover {
+               transform: translateY(-10px) scale(1.1);
+               box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 87, 184, 0.5);
+               background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
+               border-color: #0057b8;
             }
             .facility-card-focused h2 {
                 font-size: 3rem;
