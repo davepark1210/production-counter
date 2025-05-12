@@ -19,10 +19,16 @@
             position: relative;
             background: white;
             border: 1px solid #d1d5db;
+            animation: slideUp 0.5s ease-out forwards;
+            opacity: 0;
         }
         .facility-card:nth-child(1) { animation-delay: 0.1s; }
         .facility-card:nth-child(2) { animation-delay: 0.2s; }
         .facility-card:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes slideUp {
+            0% { transform: translateY(20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
         .facility-card:hover {
             transform: translateY(-10px) scale(1.04);
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2), 0 0 12px rgba(0, 87, 184, 0.4);
@@ -65,17 +71,17 @@
             animation: slide 0.8s ease-in-out forwards;
         }
         .facility-card-focused {
-            max-width: 90rem;
-            padding: 4rem;
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7);
-            border: 6px solid #003087;
-            transform: scale(1.25);
+            max-width: 90rem; /* Wider for 1080p/4K TVs, ~1440px */
+            padding: 4rem; /* Spacious for readability */
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Stronger shadow */
+            border: 6px solid #003087; /* Darker blue, thick border */
+            transform: scale(1.25); /* Larger scale for prominence */
             z-index: 20;
-            background: linear-gradient(145deg, #ffffff, #c3daff);
-            margin: 3rem auto;
+            background: linear-gradient(145deg, #ffffff, #c3daff); /* Bolder gradient */
+            margin: 3rem auto; /* Prevent TV overscan clipping */
         }
         .facility-card-focused h2 {
-            font-size: 4rem;
+            font-size: 4rem; /* Larger for 20ft visibility */
             color: #003087;
         }
         .facility-card-focused .total-production {
@@ -83,7 +89,7 @@
             color: #1e40af;
         }
         .facility-card-focused .counter {
-            font-size: 5rem;
+            font-size: 5rem; /* Very large for distance */
         }
         .facility-card-focused .text-xl {
             font-size: 3rem;
@@ -743,7 +749,7 @@
                             <span class="progress-tooltip" id="Sellersburg_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
-                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="Sellersburg_Certified_Center_Forecast">Calculating...</span></div>
+                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="Sellersburg_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
                 <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
@@ -781,7 +787,7 @@
                             <span class="progress-tooltip" id="Williamsport_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
-                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="Williamsport_Certified_Center_Forecast">Calculating...</span></div>
+                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="Williamsport_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
                 <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
@@ -819,7 +825,7 @@
                             <span class="progress-tooltip" id="North_Las_Vegas_Certified_Center_Progress_Tooltip">0% of Peak</span>
                         </div>
                     </div>
-                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="North_Las_Vegas_Certified_Center_Forecast">Calculating...</span></div>
+                    <div class="peak-metric text-left">Forecasted Daily Production: <span id="North_Las_Vegas_Certified_Center_Forecast">Calculating...</span> units</div>
                 </div>
                 <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
@@ -1171,27 +1177,6 @@
             }, 5000);
         }
 
-        // Wait for WebSocket to be open
-           function waitForWebSocket(ws) {
-               return new Promise((resolve, reject) => {
-                   if (ws.readyState === WebSocket.OPEN) {
-                       resolve();
-                   } else {
-                       ws.onopen = () => {
-                           console.log('WebSocket connection established');
-                           document.getElementById('loadingSpinner').style.display = 'none';
-                           resolve();
-                       };
-                       ws.onerror = (error) => {
-                           console.error('WebSocket error:', error);
-                           document.getElementById('loadingSpinner').style.display = 'none';
-                           showNotification('WebSocket connection error.');
-                           reject(error);
-                       };
-                   }
-               });
-           }
-        
         // Toggle graph visibility
         const toggleGraphButton = document.getElementById('toggleGraphButton');
         const graphSection = document.getElementById('graphSection');
@@ -1293,7 +1278,7 @@
             showNotification('Showing All Facilities');
         }
         
-        // Initialize focused mode and rankings from URL query parameter
+        // Initialize focused mode from URL query parameter
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
             const facilityParam = urlParams.get('facility');
@@ -1310,33 +1295,7 @@
             } else {
                 updateFacilityGrid();
             }
-        
-            // Initialize rankings after WebSocket is ready
-            initializeRankings();
         });
-
-        // Fetch initial data and set rankings
-        async function initializeRankings() {
-            try {
-                console.log('Initializing rankings on page load...');
-                const dateSelect = document.getElementById('dateSelect');
-                const selectedDate = dateSelect.value || new Date().toISOString().split('T')[0];
-                currentDate = selectedDate;
-        
-                // Wait for WebSocket to be open
-                await waitForWebSocket(ws);
-        
-                // Send initial WebSocket messages
-                ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-                ws.send(JSON.stringify({ action: 'requestCurrentData' }));
-        
-                // Fetch historical dates to populate dropdown
-                await loadHistoricalDates();
-            } catch (err) {
-                console.error('Failed to initialize rankings:', err);
-                showNotification('Error initializing rankings.');
-            }
-        }
 
         // Clear UI function
         function clearUI() {
@@ -1382,31 +1341,32 @@
 
         // Load historical dates
         async function loadHistoricalDates() {
-               try {
-                   console.log('Fetching historical dates...');
-                   const response = await fetch('/getHistoricalDates');
-                   const { dates } = await response.json();
-                   console.log('Received historical dates:', dates);
-                   const dateSelect = document.getElementById('dateSelect');
-                   const today = new Date().toISOString().split('T')[0];
-                   const filteredDates = dates.filter(date => date !== today);
-                   dateSelect.innerHTML = `<option value="">Current Day (${today})</option>`;
-                   filteredDates.forEach(date => {
-                       const option = document.createElement('option');
-                       option.value = date;
-                       option.textContent = date;
-                       dateSelect.appendChild(option);
-                   });
-                   if (filteredDates.includes('2025-05-04')) {
-                       console.log('Confirmed 5/4/2025 is in dropdown options.');
-                   } else {
-                       console.warn('5/4/2025 not found in historical dates.');
-                   }
-               } catch (err) {
-                   console.error('Failed to load historical dates:', err);
-                   showNotification('Failed to load historical dates.');
-               }
-           }
+            try {
+                console.log('Fetching historical dates...');
+                const response = await fetch('/getHistoricalDates');
+                const { dates } = await response.json();
+                console.log('Received historical dates:', dates);
+                const dateSelect = document.getElementById('dateSelect');
+                const today = new Date().toISOString().split('T')[0];
+                // Filter out today's date to avoid duplication
+                const filteredDates = dates.filter(date => date !== today);
+                dateSelect.innerHTML = `<option value="">Current Day (${today})</option>`;
+                filteredDates.forEach(date => {
+                    const option = document.createElement('option');
+                    option.value = date;
+                    option.textContent = date;
+                    dateSelect.appendChild(option);
+                });
+                if (filteredDates.includes('2025-05-04')) {
+                    console.log('Confirmed 5/4/2025 is in dropdown options.');
+                } else {
+                    console.warn('5/4/2025 not found in historical dates.');
+                }
+            } catch (err) {
+                console.error('Failed to load historical dates:', err);
+                showNotification('Failed to load historical dates.');
+            }
+        }
 
         // Function to animate counting up
         function animateCountUp(element, start, end, duration) {
@@ -1435,7 +1395,6 @@
             console.log(`Date selected: ${selectedDate}`);
             try {
                 clearUI();
-                previousRanking = []; // Reset ranking to force reorder
                 if (!selectedDate) {
                     currentDate = new Date().toISOString().split('T')[0];
                     console.log(`Resetting to current date: ${currentDate}`);
@@ -1480,315 +1439,315 @@
         let currentDate = new Date().toISOString().split('T')[0];
 
         const updateUI = debounce((date, data, hourlyRates, totalProduction, peakProduction) => {
-               if (date !== currentDate) {
-                   console.warn(`Received data for ${date}, but currentDate is ${currentDate}. Ignoring.`);
-                   return;
-               }
-               console.log(`Updating UI for date: ${date}`);
-               console.log('Received data:', JSON.stringify(data));
-               updateDateTime();
-               const now = new Date();
-               const currentHour = now.getHours();
-               const currentMinutes = now.getMinutes();
-               const timezoneOffsetHours = now.getTimezoneOffset() / 60;
-               console.log(`Current local hour: ${currentHour}, Minutes: ${currentMinutes}, Timezone offset: ${timezoneOffsetHours} hours`);
+            if (date !== currentDate) {
+                console.warn(`Received data for ${date}, but currentDate is ${currentDate}. Ignoring.`);
+                return;
+            }
+            console.log(`Updating UI for date: ${date}`);
+            console.log('Received data:', JSON.stringify(data));
+            updateDateTime();
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinutes = now.getMinutes();
+            const timezoneOffsetHours = now.getTimezoneOffset() / 60;
+            console.log(`Current local hour: ${currentHour}, Minutes: ${currentMinutes}, Timezone offset: ${timezoneOffsetHours} hours`);
         
-               // Calculate total production for each facility and sort
-               const facilityTotals = facilities.map(facility => {
-                   const ftnCount = data[facility]?.['FTN']?.count || 0;
-                   const vvCount = data[facility]?.['VV']?.count || 0;
-                   const aRepairCount = data[facility]?.['A-Repair']?.count || 0;
-                   const total = ftnCount + vvCount + aRepairCount;
-                   return { facility, total };
-               });
-               facilityTotals.sort((a, b) => b.total - a.total);
+            // Calculate total production for each facility and sort
+            const facilityTotals = facilities.map(facility => {
+                const ftnCount = data[facility]?.['FTN']?.count || 0;
+                const vvCount = data[facility]?.['VV']?.count || 0;
+                const aRepairCount = data[facility]?.['A-Repair']?.count || 0;
+                const total = ftnCount + vvCount + aRepairCount;
+                return { facility, total };
+            });
+            facilityTotals.sort((a, b) => b.total - a.total);
         
-               // Map facilities to their current ranks (0-based index)
-               const currentRanking = facilityTotals.map(ft => ft.facility);
-               const currentRankMap = {};
-               currentRanking.forEach((facility, index) => {
-                   currentRankMap[facility] = index;
-               });
+            // Reorder facility cards in the DOM on initial update
+            const facilityGridChildren = Array.from(facilityGrid.children);
+            facilityGrid.innerHTML = '';
+            facilityTotals.forEach(({ facility }) => {
+                const card = facilityGridChildren.find(child => child.id === facility);
+                if (card) {
+                    facilityGrid.appendChild(card);
+                }
+            });
         
-               // Determine which facilities have changed ranks
-               const rankChanges = {};
-               facilities.forEach(facility => {
-                   const currentRank = currentRankMap[facility];
-                   const previousRank = previousRanking.indexOf(facility);
-                   rankChanges[facility] = previousRank >= 0 && currentRank !== previousRank;
-               });
+            // Check for ranking changes
+            const currentRanking = facilityTotals.map(ft => ft.facility);
+            const rankingChanged = previousRanking.length > 0 && !currentRanking.every((facility, index) => facility === previousRanking[index]);
+            previousRanking = currentRanking;
         
-               // Force DOM reordering on first update or if ranks changed
-               const isFirstUpdate = previousRanking.length === 0;
-               const rankingChanged = Object.values(rankChanges).some(changed => changed);
-               if (rankingChanged || isFirstUpdate) {
-                   const facilityGridChildren = Array.from(facilityGrid.children);
-                   facilityGrid.innerHTML = '';
-                   facilityTotals.forEach(({ facility }) => {
-                       const card = facilityGridChildren.find(child => child.id === facility);
-                       if (card && rankChanges[facility]) { // Only animate if rank changed
-                           card.classList.add('rank-changed');
-                           setTimeout(() => {
-                               card.classList.remove('rank-changed');
-                           }, 800); // Match animation duration (0.8s)
-                       }
-                       if (card) {
-                           facilityGrid.appendChild(card);
-                       }
-                   });
-               }
+            // Update total production, progress bar, and forecast
+            facilities.forEach(facility => {
+                const ftnCount = data[facility]?.['FTN']?.count || 0;
+                const vvCount = data[facility]?.['VV']?.count || 0;
+                const aRepairCount = data[facility]?.['A-Repair']?.count || 0;
+                const total = ftnCount + vvCount + aRepairCount;
+                const totalElement = document.getElementById(`${facility}_Total`);
+                if (totalElement && parseInt(totalElement.textContent) !== total) {
+                    const previousTotal = parseInt(totalElement.textContent) || 0;
+                    animateCountUp(totalElement, previousTotal, total, 500);
+                    totalElement.classList.add('update');
+                }
         
-               // Update previous ranking for next iteration
-               previousRanking = currentRanking;
+                // Update progress bar
+                const progressElement = document.getElementById(`${facility}_Progress`);
+                const progressContainer = document.getElementById(`${facility}_Progress_Container`);
+                const percentageElement = document.getElementById(`${facility}_Progress_Percentage`);
+                const tooltipElement = document.getElementById(`${facility}_Progress_Tooltip`);
+                // Use facility-specific peak day
+                const facilityPeakDay = peakProduction && peakProduction[facility] ? peakProduction[facility].peakDay : 0;
+                const percentage = facilityPeakDay > 0 ? (total / facilityPeakDay) * 100 : 0;
+                const previousTotal = previousTotals[facility] || 0;
+                const previousPercentage = facilityPeakDay > 0 ? (previousTotal / facilityPeakDay) * 100 : 0;
         
-               // Update total production, progress bar, and forecast
-               facilities.forEach(facility => {
-                   const ftnCount = data[facility]?.['FTN']?.count || 0;
-                   const vvCount = data[facility]?.['VV']?.count || 0;
-                   const aRepairCount = data[facility]?.['A-Repair']?.count || 0;
-                   const total = ftnCount + vvCount + aRepairCount;
-                   const totalElement = document.getElementById(`${facility}_Total`);
-                   if (totalElement && parseInt(totalElement.textContent) !== total) {
-                       const previousTotal = parseInt(totalElement.textContent) || 0;
-                       animateCountUp(totalElement, previousTotal, total, 500);
-                       totalElement.classList.add('update');
-                   }
+                if (percentage > previousPercentage) {
+                    progressElement.classList.add('increase');
+                } else {
+                    progressElement.classList.remove('increase');
+                }
         
-                   // Update progress bar
-                   const progressElement = document.getElementById(`${facility}_Progress`);
-                   const progressContainer = document.getElementById(`${facility}_Progress_Container`);
-                   const percentageElement = document.getElementById(`${facility}_Progress_Percentage`);
-                   const tooltipElement = document.getElementById(`${facility}_Progress_Tooltip`);
-                   const facilityPeakDay = peakProduction && peakProduction[facility] ? peakProduction[facility].peakDay : 0;
-                   const percentage = facilityPeakDay > 0 ? (total / facilityPeakDay) * 100 : 0;
-                   const previousTotal = previousTotals[facility] || 0;
-                   const previousPercentage = facilityPeakDay > 0 ? (previousTotal / facilityPeakDay) * 100 : 0;
+                if (facilityPeakDay > 0 && total >= facilityPeakDay && previousTotal < facilityPeakDay) {
+                    progressContainer.classList.add('past-peak');
+                    progressElement.classList.add('completed');
+                    setTimeout(() => {
+                        progressContainer.classList.remove('past-peak');
+                        progressElement.classList.remove('completed');
+                    }, 5000);
+                }
+                if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay) {
+                    progressContainer.classList.add('starburst');
+                }
         
-                   if (percentage > previousPercentage) {
-                       progressElement.classList.add('increase');
-                   } else {
-                       progressElement.classList.remove('increase');
-                   }
+                const displayPercentage = Math.min(Math.round(percentage), 100);
+                progressElement.style.width = `${displayPercentage}%`;
+                if (percentageElement) {
+                    percentageElement.textContent = `${displayPercentage}%`;
+                }
+                if (tooltipElement) {
+                    tooltipElement.textContent = `${displayPercentage}% of Peak`;
+                }
+                previousTotals[facility] = total;
         
-                   if (facilityPeakDay > 0 && total >= facilityPeakDay && previousTotal < facilityPeakDay) {
-                       progressContainer.classList.add('past-peak');
-                       progressElement.classList.add('completed');
-                       setTimeout(() => {
-                           progressContainer.classList.remove('past-peak');
-                           progressElement.classList.remove('completed');
-                       }, 5000);
-                   }
-                   if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay) {
-                       progressContainer.classList.add('starburst');
-                   }
+                // Calculate forecasted daily production
+                const forecastElement = document.getElementById(`${facility}_Forecast`);
+                if (forecastElement) {
+                    const isOperational = currentHour >= 6 && (currentHour < 16 || (currentHour === 16 && currentMinutes <= 30));
+                    if (!isOperational || !hourlyRates[facility]) {
+                        forecastElement.textContent = 'N/A (Outside operational hours)';
+                        return;
+                    }
         
-                   const displayPercentage = Math.min(Math.round(percentage), 100);
-                   progressElement.style.width = `${displayPercentage}%`;
-                   if (percentageElement) {
-                       percentageElement.textContent = `${displayPercentage}%`;
-                   }
-                   if (tooltipElement) {
-                       tooltipElement.textContent = `${displayPercentage}% of Peak`;
-                   }
-                   previousTotals[facility] = total;
+                    // Calculate average production rate from 6:00 AM to current time
+                    let totalRate = 0;
+                    let hoursCounted = 0;
+                    const startHour = 6; // 6:00 AM
+                    const endHour = Math.min(currentHour, 16); // Up to current hour or 4:00 PM
+                    for (let h = startHour; h <= endHour; h++) {
+                        if (h === 16 && currentMinutes > 30) continue;
+                        const utcHour = (h + timezoneOffsetHours + 24) % 24;
+                        const ftnRate = hourlyRates[facility]['FTN']?.[utcHour] || 0;
+                        const vvRate = hourlyRates[facility]['VV']?.[utcHour] || 0;
+                        const aRepairRate = hourlyRates[facility]['A-Repair']?.[utcHour] || 0;
+                        totalRate += ftnRate + vvRate + aRepairRate;
+                        hoursCounted++;
+                    }
         
-                   // Calculate forecasted daily production
-                   const forecastElement = document.getElementById(`${facility}_Forecast`);
-                   if (forecastElement) {
-                       const isOperational = currentHour >= 6 && (currentHour < 16 || (currentHour === 16 && currentMinutes <= 30));
-                       if (!isOperational || !hourly Rates[facility]) {
-                           forecastElement.textContent = 'N/A (Outside operational hours)';
-                           return;
-                       }
+                    const avgRate = hoursCounted > 0 ? totalRate / hoursCounted : 0;
         
-                       let totalRate = 0;
-                       let hoursCounted = 0;
-                       const startHour = 6;
-                       const endHour = Math.min(currentHour, 16);
-                       for (let h = startHour; h <= endHour; h++) {
-                           if (h === 16 && currentMinutes > 30) continue;
-                           const utcHour = (h + timezoneOffsetHours + 24) % 24;
-                           const ftnRate = hourlyRates[facility]['FTN']?.[utcHour] || 0;
-                           const vvRate = hourlyRates[facility]['VV']?.[utcHour] || 0;
-                           const aRepairRate = hourlyRates[facility]['A-Repair']?.[utcHour] || 0;
-                           totalRate += ftnRate + vvRate + aRepairRate;
-                           hoursCounted++;
-                       }
+                    // Calculate remaining hours until 4:30 PM
+                    const endTime = new Date(now);
+                    endTime.setHours(16, 30, 0, 0);
+                    const remainingMs = endTime - now;
+                    const remainingHours = remainingMs > 0 ? remainingMs / (1000 * 60 * 60) : 0;
         
-                       const avgRate = hoursCounted > 0 ? totalRate / hoursCounted : 0;
-                       const endTime = new Date(now);
-                       endTime.setHours(16, 30, 0, 0);
-                       const remainingMs = endTime - now;
-                       const remainingHours = remainingMs > 0 ? remainingMs / (1000 * 60 * 60) : 0;
-                       const forecast = total + (avgRate * remainingHours);
-                       const roundedForecast = Math.round(forecast);
+                    // Forecast: current total + (average rate * remaining hours)
+                    const forecast = total + (avgRate * remainingHours);
+                    const roundedForecast = Math.round(forecast);
         
-                       if (forecastElement.textContent !== `${roundedForecast} units`) {
-                           forecastElement.textContent = `${roundedForecast} units`;
-                           forecastElement.parentElement.classList.add('forecast-updated');
-                           setTimeout(() => {
-                               forecastElement.parentElement.classList.remove('forecast-updated');
-                           }, 1000);
-                       }
-                   }
-               });
+                    if (forecastElement.textContent !== `${roundedForecast} units`) {
+                        forecastElement.textContent = `${roundedForecast} units`;
+                        forecastElement.parentElement.classList.add('forecast-updated');
+                        setTimeout(() => {
+                            forecastElement.parentElement.classList.remove('forecast-updated');
+                        }, 1000);
+                    }
+                }
+            });
         
-               // Update facility cards with ranking
-               facilities.forEach(facility => {
-                   const rankIconElement = document.getElementById(`${facility}_Rank`);
-                   const cardElement = document.getElementById(facility);
-                   const index = facilityTotals.findIndex(ft => ft.facility === facility);
-                   let rankIcon = '';
-                   if (index === 0) {
-                       rankIcon = '🏆';
-                       cardElement.classList.remove('second-place', 'third-place');
-                       cardElement.classList.add('top-performer');
-                   } else if (index === 1) {
-                       rankIcon = '🥈';
-                       cardElement.classList.remove('top-performer', 'third-place');
-                       cardElement.classList.add('second-place');
-                   } else if (index === 2) {
-                       rankIcon = '🥉';
-                       cardElement.classList.remove('top-performer', 'second-place');
-                       cardElement.classList.add('third-place');
-                   }
-                   if (rankIconElement) {
-                       rankIconElement.textContent = rankIcon;
-                   }
-               });
+            // Update facility cards with ranking
+            facilities.forEach(facility => {
+                const rankIconElement = document.getElementById(`${facility}_Rank`);
+                const cardElement = document.getElementById(facility);
+                const index = facilityTotals.findIndex(ft => ft.facility === facility);
+                let rankIcon = '';
+                if (index === 0) {
+                    rankIcon = '🏆';
+                    cardElement.classList.remove('second-place', 'third-place');
+                    cardElement.classList.add('top-performer');
+                } else if (index === 1) {
+                    rankIcon = '🥈';
+                    cardElement.classList.remove('top-performer', 'third-place');
+                    cardElement.classList.add('second-place');
+                } else if (index === 2) {
+                    rankIcon = '🥉';
+                    cardElement.classList.remove('top-performer', 'second-place');
+                    cardElement.classList.add('third-place');
+                }
+                if (rankIconElement) {
+                    rankIconElement.textContent = rankIcon;
+                }
+            });
         
-               // Update counts, rates, and peak production
-               facilities.forEach(facility => {
-                   lines.forEach(line => {
-                       if (!data[facility] || !data[facility][line] || !hourlyRates[facility] || !hourlyRates[facility][line]) {
-                           console.error(`Missing data for ${facility} ${line}:`, data[facility], hourlyRates[facility]);
-                           return;
-                       }
-                       const count = data[facility][line].count;
-                       const rateData = hourlyRates[facility][line];
-                       const utcHour = (currentHour + timezoneOffsetHours + 24) % 24;
-                       const rate = rateData[utcHour] || 0;
-                       const fractionalHour = currentMinutes / 60;
-                       const adjustedRate = rate * fractionalHour;
-                       console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${adjustedRate.toFixed(2)} (Local Hour: ${currentHour}, Minutes: ${currentMinutes}, UTC Hour: ${utcHour})`);
-                       const countElement = document.getElementById(`${facility}_${line}`);
-                       const rateElement = document.getElementById(`${facility}_${line}_Rate`);
-                       if (countElement && rateElement) {
-                           const key = `${facility}_${line}`;
-                           if (currentCounts[key] !== undefined && currentCounts[key] !== count) {
-                               console.log(`Count for ${facility} ${line} changed from ${currentCounts[key]} to ${count}`);
-                               countElement.classList.add('update');
-                               lastUpdateTimestamps[key] = new Date().toLocaleTimeString();
-                           }
-                           currentCounts[key] = count;
-                           countElement.textContent = count;
-                           countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
-                           rateElement.innerHTML = `Units/Hour: ${adjustedRate.toFixed(2)}<span class="rate-tooltip">${adjustedRate === 0 ? 'No data for current hour' : `Rate based on ${currentMinutes} minutes`}</span>`;
-                       }
-                   });
+            // Reorder facility cards if ranking changed
+            if (rankingChanged) {
+                const facilityGridChildren = Array.from(facilityGrid.children);
+                facilityGrid.innerHTML = '';
+                facilityTotals.forEach(({ facility }) => {
+                    const card = facilityGridChildren.find(child => child.id === facility);
+                    if (card) {
+                        card.classList.add('rank-changed');
+                        facilityGrid.appendChild(card);
+                    }
+                });
+            }
         
-                   if (peakProduction && peakProduction[facility]) {
-                       document.getElementById(`${facility}_Peak_Weekly`).textContent = peakProduction[facility].peakWeekly;
-                       document.getElementById(`${facility}_Peak_AllTime`).textContent = peakProduction[facility].peakDay;
-                   }
-               });
+            // Update counts, rates, and peak production
+            facilities.forEach(facility => {
+                lines.forEach(line => {
+                    if (!data[facility] || !data[facility][line] || !hourlyRates[facility] || !hourlyRates[facility][line]) {
+                        console.error(`Missing data for ${facility} ${line}:`, data[facility], hourlyRates[facility]);
+                        return;
+                    }
+                    const count = data[facility][line].count;
+                    const rateData = hourlyRates[facility][line];
+                    const utcHour = (currentHour + timezoneOffsetHours + 24) % 24;
+                    const rate = rateData[utcHour] || 0;
+                    const fractionalHour = currentMinutes / 60;
+                    const adjustedRate = rate * fractionalHour; // Scale rate by fraction of hour
+                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${adjustedRate.toFixed(2)} (Local Hour: ${currentHour}, Minutes: ${currentMinutes}, UTC Hour: ${utcHour})`);
+                    const countElement = document.getElementById(`${facility}_${line}`);
+                    const rateElement = document.getElementById(`${facility}_${line}_Rate`);
+                    if (countElement && rateElement) {
+                        const key = `${facility}_${line}`;
+                        if (currentCounts[key] !== undefined && currentCounts[key] !== count) {
+                            console.log(`Count for ${facility} ${line} changed from ${currentCounts[key]} to ${count}`);
+                            countElement.classList.add('update');
+                            lastUpdateTimestamps[key] = new Date().toLocaleTimeString();
+                        }
+                        currentCounts[key] = count;
+                        countElement.textContent = count;
+                        countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
+                        rateElement.innerHTML = `Units/Hour: ${adjustedRate.toFixed(2)}<span class="rate-tooltip">${adjustedRate === 0 ? 'No data for current hour' : `Rate based on ${currentMinutes} minutes`}</span>`;
+                    }
+                });
         
-               // Update chart with hourly rates
-               if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
-                   console.log('Raw hourly rates data (UTC):', hourlyRates);
-                   console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
-                   const datasets = productionChart.data.datasets.map(dataset => {
-                       const [facility, line] = dataset.label.split(' ');
-                       const facilityKey = facility === 'North' ? 'North_Las_Vegas_Certified_Center' : `${facility}_Certified_Center`;
-                       if (selectedFacility && facilityKey !== selectedFacility) {
-                           return Array(24).fill(0);
-                       }
-                       const rawData = hourlyRates[facilityKey][line] || Array(24).fill(0);
-                       console.log(`Raw data for ${dataset.label} (UTC):`, rawData);
-                       const shiftedData = Array(24).fill(0);
-                       for (let i = 0; i < 24; i++) {
-                           const utcHour = i;
-                           const localHour = (utcHour - timezoneOffsetHours + 24) % 24;
-                           shiftedData[localHour] = rawData[i];
-                           console.log(`Mapping ${facility} ${line} UTC hour ${utcHour} to local hour ${localHour}`);
-                       }
-                       const currentLocalHour = (currentHour - timezoneOffsetHours + 24) % 24;
-                       shiftedData[currentLocalHour] = shiftedData[currentLocalHour] * (currentMinutes / 60);
-                       console.log(`Shifted data for ${dataset.label}:`, shiftedData);
-                       return shiftedData;
-                   });
+                // Update peak production values
+                if (peakProduction && peakProduction[facility]) {
+                    document.getElementById(`${facility}_Peak_Weekly`).textContent = peakProduction[facility].peakWeekly;
+                    document.getElementById(`${facility}_Peak_AllTime`).textContent = peakProduction[facility].peakDay;
+                }
+            });
         
-                   productionChart.data.datasets.forEach((dataset, index) => {
-                       dataset.data = datasets[index];
-                   });
-                   console.log('Updated chart datasets:', productionChart.data.datasets.map(ds => ds.data));
-                   productionChart.update();
-               } else {
-                   console.error('Incomplete hourly rates data:', hourlyRates);
-                   showNotification('Hourly production rates unavailable.');
-               }
+            // Update chart with hourly rates
+            if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
+                console.log('Raw hourly rates data (UTC):', hourlyRates);
+                console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
+                const datasets = productionChart.data.datasets.map(dataset => {
+                    const [facility, line] = dataset.label.split(' ');
+                    const facilityKey = facility === 'North' ? 'North_Las_Vegas_Certified_Center' : `${facility}_Certified_Center`;
+                    if (selectedFacility && facilityKey !== selectedFacility) {
+                        return Array(24).fill(0); // Hide data for non-selected facilities
+                    }
+                    const rawData = hourlyRates[facilityKey][line] || Array(24).fill(0);
+                    console.log(`Raw data for ${dataset.label} (UTC):`, rawData);
+                    const shiftedData = Array(24).fill(0);
+                    for (let i = 0; i < 24; i++) {
+                        const utcHour = i;
+                        const localHour = (utcHour - timezoneOffsetHours + 24) % 24;
+                        shiftedData[localHour] = rawData[i];
+                        console.log(`Mapping ${facility} ${line} UTC hour ${utcHour} to local hour ${localHour}`);
+                    }
+                    // Adjust current hour's rate based on minutes
+                    const currentLocalHour = (currentHour - timezoneOffsetHours + 24) % 24;
+                    shiftedData[currentLocalHour] = shiftedData[currentLocalHour] * (currentMinutes / 60);
+                    console.log(`Shifted data for ${dataset.label}:`, shiftedData);
+                    return shiftedData;
+                });
         
-               if (totalProduction !== null) {
-                   document.getElementById('totalProductionValue').textContent = totalProduction;
-                   document.getElementById('totalProduction').classList.remove('hidden');
-               } else {
-                   document.getElementById('totalProduction').classList.add('hidden');
-               }
+                productionChart.data.datasets.forEach((dataset, index) => {
+                    dataset.data = datasets[index];
+                });
+                console.log('Updated chart datasets:', productionChart.data.datasets.map(ds => ds.data));
+                productionChart.update();
+            } else {
+                console.error('Incomplete hourly rates data:', hourlyRates);
+                showNotification('Hourly production rates unavailable.');
+            }
         
-               updateFacilityGrid();
-           }, 100);
+            if (totalProduction !== null) {
+                document.getElementById('totalProductionValue').textContent = totalProduction;
+                document.getElementById('totalProduction').classList.remove('hidden');
+            } else {
+                document.getElementById('totalProduction').classList.add('hidden');
+            }
         
+            // Apply facility filter
+            updateFacilityGrid();
+        }, 100);
+
         console.log(`Client current date: ${currentDate}`);
 
         // WebSocket connection
         const ws = new WebSocket('wss://production-counter.onrender.com');
-        ws.onmessage = (event) => {
-            console.log('Received WebSocket message:', event.data);
-            let message;
-            try {
-                message = JSON.parse(event.data);
-            } catch (err) {
-                console.error('Failed to parse WebSocket message:', err);
-                return;
-            }
+           ws.onopen = () => {
+               console.log('WebSocket connection established');
+               document.getElementById('loadingSpinner').style.display = 'none';
+               ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
+               loadHistoricalDates();
+           };
+           ws.onmessage = (event) => {
+               console.log('Received WebSocket message:', event.data);
+               let message;
+               try {
+                   message = JSON.parse(event.data);
+               } catch (err) {
+                   console.error('Failed to parse WebSocket message:', err);
+                   return;
+               }
         
-            const { date, data, hourlyRates, totalProduction, peakProduction, notification } = message;
-            if (!date || !data || !hourlyRates) {
-                console.error('Invalid WebSocket message structure:', message);
-                return;
-            }
+               const { date, data, hourlyRates, totalProduction, peakProduction, notification } = message;
+               if (!date || !data || !hourlyRates) {
+                   console.error('Invalid WebSocket message structure:', message);
+                   return;
+               }
         
-            console.log(`Received data for date: ${date}`);
-            console.log(`Sellersburg FTN count: ${data['Sellersburg_Certified_Center']['FTN'].count}`);
-            updateUI(date, data, hourlyRates, totalProduction, peakProduction);
-            if (notification) {
-                showNotification(notification);
-            }
-        };
-        ws.onclose = () => {
-            console.log('WebSocket connection closed');
-            document.getElementById('loadingSpinner').style.display = 'none';
-            showNotification('WebSocket connection closed. Reconnecting...');
-            setTimeout(() => {
-                console.log('Attempting to reconnect WebSocket...');
-                const newWs = new WebSocket('wss://production-counter.onrender.com');
-                newWs.onopen = () => {
-                    console.log('WebSocket reconnected');
-                    document.getElementById('loadingSpinner').style.display = 'none';
-                    ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-                    loadHistoricalDates();
-                };
-                newWs.onmessage = ws.onmessage;
-                newWs.onerror = ws.onerror;
-                newWs.onclose = ws.onclose;
-                ws = newWs;
-            }, 5000);
-        };
-        ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            document.getElementById('loadingSpinner').style.display = 'none';
-            showNotification('WebSocket connection error. Attempting to reconnect...');
-        };
+               console.log(`Received data for date: ${date}`);
+               console.log(`Sellersburg FTN count: ${data['Sellersburg_Certified_Center']['FTN'].count}`);
+               updateUI(date, data, hourlyRates, totalProduction, peakProduction);
+               if (notification) {
+                   showNotification(notification);
+               }
+           };
+           ws.onerror = (error) => {
+               console.error('WebSocket error:', error);
+               document.getElementById('loadingSpinner').style.display = 'none';
+               showNotification('WebSocket connection error. Attempting to reconnect...');
+           };
+           ws.onclose = () => {
+               console.log('WebSocket connection closed');
+               document.getElementById('loadingSpinner').style.display = 'none';
+               showNotification('WebSocket connection closed. Reconnecting...');
+               setTimeout(() => {
+                   console.log('Attempting to reconnect WebSocket...');
+                   const newWs = new WebSocket('wss://production-counter.onrender.com');
+                   newWs.onopen = ws.onopen;
+                   newWs.onmessage = ws.onmessage;
+                   newWs.onerror = ws.onerror;
+                   newWs.onclose = ws.onclose;
+                   ws = newWs;
+               }, 5000);
+           };
     </script>
 </body>
 </html>
