@@ -396,6 +396,7 @@ async function getPeakProduction() {
        GROUP BY facility, date
        ORDER BY facility, daily_total DESC`
     );
+    console.log('Peak day query result:', peakDayResult.rows);
 
     // Calculate peak weekly production (max sum of daily totals over any 7-day period)
     const allDailyTotals = await client.query(
@@ -404,6 +405,7 @@ async function getPeakProduction() {
        GROUP BY facility, date
        ORDER BY facility, date`
     );
+    console.log('All daily totals query result:', allDailyTotals.rows);
 
     const peakProduction = {};
     facilities.forEach(f => {
@@ -419,6 +421,7 @@ async function getPeakProduction() {
           daily_total: parseInt(row.daily_total)
         }))
         .sort((a, b) => new Date(a.date) - new Date(b.date));
+      console.log(`Daily totals for ${f}:`, facilityDailyTotals);
 
       let maxWeeklySum = 0;
       for (let i = 0; i <= facilityDailyTotals.length - 7; i++) {
