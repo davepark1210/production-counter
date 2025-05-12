@@ -70,17 +70,18 @@
             padding: 4rem; /* Spacious for readability */
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Stronger shadow */
             border: 6px solid #003087; /* Darker blue, thick border */
-            transform: scale(1.25); /* Larger scale for prominence */
+            transform: scale(1.0); /* Start at normal size */
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; /* Smooth transition */
             z-index: 20;
             background: linear-gradient(145deg, #ffffff, #c3daff); /* Bolder gradient */
             margin: 3rem auto; /* Prevent TV overscan clipping */
         }
         .facility-card-focused:hover {
-               transform: translateY(-10px) scale(1.3);
-               box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 87, 184, 0.5);
-               background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
-               border-color: #0057b8;
-           }
+            transform: translateY(-15px) scale(1.1); /* Larger pulse and lift */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 87, 184, 0.6); /* Slightly softer shadow */
+            background: linear-gradient(145deg, #e6f0fa, #f0f4f8); /* Consistent hover gradient */
+            border-color: #0057b8; /* Consistent border color */
+        }
         .facility-card-focused h2 {
             font-size: 4rem; /* Larger for 20ft visibility */
             color: #003087;
@@ -626,14 +627,15 @@
             .facility-card-focused {
                 max-width: 100%;
                 padding: 2.5rem;
-                transform: scale(1.05);
+                transform: scale(1.0); /* Start at normal size */
+                transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; /* Smooth transition */
                 margin: 1.5rem auto; /* Smaller margin for mobile */
             }
             .facility-card-focused:hover {
-               transform: translateY(-10px) scale(1.1);
-               box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 87, 184, 0.5);
-               background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
-               border-color: #0057b8;
+                transform: translateY(-10px) scale(1.1); /* Consistent pulse and lift */
+                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 87, 184, 0.5);
+                background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
+                border-color: #0057b8;
             }
             .facility-card-focused h2 {
                 font-size: 3rem;
