@@ -521,7 +521,7 @@
             animation: highlight 0.5s ease-in-out;
         }
         .main-total-production {
-            font-size: 1.5rem;
+            font-size: 3rem; /* Matches text-5xl from Certified Center Production */
             font-weight: 700;
             color: #1e40af; /* Matches total-production color */
             text-align: center;
@@ -530,13 +530,18 @@
         .main-total-production span {
             transition: transform 0.3s ease, color 0.3s ease;
             display: inline-block;
+            font-size: 3.5rem; /* Slightly larger for the number, consistent with prior styling */
+            font-weight: 800;
         }
         .main-total-production span.update {
             animation: highlight 0.5s ease-in-out;
         }
         @media (max-width: 640px) {
             .main-total-production {
-                font-size: 1.25rem;
+                font-size: 3rem; /* Maintain size to match header */
+            }
+            .main-total-production span {
+                font-size: 3.5rem;
             }
         }
         @keyframes highlight {
