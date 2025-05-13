@@ -21,6 +21,11 @@ let lastMilestone = 0;
 // Serve static files
 app.use(express.static('public'));
 
+//Using Keepalive strategy to prevent spindown
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', uptime: process.uptime() });
+});
+
 // HTTP endpoint to get the current count for a facility and line
 app.get('/getCount', async (req, res) => {
   const { facility, line, date = currentDate } = req.query;
