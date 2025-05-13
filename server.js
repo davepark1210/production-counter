@@ -262,6 +262,50 @@ async function updateCount(facility, line, delta, date) {
   }
 }
 
+// HTTP endpoint to get weekly production trends
+app.get('/getWeeklyTrends', async (req, res) => {
+  const { date = currentDate } = req.query;
+  if (!date) {
+    return res.status(400).json({ error: 'Date is required' });
+  }
+  const client = await pool.connect();
+  try {
+    console.log(`Fetching weekly trends up to date: ${date}`);
+    const weekStart = new Date(date);
+    weekStart.setDate(weekStart.getDate() - 6); // 7 days including the specified date
+    const weekStartDate = weekStart.toISOString().split('T')[0];
+
+    const result = await client.query(
+      `SELECT facility, date, SUM(count) as daily_total
+       FROM ProductionCounts
+       WHERE date >= $1 AND date <= $2
+       GROUP BY facility, date
+       ORDER BY facility, date`,
+      [weekStartDate, date]
+    );
+
+    const trends = {};
+    facilities.forEach(f => {
+      trends[f] = Array(7).fill(0).map((_, i) => {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + i);
+        return d.toISOString().split('T')[0];
+      }).map(date => {
+        const row = result.rows.find(r => r.facility === f && r.date.toISOString().split('T')[0] === date);
+        return { date, total: row ? parseInt(row.daily_total) : 0 };
+      });
+    });
+
+    console.log('Weekly trends:', trends);
+    res.json({ trends });
+  } catch (err) {
+    console.error('GetWeeklyTrends Error:', err);
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    client.release();
+  }
+});
+
 // WebSocket server
 const server = app.listen(10000, () => {
   console.log(`Server running at https://production-counter.onrender.com`);
