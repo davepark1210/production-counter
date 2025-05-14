@@ -14,12 +14,7 @@ const pool = new Pool({
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
-const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
-const dailyTargets = {
-  'Sellersburg_Certified_Center': 140,
-  'Williamsport_Certified_Center': 150,
-  'North_Las_Vegas_Certified_Center': 100
-};
+const lines = ['FTN', 'VV', 'A-Repair'];
 let currentDate = null; // Will be set by client for UI purposes
 let lastMilestone = 0;
 
@@ -312,22 +307,13 @@ async function getCurrentData() {
     );
     console.log('Database query result:', res.rows);
     const data = {};
-    const facilityTotals = {};
     facilities.forEach(f => {
       data[f] = {};
-      facilityTotals[f] = 0;
       lines.forEach(l => {
         const row = res.rows.find(r => r.facility === f && r.line === l);
-        const count = row ? row.count : 0;
-        data[f][l] = { count, timestamp: new Date().toISOString() };
-        facilityTotals[f] += count;
+        data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
         console.log(`Count for ${f}, ${l}: ${data[f][l].count}`);
       });
-      // Calculate percentage of target
-      const target = dailyTargets[f];
-      const percentage = target ? Math.round((facilityTotals[f] / target) * 100) : 0;
-      data[f].percentage = percentage;
-      console.log(`Percentage for ${f}: ${percentage}% (Total: ${facilityTotals[f]}, Target: ${target})`);
     });
     console.log('Constructed data:', data);
     return data;
@@ -349,10 +335,10 @@ async function getHourlyRates(date = currentDate) {
     const rawEvents = await client.query(
       `SELECT facility, line, delta, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour
        FROM ProductionEvents
-       WHERE date = $1`,
+       WHERE date = $1 AND facility = 'North_Las_Vegas_Certified_Center' AND line = 'VV'`,
       [date]
     );
-    console.log(`Raw ProductionEvents for ${date}:`, rawEvents.rows);
+    console.log(`Raw ProductionEvents for North Las Vegas VV on ${date}:`, rawEvents.rows);
     const result = await client.query(
       `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
        FROM ProductionEvents
@@ -489,19 +475,12 @@ async function broadcastUpdate() {
     notification = `Milestone Reached: Total production hit ${milestone} units!`;
   }
 
-  // Add facility percentages
-  const facilityPercentages = {};
-  facilities.forEach(f => {
-    facilityPercentages[f] = data[f].percentage || 0;
-  });
-
   const message = {
     date: currentDate,
     data,
     hourlyRates,
     totalProduction,
     peakProduction,
-    facilityPercentages,
     notification
   };
   console.log('Broadcasting update:', JSON.stringify(message));
