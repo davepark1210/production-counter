@@ -354,12 +354,15 @@
             background-color: #ff9f40;
         }
         .target-percentage {
-            font-size: 1.25rem;
-            font-weight: 500;
-            color: #374151;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e40af;
+            text-align: center;
             margin: 0.5rem 0;
         }
         .target-percentage span {
+            transition: transform 0.3s ease, color 0.3s ease;
+            display: inline-block;
             font-weight: 700;
             color: #1e40af;
         }
@@ -801,7 +804,7 @@
                 <div class="total-production">Total Production: <span id="Sellersburg_Certified_Center_Total">0</span> units</div>
                 <div class="target-percentage-container">
                     Target Percentage: <span class="target-percentage" id="Sellersburg_Certified_Center_Target_Percentage">0%</span>
-                    <span class="target-tooltip">Percentage of daily production target</span>
+                    <span class="target-tooltip">% of daily production target</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
@@ -851,7 +854,7 @@
                 <div class="total-production">Total Production: <span id="Williamsport_Certified_Center_Total">0</span> units</div>
                 <div class="target-percentage-container">
                     Target Percentage: <span class="target-percentage" id="Williamsport_Certified_Center_Target_Percentage">0%</span>
-                    <span class="target-tooltip">Percentage of daily production target</span>
+                    <span class="target-tooltip">% of daily production target</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
@@ -901,7 +904,7 @@
                 <div class="total-production">Total Production: <span id="North_Las_Vegas_Certified_Center_Total">0</span> units</div>
                 <div class="target-percentage-container">
                     Target Percentage: <span class="target-percentage" id="North_Las_Vegas_Certified_Center_Target_Percentage">0%</span>
-                    <span class="target-tooltip">Percentage of daily production target</span>
+                    <span class="target-tooltip">% of daily production target</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
@@ -1934,12 +1937,17 @@
                     const peakAllTimeElement = document.getElementById(`${facility}_Peak_AllTime`);
                     if (!peakWeeklyElement || !peakAllTimeElement) {
                         console.error(`Peak production elements missing for ${facility}`);
+                        showNotification(`Error: Peak production elements missing for ${facility}`);
                         return;
                     }
                     if (peakProduction?.[facility]) {
-                        peakWeeklyElement.textContent = peakProduction[facility].peakWeekly || 0;
-                        peakAllTimeElement.textContent = peakProduction[facility].peakDay || 0;
+                        const peakWeekly = peakProduction[facility].peakWeekly ?? 0;
+                        const peakDay = peakProduction[facility].peakDay ?? 0;
+                        console.log(`Updating peak production for ${facility}: peakWeekly=${peakWeekly}, peakDay=${peakDay}`);
+                        peakWeeklyElement.textContent = peakWeekly;
+                        peakAllTimeElement.textContent = peakDay;
                     } else {
+                        console.warn(`No peak production data for ${facility}`);
                         peakWeeklyElement.textContent = '0';
                         peakAllTimeElement.textContent = '0';
                     }
