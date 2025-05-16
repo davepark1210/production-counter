@@ -401,66 +401,70 @@ async function getTotalDailyProduction() {
 }
 
 async function getPeakProduction() {
-  if (!currentDate) {
-    throw new Error('Current date not set');
-  }
-  const client = await pool.connect();
-  try {
-    // Calculate peak daily production (highest single-day total for each facility)
-    const peakDayResult = await client.query(
-      `SELECT facility, date, SUM(count) as daily_total
-       FROM ProductionCounts
-       GROUP BY facility, date
-       ORDER BY facility, daily_total DESC`
-    );
-    console.log('Peak day query result:', peakDayResult.rows);
+    if (!currentDate) {
+        throw new Error('Current date not set');
+    }
+    const client = await pool.connect();
+    try {
+        // Calculate peak daily production
+        const peakDayResult = await client.query(
+            `SELECT facility, date, SUM(count) as daily_total
+             FROM ProductionCounts
+             GROUP BY facility, date
+             ORDER BY facility, daily_total DESC`
+        );
+        console.log('Peak day query result:', peakDayResult.rows);
 
-    // Calculate peak weekly production (max sum of daily totals over any 7-day period)
-    const allDailyTotals = await client.query(
-      `SELECT facility, date, SUM(count) as daily_total
-       FROM ProductionCounts
-       GROUP BY facility, date
-       ORDER BY facility, date`
-    );
-    console.log('All daily totals query result:', allDailyTotals.rows);
+        // Calculate peak weekly production
+        const allDailyTotals = await client.query(
+            `SELECT facility, date, SUM(count) as daily_total
+             FROM ProductionCounts
+             GROUP BY facility, date
+             ORDER BY facility, date`
+        );
+        console.log('All daily totals query result:', allDailyTotals.rows);
 
-    const peakProduction = {};
-    facilities.forEach(f => {
-      // Find the highest daily total for this facility
-      const facilityRows = peakDayResult.rows.filter(row => row.facility === f);
-      const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
+        const peakProduction = {};
+        facilities.forEach(f => {
+            // Find the highest daily total
+            const facilityRows = peakDayResult.rows.filter(row => row.facility === f);
+            const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
 
-      // Calculate max weekly sum for this facility
-      const facilityDailyTotals = allDailyTotals.rows
-        .filter(row => row.facility === f)
-        .map(row => ({
-          date: row.date,
-          daily_total: parseInt(row.daily_total)
-        }))
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
-      console.log(`Daily totals for ${f}:`, facilityDailyTotals);
+            // Calculate max weekly sum
+            const facilityDailyTotals = allDailyTotals.rows
+                .filter(row => row.facility === f)
+                .map(row => ({
+                    date: new Date(row.date).toISOString().split('T')[0], // Normalize date
+                    daily_total: parseInt(row.daily_total)
+                }))
+                .sort((a, b) => a.date.localeCompare(b.date)); // Sort by ISO date string
+            console.log(`Daily totals for ${f}:`, facilityDailyTotals);
 
-      let maxWeeklySum = 0;
-      for (let i = 0; i <= facilityDailyTotals.length - 7; i++) {
-        const weekTotals = facilityDailyTotals.slice(i, i + 7);
-        const weekSum = weekTotals.reduce((sum, day) => sum + day.daily_total, 0);
-        maxWeeklySum = Math.max(maxWeeklySum, weekSum);
-      }
+            let maxWeeklySum = 0;
+            if (facilityDailyTotals.length > 0) {
+                // Handle fewer than 7 days by using available data
+                const availableDays = Math.min(facilityDailyTotals.length, 7);
+                for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
+                    const weekTotals = facilityDailyTotals.slice(i, i + availableDays);
+                    const weekSum = weekTotals.reduce((sum, day) => sum + day.daily_total, 0);
+                    maxWeeklySum = Math.max(maxWeeklySum, weekSum);
+                }
+            }
 
-      peakProduction[f] = {
-        peakDay: peakDay,
-        peakWeekly: maxWeeklySum
-      };
-    });
+            peakProduction[f] = {
+                peakDay: peakDay,
+                peakWeekly: maxWeeklySum
+            };
+        });
 
-    console.log('Peak production:', peakProduction);
-    return peakProduction;
-  } catch (err) {
-    console.error('GetPeakProduction Error:', err);
-    throw err;
-  } finally {
-    client.release();
-  }
+        console.log('Peak production:', peakProduction);
+        return peakProduction;
+    } catch (err) {
+        console.error('GetPeakProduction Error:', err);
+        throw err;
+    } finally {
+        client.release();
+    }
 }
 
 async function broadcastUpdate() {
