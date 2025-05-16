@@ -353,19 +353,6 @@
         .label-a-repair::before {
             background-color: #ff9f40;
         }
-        .target-percentage {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1e40af;
-            text-align: center;
-            margin: 0.5rem 0;
-        }
-        .target-percentage span {
-            transition: transform 0.3s ease, color 0.3s ease;
-            display: inline-block;
-            font-weight: 700;
-            color: #1e40af;
-        }
         .peak-metric {
             position: relative;
         }
@@ -802,10 +789,7 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">Sellersburg Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="Sellersburg_Certified_Center_Total">0</span> units</div>
-                <div class="target-percentage-container">
-                    Target Percentage: <span class="target-percentage" id="Sellersburg_Certified_Center_Target_Percentage">0%</span>
-                    <span class="target-tooltip">% of daily production target</span>
-                </div>
+                <div class="total-production">Target %: <span id="Sellersburg_Certified_Center_Target_Percentage">0</span>%</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_Cooler">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_Cooler_Tooltip"></span></span>
@@ -852,10 +836,7 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">Williamsport Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="Williamsport_Certified_Center_Total">0</span> units</div>
-                <div class="target-percentage-container">
-                    Target Percentage: <span class="target-percentage" id="Williamsport_Certified_Center_Target_Percentage">0%</span>
-                    <span class="target-tooltip">% of daily production target</span>
-                </div>
+                <div class="total-production">Target %: <span id="Williamsport_Certified_Center_Target_Percentage">0</span>%</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_Cooler">0<span class="counter-tooltip" id="Williamsport_Certified_Center_Cooler_Tooltip"></span></span>
@@ -902,10 +883,7 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">North Las Vegas Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="North_Las_Vegas_Certified_Center_Total">0</span> units</div>
-                <div class="target-percentage-container">
-                    Target Percentage: <span class="target-percentage" id="North_Las_Vegas_Certified_Center_Target_Percentage">0%</span>
-                    <span class="target-tooltip">% of daily production target</span>
-                </div>
+                <div class="total-production">Target %: <span id="North_Las_Vegas_Certified_Center_Target_Percentage">0</span>%</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Cooler">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Cooler_Tooltip"></span></span>
@@ -1799,7 +1777,12 @@
                     // Update target percentage
                     const targetPercentageElement = document.getElementById(`${facility}_Target_Percentage`);
                     if (targetPercentageElement && targetPercentages?.[facility] !== undefined) {
-                        targetPercentageElement.textContent = targetPercentages[facility];
+                        const percentage = Math.round(Number(targetPercentages[facility])) || 0;
+                        targetPercentageElement.textContent = percentage;
+                        console.log(`Updated ${facility} target percentage to ${percentage}%`);
+                    } else {
+                        console.warn(`Target percentage element or data missing for ${facility}`);
+                        if (targetPercentageElement) targetPercentageElement.textContent = '0';
                     }
         
                     // Update progress bar
