@@ -961,12 +961,14 @@
         const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
         
         let productionChart;
-        try {
-            const ctx = document.getElementById('productionChart')?.getContext('2d');
-            if (!ctx) {
-                console.error('Chart canvas not found');
-                showNotification('Error: Chart canvas not found.');
-            } else {
+        function initializeChart() {
+            try {
+                const ctx = document.getElementById('productionChart')?.getContext('2d');
+                if (!ctx) {
+                    console.error('Chart canvas not found');
+                    showNotification('Error: Chart canvas not found.');
+                    return;
+                }
                 const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
                 productionChart = new Chart(ctx, {
                     type: 'line',
@@ -1227,12 +1229,7 @@
                                     padding: 10,
                                     boxWidth: 15,
                                     usePointStyle: true,
-                                    pointStyle: 'circle',
-                                    filter: function(legendItem, chartData) {
-                                        if (!selectedFacility) return true;
-                                        const dataset = chartData.datasets[legendItem.datasetIndex];
-                                        return dataset.facility === selectedFacility;
-                                    }
+                                    pointStyle: 'circle'
                                 },
                                 onClick: function(e, legendItem, legend) {
                                     const index = legendItem.datasetIndex;
@@ -1278,7 +1275,7 @@
                                 },
                                 grid: {
                                     display: true,
-                                    color: 'rgba(0, 87, 184, 0.05)', // Lighter grid
+                                    color: 'rgba(0, 87, 184, 0.05)',
                                     lineWidth: 1
                                 },
                                 ticks: {
@@ -1336,16 +1333,19 @@
                         }
                     }
                 });
+                // Add hover effect to legend items
+                const legendItems = document.querySelectorAll('.chart-legend li');
+                legendItems.forEach(item => {
+                    item.classList.add('chart-legend-item');
+                });
+            } catch (err) {
+                console.error('Error initializing Chart.js:', err);
+                showNotification('Error loading production chart.');
             }
-        } catch (err) {
-            console.error('Error initializing Chart.js:', err);
-            showNotification('Error loading production chart.');
         }
-
-        // Add hover effect to legend items
-        const legendItems = document.querySelectorAll('.chart-legend li');
-        legendItems.forEach(item => {
-            item.classList.add('chart-legend-item');
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeChart();
         });
 
         // Real-time clock update
@@ -1582,6 +1582,21 @@
                         }
                     }
                     console.log('All required DOM elements found');
+                    
+                    // Wait for chart initialization
+                    await new Promise(resolve => {
+                        const checkChart = () => {
+                            if (productionChart) {
+                                console.log('Chart initialized, proceeding with WebSocket messages');
+                                resolve();
+                            } else {
+                                console.log('Waiting for chart initialization...');
+                                setTimeout(checkChart, 100);
+                            }
+                        };
+                        checkChart();
+                    });
+            
                     const dateSelect = document.getElementById('dateSelect');
                     const selectedDate = dateSelect.value || new Date().toISOString().split('T')[0];
                     currentDate = selectedDate;
@@ -1971,10 +1986,11 @@
                     }
                 });
         
-                // Update chart
-                if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
-                    console.log('Raw hourly rates data (UTC):', hourlyRates);
-                    console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
+            // Update chart
+            if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
+                console.log('Raw hourly rates data (UTC):', hourlyRates);
+                console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
+                if (productionChart && productionChart.data && productionChart.data.datasets) {
                     productionChart.data.datasets.forEach((dataset, index) => {
                         let facility, line;
                         if (dataset.label.startsWith('North Las Vegas')) {
@@ -2003,21 +2019,11 @@
                     });
                     productionChart.update();
                 } else {
-                    console.error('Incomplete hourly rates data:', hourlyRates);
-                    showNotification('Hourly production rates unavailable.');
+                    console.warn('Chart not initialized, skipping chart update');
                 }
-        
-                if (totalProduction !== null) {
-                    document.getElementById('totalProductionValue').textContent = totalProduction;
-                    document.getElementById('totalProduction').classList.remove('hidden');
-                } else {
-                    document.getElementById('totalProduction').classList.add('hidden');
-                }
-        
-                updateFacilityGrid();
-            } catch (err) {
-                console.error('Error in updateUI:', err);
-                showNotification('Error updating UI.');
+            } else {
+                console.error('Incomplete hourly rates data:', hourlyRates);
+                showNotification('Hourly production rates unavailable.');
             }
         }, 100);
 
