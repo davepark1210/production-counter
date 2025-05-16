@@ -973,368 +973,392 @@
         const ctx = document.getElementById('productionChart').getContext('2d');
         const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
         
-        const productionChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    { 
-                        label: 'Sellersburg FTN', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#ff6384', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(255, 99, 132, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(255, 99, 132, 0.1)');
-                            gradient.addColorStop(1, 'rgba(255, 99, 132, 0.4)');
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    },
-                    { 
-                        label: 'Sellersburg Cooler', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#36a2eb', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(54, 162, 235, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(54, 162, 235, 0.1)');
-                            gradient.addColorStop(1, 'rgba(54, 162, 235, 0.4)');
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    },
-                    { 
-                        label: 'Sellersburg Vendor', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#4bc0c0', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)');
-                            gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)');
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    },
-                    { 
-                        label: 'Sellersburg A-Repair', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#ff9f40', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
-                            gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)');
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    },
-                    { 
-                        label: 'Williamsport FTN', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#cc65fe', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(204, 101, 254, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(204, 101, 254, 0.1)');
-                            gradient.addColorStop(1, 'rgba(204, 101, 254, 0.4)');
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    },
-                    { 
-                        label: 'Williamsport Cooler', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#ffce56', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(255, 206, 86, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(255, 206, 86, 0.1)');
-                            gradient.addColorStop(1, 'rgba(255, 206, 86, 0.4)');
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    },
-                    { 
-                        label: 'Williamsport Vendor', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#4bc0c0', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)');
-                            gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)');
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    },
-                    { 
-                        label: 'Williamsport A-Repair', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#ff9f40', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
-                            gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)');
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    },
-                    { 
-                        label: 'North Las Vegas FTN', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#4bc0c0', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)');
-                            gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)');
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    },
-                    { 
-                        label: 'North Las Vegas Cooler', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#9966ff', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(153, 102, 255, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(153, 102, 255, 0.1)');
-                            gradient.addColorStop(1, 'rgba(153, 102, 255, 0.4)');
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    },
-                    { 
-                        label: 'North Las Vegas Vendor', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#4bc0c0', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)');
-                            gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)';
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    },
-                    { 
-                        label: 'North Las Vegas A-Repair', 
-                        data: Array(24).fill(0), 
-                        borderColor: '#ff9f40', 
-                        backgroundColor: (ctx) => {
-                            const chart = ctx.chart;
-                            const { ctx: canvasCtx, chartArea } = chart;
-                            if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
-                            const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                            gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
-                            gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)';
-                            return gradient;
-                        }, 
-                        borderWidth: 3, 
-                        fill: true, 
-                        pointRadius: 5, 
-                        pointHoverRadius: 8, 
-                        pointStyle: 'circle' 
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            font: { size: 14, weight: 'bold', family: 'Poppins' },
-                            padding: 15,
-                            boxWidth: 20,
-                            usePointStyle: true,
-                            pointStyle: 'circle'
-                        },
-                        onClick: (e, legendItem, legend) => {
-                            const index = legendItem.datasetIndex;
-                            const ci = legend.chart;
-                            if (ci.isDatasetVisible(index)) {
-                                ci.hide(index);
-                                legendItem.hidden = true;
-                            } else {
-                                ci.show(index);
-                                legendItem.hidden = false;
+        let productionChart;
+        try {
+            const ctx = document.getElementById('productionChart')?.getContext('2d');
+            if (!ctx) {
+                console.error('Chart canvas not found');
+                showNotification('Error: Chart canvas not found.');
+            } else {
+                const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+                productionChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            // ... datasets from previous response (unchanged)
+                            { 
+                                label: 'Sellersburg FTN', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#ff6384', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(255, 99, 132, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(255, 99, 132, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(255, 99, 132, 0.4)');
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
+                            },
+                            { 
+                                label: 'Sellersburg Cooler', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#36a2eb', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(54, 162, 235, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(54, 162, 235, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(54, 162, 235, 0.4)');
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
+                            },
+                            { 
+                                label: 'Sellersburg Vendor', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#4bc0c0', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)');
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
+                            },
+                            { 
+                                label: 'Sellersburg A-Repair', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#ff9f40', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)';
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
+                            },
+                            { 
+                                label: 'Williamsport FTN', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#cc65fe', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(204, 101, 254, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(204, 101, 254, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(204, 101, 254, 0.4)');
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
+                            },
+                            { 
+                                label: 'Williamsport Cooler', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#ffce56', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(255, 206, 86, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(255, 206, 86, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(255, 206, 86, 0.4)';
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
+                            },
+                            { 
+                                label: 'Williamsport Vendor', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#4bc0c0', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)';
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
+                            },
+                            { 
+                                label: 'Williamsport A-Repair', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#ff9f40', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)';
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
+                            },
+                            { 
+                                label: 'North Las Vegas FTN', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#4bc0c0', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)';
+                                    gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)';
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
+                            },
+                            { 
+                                label: 'North Las Vegas Cooler', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#9966ff', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(153, 102, 255, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(153, 102, 255, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(153, 102, 255, 0.4)';
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
+                            },
+                            { 
+                                label: 'North Las Vegas Vendor', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#4bc0c0', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)';
+                                    gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)';
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
+                            },
+                            { 
+                                label: 'North Las Vegas A-Repair', 
+                                data: Array(24).fill(0), 
+                                borderColor: '#ff9f40', 
+                                backgroundColor: (ctx) => {
+                                    const chart = ctx.chart;
+                                    const { ctx: canvasCtx, chartArea } = chart;
+                                    if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
+                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                                    gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)';
+                                    gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)';
+                                    return gradient;
+                                }, 
+                                borderWidth: 3, 
+                                fill: true, 
+                                pointRadius: 5, 
+                                pointHoverRadius: 8, 
+                                pointStyle: 'circle' 
                             }
-                        }
+                        ]
                     },
-                    tooltip: {
-                        enabled: true,
-                        backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                        titleFont: { size: 14, family: 'Poppins' },
-                        bodyFont: { size: 12, family: 'Poppins' },
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.dataset.label}: ${context.parsed.y} units/hour`;
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: { size: 14, weight: 'bold', family: 'Poppins' },
+                                    padding: 15,
+                                    boxWidth: 20,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle'
+                                },
+                                onClick: (e, legendItem, legend) => {
+                                    const index = legendItem.datasetIndex;
+                                    const ci = legend.chart;
+                                    if (ci.isDatasetVisible(index)) {
+                                        ci.hide(index);
+                                        legendItem.hidden = true;
+                                    } else {
+                                        ci.show(index);
+                                        legendItem.hidden = false;
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                enabled: true,
+                                backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                                titleFont: { size: 14, family: 'Poppins' },
+                                bodyFont: { size: 12, family: 'Poppins' },
+                                padding: 12,
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ${context.parsed.y} units/hour`;
+                                    }
+                                }
                             }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Hour of Day (Local Time)',
+                                    font: { size: 16, weight: 'bold', family: 'Poppins' },
+                                    color: '#1e40af',
+                                    padding: 10
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 87, 184, 0.1)',
+                                    lineWidth: 1
+                                },
+                                ticks: {
+                                    font: { size: 12, family: 'Poppins' },
+                                    color: '#1e40af',
+                                    padding: 10
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Production Rate (Units/Hour)',
+                                    font: { size: 16, weight: 'bold', family: 'Poppins' },
+                                    color: '#1e40af',
+                                    padding: 10
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 87, 184, 0.1)',
+                                    lineWidth: 1
+                                },
+                                ticks: {
+                                    font: { size: 12, family: 'Poppins' },
+                                    color: '#1e40af',
+                                    beginAtZero: true,
+                                    padding: 10
+                                }
+                            }
+                        },
+                        elements: {
+                            line: {
+                                tension: 0.4,
+                                shadowOffsetX: 0,
+                                shadowOffsetY: 0,
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(0, 0, 0, 0.2)'
+                            },
+                            point: {
+                                pointStyle: 'circle',
+                                backgroundColor: '#ffffff',
+                                borderWidth: 2,
+                                hitRadius: 10
+                            }
+                        },
+                        layout: {
+                            padding: {
+                                left: 20,
+                                right: 20,
+                                top: 20,
+                                bottom: 20
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            intersect: true,
+                            axis: 'x'
                         }
                     }
-                },
-                scales: {
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Hour of Day (Local Time)',
-                            font: { size: 16, weight: 'bold', family: 'Poppins' },
-                            color: '#1e40af',
-                            padding: 10
-                        },
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 87, 184, 0.1)',
-                            lineWidth: 1
-                        },
-                        ticks: {
-                            font: { size: 12, family: 'Poppins' },
-                            color: '#1e40af',
-                            padding: 10
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Production Rate (Units/Hour)',
-                            font: { size: 16, weight: 'bold', family: 'Poppins' },
-                            color: '#1e40af',
-                            padding: 10
-                        },
-                        grid: {
-                            display: true,
-                            color: 'rgba(0, 87, 184, 0.1)',
-                            lineWidth: 1
-                        },
-                        ticks: {
-                            font: { size: 12, family: 'Poppins' },
-                            color: '#1e40af',
-                            beginAtZero: true,
-                            padding: 10
-                        }
-                    }
-                },
-                elements: {
-                    line: {
-                        tension: 0.4,
-                        shadowOffsetX: 0,
-                        shadowOffsetY: 0,
-                        shadowBlur: 10,
-                        shadowColor: 'rgba(0, 0, 0, 0.2)'
-                    },
-                    point: {
-                        pointStyle: 'circle',
-                        backgroundColor: '#ffffff',
-                        borderWidth: 2,
-                        hitRadius: 10
-                    }
-                },
-                layout: {
-                    padding: {
-                        left: 20,
-                        right: 20,
-                        top: 20,
-                        bottom: 20
-                    }
-                },
-                interaction: {
-                    mode: 'nearest',
-                    intersect: true,
-                    axis: 'x'
-                }
+                });
             }
-        });
+        } catch (err) {
+            console.error('Error initializing Chart.js:', err);
+            showNotification('Error loading production chart.');
+        }
 
         // Real-time clock update
         function updateDateTime() {
-            const now = new Date();
-            const options = {
-                year: 'numeric',
-                month: 'numeric',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true,
-                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-            };
-            document.getElementById('dateTimeDisplay').textContent = now.toLocaleString(undefined, options);
+            try {
+                const now = new Date();
+                const options = {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true,
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                };
+                const dateTimeDisplay = document.getElementById('dateTimeDisplay');
+                if (dateTimeDisplay) {
+                    dateTimeDisplay.textContent = now.toLocaleString(undefined, options);
+                } else {
+                    console.error('Date/time display element not found');
+                }
+            } catch (err) {
+                console.error('Error in updateDateTime:', err);
+            }
         }
+        updateDateTime(); // Call immediately
         setInterval(updateDateTime, 1000);
 
         // Display notification
@@ -1706,353 +1730,295 @@
                 return;
             }
             console.log(`Updating UI for date: ${date}`);
-            console.log('Received data:', JSON.stringify(data));
-            updateDateTime();
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinutes = now.getMinutes();
-            const timezoneOffsetHours = now.getTimezoneOffset() / 60;
-            console.log(`Current local hour: ${currentHour}, Minutes: ${currentMinutes}, Timezone offset: ${timezoneOffsetHours} hours`);
+            console.log('Received data:', data);
         
-            // Calculate total production and target percentage for each facility and sort
-            const facilityTotals = facilities.map(facility => {
-                const ftnCount = data[facility]?.['FTN']?.count || 0;
-                const coolerCount = data[facility]?.['Cooler']?.count || 0;
-                const vendorCount = data[facility]?.['Vendor']?.count || 0;
-                const aRepairCount = data[facility]?.['A-Repair']?.count || 0;
-                const total = ftnCount + coolerCount + vendorCount + aRepairCount;
-                const percentage = targetPercentages?.[facility] || 0;
-                return { facility, total, percentage };
-            });
-            facilityTotals.sort((a, b) => b.percentage - a.percentage);
+            try {
+                updateDateTime();
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinutes = now.getMinutes();
+                const timezoneOffsetHours = now.getTimezoneOffset() / 60;
+                console.log(`Current local hour: ${currentHour}, Minutes: ${currentMinutes}, Timezone offset: ${timezoneOffsetHours} hours`);
         
-            // Map facilities to their current ranks (0-based index)
-            const currentRanking = facilityTotals.map(ft => ft.facility);
-            const currentRankMap = {};
-            currentRanking.forEach((facility, index) => {
-                currentRankMap[facility] = index;
-            });
-        
-            // Determine which facilities have changed ranks
-            const rankChanges = {};
-            facilities.forEach(facility => {
-                const currentRank = currentRankMap[facility];
-                const previousRank = previousRanking.indexOf(facility);
-                rankChanges[facility] = previousRank >= 0 && currentRank !== previousRank;
-            });
-        
-            // Force DOM reordering on first update or if ranks changed
-            const isFirstUpdate = previousRanking.length === 0;
-            const rankingChanged = Object.values(rankChanges).some(changed => changed);
-            if (rankingChanged || isFirstUpdate) {
-                const facilityGridChildren = Array.from(facilityGrid.children);
-                facilityGrid.innerHTML = '';
-                facilityTotals.forEach(({ facility }) => {
-                    const card = facilityGridChildren.find(child => child.id === facility);
-                    if (card && rankChanges[facility]) {
-                        card.classList.add('rank-changed');
-                        setTimeout(() => {
-                            card.classList.remove('rank-changed');
-                        }, 800);
-                    }
-                    if (card) {
-                        facilityGrid.appendChild(card);
-                    }
+                // Calculate total production and target percentage for sorting
+                const facilityTotals = facilities.map(facility => {
+                    const ftnCount = data[facility]?.['FTN']?.count || 0;
+                    const coolerCount = data[facility]?.['Cooler']?.count || 0;
+                    const vendorCount = data[facility]?.['Vendor']?.count || 0;
+                    const aRepairCount = data[facility]?.['A-Repair']?.count || 0;
+                    const total = ftnCount + coolerCount + vendorCount + aRepairCount;
+                    const percentage = targetPercentages?.[facility] || 0;
+                    return { facility, total, percentage };
                 });
-            }
+                facilityTotals.sort((a, b) => b.percentage - a.percentage);
         
-            // Update previous ranking for next iteration
-            previousRanking = currentRanking;
+                // Update rankings
+                const currentRanking = facilityTotals.map(ft => ft.facility);
+                const rankChanges = {};
+                facilities.forEach(facility => {
+                    const currentRank = currentRanking.indexOf(facility);
+                    const previousRank = previousRanking.indexOf(facility);
+                    rankChanges[facility] = previousRank >= 0 && currentRank !== previousRank;
+                });
         
-            // Update total production, target percentage, progress bar, and forecast
-            facilities.forEach(facility => {
-                const ftnCount = data[facility]?.['FTN']?.count || 0;
-                const coolerCount = data[facility]?.['Cooler']?.count || 0;
-                const vendorCount = data[facility]?.['Vendor']?.count || 0;
-                const aRepairCount = data[facility]?.['A-Repair']?.count || 0;
-                const total = ftnCount + coolerCount + vendorCount + aRepairCount;
-                const totalElement = document.getElementById(`${facility}_Total`);
-                if (totalElement && parseInt(totalElement.textContent) !== total) {
-                    const previousTotal = parseInt(totalElement.textContent) || 0;
-                    animateCountUp(totalElement, previousTotal, total, 500);
-                    totalElement.classList.add('update');
-                }
-        
-                // Update target percentage
-                const targetPercentageElement = document.getElementById(`${facility}_Target_Percentage`);
-                if (targetPercentageElement && targetPercentages?.[facility] !== undefined) {
-                    targetPercentageElement.textContent = targetPercentages[facility];
-                }
-        
-                // Update progress bar
-                const progressElement = document.getElementById(`${facility}_Progress`);
-                const progressContainer = document.getElementById(`${facility}_Progress_Container`);
-                const percentageElement = document.getElementById(`${facility}_Progress_Percentage`);
-                const tooltipElement = document.getElementById(`${facility}_Progress_Tooltip`);
-                const facilityPeakDay = peakProduction && peakProduction[facility] ? peakProduction[facility].peakDay : 0;
-                const percentage = facilityPeakDay > 0 ? (total / facilityPeakDay) * 100 : 0;
-                const previousTotal = previousTotals[facility] || 0;
-                const previousPercentage = facilityPeakDay > 0 ? (previousTotal / facilityPeakDay) * 100 : 0;
-        
-                if (percentage > previousPercentage) {
-                    progressElement.classList.add('increase');
-                } else {
-                    progressElement.classList.remove('increase');
-                }
-        
-                if (facilityPeakDay > 0 && total >= facilityPeakDay && previousTotal < facilityPeakDay) {
-                    progressContainer.classList.add('past-peak');
-                    progressElement.classList.add('completed');
-                    setTimeout(() => {
-                        progressContainer.classList.remove('past-peak');
-                        progressElement.classList.remove('completed');
-                    }, 5000);
-                }
-                if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay) {
-                    progressContainer.classList.add('starburst');
-                }
-        
-                const displayPercentage = Math.min(Math.round(percentage), 100);
-                progressElement.style.width = `${displayPercentage}%`;
-                if (percentageElement) {
-                    percentageElement.textContent = `${displayPercentage}%`;
-                }
-                if (tooltipElement) {
-                    tooltipElement.textContent = `${displayPercentage}% of Peak`;
-                }
-                previousTotals[facility] = total;
-        
-                // Calculate forecasted daily production
-                const forecastElement = document.getElementById(`${facility}_Forecast`);
-                if (forecastElement) {
-                    const isOperational = currentHour >= 6 && (currentHour < 16 || (currentHour === 16 && currentMinutes <= 30));
-                    if (!isOperational || !hourlyRates[facility]) {
-                        forecastElement.textContent = 'N/A (Outside operational hours)';
-                        return;
-                    }
-        
-                    let totalRate = 0;
-                    let hoursCounted = 0;
-                    const startHour = 6;
-                    const endHour = Math.min(currentHour, 16);
-                    for (let h = startHour; h <= endHour; h++) {
-                        if (h === 16 && currentMinutes > 30) continue;
-                        const utcHour = (h + timezoneOffsetHours + 24) % 24;
-                        const ftnRate = hourlyRates[facility]['FTN']?.[utcHour] || 0;
-                        const coolerRate = hourlyRates[facility]['Cooler']?.[utcHour] || 0;
-                        const vendorRate = hourlyRates[facility]['Vendor']?.[utcHour] || 0;
-                        const aRepairRate = hourlyRates[facility]['A-Repair']?.[utcHour] || 0;
-                        totalRate += ftnRate + coolerRate + vendorRate + aRepairRate;
-                        hoursCounted++;
-                    }
-        
-                    const avgRate = hoursCounted > 0 ? totalRate / hoursCounted : 0;
-                    const endTime = new Date(now);
-                    endTime.setHours(16, 30, 0, 0);
-                    const remainingMs = endTime - now;
-                    const remainingHours = remainingMs > 0 ? remainingMs / (1000 * 60 * 60) : 0;
-                    const forecast = total + (avgRate * remainingHours);
-                    const roundedForecast = Math.round(forecast);
-        
-                    if (forecastElement.textContent !== `${roundedForecast} units`) {
-                        forecastElement.textContent = `${roundedForecast} units`;
-                        forecastElement.parentElement.classList.add('forecast-updated');
-                        setTimeout(() => {
-                            forecastElement.parentElement.classList.remove('forecast-updated');
-                        }, 1000);
-                    }
-                }
-            });
-        
-            // Update facility cards with ranking
-            facilities.forEach(facility => {
-                const rankIconElement = document.getElementById(`${facility}_Rank`);
-                const cardElement = document.getElementById(facility);
-                const index = facilityTotals.findIndex(ft => ft.facility === facility);
-                let rankIcon = '';
-                if (index === 0) {
-                    rankIcon = '🏆';
-                    cardElement.classList.remove('second-place', 'third-place');
-                    cardElement.classList.add('top-performer');
-                } else if (index === 1) {
-                    rankIcon = '🥈';
-                    cardElement.classList.remove('top-performer', 'third-place');
-                    cardElement.classList.add('second-place');
-                } else if (index === 2) {
-                    rankIcon = '🥉';
-                    cardElement.classList.remove('top-performer', 'second-place');
-                    cardElement.classList.add('third-place');
-                }
-                if (rankIconElement) {
-                    rankIconElement.textContent = rankIcon;
-                }
-            });
-        
-            // Update counts, rates, and peak production
-            facilities.forEach(facility => {
-                lines.forEach(line => {
-                    const elementId = `${facility}_${line.replace('-', '_')}`;
-                    console.log(`Processing ${facility} ${line}, ID: ${elementId}`);
-                    if (!data[facility] || !data[facility][line] || !hourlyRates[facility] || !hourlyRates[facility][line]) {
-                        console.error(`Missing data for ${facility} ${line}:`, {
-                            data: data[facility]?.[line],
-                            hourlyRates: hourlyRates[facility]?.[line]
-                        });
-                        return;
-                    }
-                    const count = data[facility][line].count;
-                    const rateData = hourlyRates[facility][line];
-                    const utcHour = (currentHour + timezoneOffsetHours + 24) % 24;
-                    const rate = rateData[utcHour] || 0;
-                    const fractionalHour = currentMinutes / 60;
-                    const adjustedRate = rate * fractionalHour;
-                    console.log(`Updating ${facility} ${line} - Count: ${count}, Rate: ${adjustedRate.toFixed(2)} (Local Hour: ${currentHour}, Minutes: ${currentMinutes}, UTC Hour: ${utcHour})`);
-                    console.log(`Raw rate data for ${facility} ${line} (UTC hour ${utcHour}): ${rate}`);
-                    const countElement = document.getElementById(elementId);
-                    const rateElement = document.getElementById(`${elementId}_Rate`);
-                    if (!countElement || !rateElement) {
-                        console.error(`DOM elements missing for ${facility} ${line}:`, {
-                            countElement: countElement,
-                            rateElement: rateElement,
-                            elementId: elementId,
-                            facilityGridExists: !!document.getElementById('facilityGrid'),
-                            facilityCardExists: !!document.getElementById(facility)
-                        });
-                        let retryCount = 0;
-                        const maxRetries = 3;
-                        const retryDelay = 500;
-                        function retry() {
-                            if (retryCount >= maxRetries) {
-                                console.error(`All retries failed for ${facility} ${line}`);
-                                return;
-                            }
-                            retryCount++;
-                            setTimeout(() => {
-                                const retryCountElement = document.getElementById(elementId);
-                                const retryRateElement = document.getElementById(`${elementId}_Rate`);
-                                if (retryCountElement && retryRateElement) {
-                                    console.log(`Retry ${retryCount} successful for ${facility} ${line}`);
-                                    updateElement(retryCountElement, retryRateElement, count, adjustedRate, facility, line);
-                                } else {
-                                    console.warn(`Retry ${retryCount} failed for ${facility} ${line}`);
-                                    retry();
-                                }
-                            }, retryDelay);
+                // Reorder DOM if ranks changed
+                const isFirstUpdate = previousRanking.length === 0;
+                const rankingChanged = Object.values(rankChanges).some(changed => changed);
+                if (rankingChanged || isFirstUpdate) {
+                    const facilityGridChildren = Array.from(facilityGrid.children);
+                    facilityGrid.innerHTML = '';
+                    facilityTotals.forEach(({ facility }) => {
+                        const card = facilityGridChildren.find(child => child.id === facility);
+                        if (card && rankChanges[facility]) {
+                            card.classList.add('rank-changed');
+                            setTimeout(() => card.classList.remove('rank-changed'), 800);
                         }
-                        retry();
+                        if (card) facilityGrid.appendChild(card);
+                    });
+                }
+                previousRanking = currentRanking;
+        
+                // Update facility data
+                facilities.forEach(facility => {
+                    const ftnCount = data[facility]?.['FTN']?.count || 0;
+                    const coolerCount = data[facility]?.['Cooler']?.count || 0;
+                    const vendorCount = data[facility]?.['Vendor']?.count || 0;
+                    const aRepairCount = data[facility]?.['A-Repair']?.count || 0;
+                    const total = ftnCount + coolerCount + vendorCount + aRepairCount;
+        
+                    // Update total
+                    const totalElement = document.getElementById(`${facility}_Total`);
+                    if (totalElement && parseInt(totalElement.textContent) !== total) {
+                        animateCountUp(totalElement, parseInt(totalElement.textContent) || 0, total, 500);
+                        totalElement.classList.add('update');
+                    }
+        
+                    // Update target percentage
+                    const targetPercentageElement = document.getElementById(`${facility}_Target_Percentage`);
+                    if (targetPercentageElement && targetPercentages?.[facility] !== undefined) {
+                        targetPercentageElement.textContent = targetPercentages[facility];
+                    }
+        
+                    // Update progress bar
+                    const progressElement = document.getElementById(`${facility}_Progress`);
+                    const progressContainer = document.getElementById(`${facility}_Progress_Container`);
+                    const percentageElement = document.getElementById(`${facility}_Progress_Percentage`);
+                    const tooltipElement = document.getElementById(`${facility}_Progress_Tooltip`);
+                    const facilityPeakDay = peakProduction?.[facility]?.peakDay || 0;
+                    const percentage = facilityPeakDay > 0 ? (total / facilityPeakDay) * 100 : 0;
+                    const previousTotal = previousTotals[facility] || 0;
+                    const previousPercentage = facilityPeakDay > 0 ? (previousTotal / facilityPeakDay) * 100 : 0;
+        
+                    if (percentage > previousPercentage) {
+                        progressElement.classList.add('increase');
+                    } else {
+                        progressElement.classList.remove('increase');
+                    }
+                    if (facilityPeakDay > 0 && total >= facilityPeakDay && previousTotal < facilityPeakDay) {
+                        progressContainer.classList.add('past-peak');
+                        progressElement.classList.add('completed');
+                        setTimeout(() => {
+                            progressContainer.classList.remove('past-peak');
+                            progressElement.classList.remove('completed');
+                        }, 5000);
+                    }
+                    if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay) {
+                        progressContainer.classList.add('starburst');
+                    }
+        
+                    const displayPercentage = Math.min(Math.round(percentage), 100);
+                    progressElement.style.width = `${displayPercentage}%`;
+                    if (percentageElement) percentageElement.textContent = `${displayPercentage}%`;
+                    if (tooltipElement) tooltipElement.textContent = `${displayPercentage}% of Peak`;
+                    previousTotals[facility] = total;
+        
+                    // Update forecast
+                    const forecastElement = document.getElementById(`${facility}_Forecast`);
+                    if (forecastElement) {
+                        const isOperational = currentHour >= 6 && (currentHour < 16 || (currentHour === 16 && currentMinutes <= 30));
+                        if (!isOperational || !hourlyRates[facility]) {
+                            forecastElement.textContent = 'N/A (Outside operational hours)';
+                            return;
+                        }
+        
+                        let totalRate = 0;
+                        let hoursCounted = 0;
+                        const startHour = 6;
+                        const endHour = Math.min(currentHour, 16);
+                        for (let h = startHour; h <= endHour; h++) {
+                            if (h === 16 && currentMinutes > 30) continue;
+                            const utcHour = (h + timezoneOffsetHours + 24) % 24;
+                            const ftnRate = hourlyRates[facility]['FTN']?.[utcHour] || 0;
+                            const coolerRate = hourlyRates[facility]['Cooler']?.[utcHour] || 0;
+                            const vendorRate = hourlyRates[facility]['Vendor']?.[utcHour] || 0;
+                            const aRepairRate = hourlyRates[facility]['A-Repair']?.[utcHour] || 0;
+                            totalRate += ftnRate + coolerRate + vendorRate + aRepairRate;
+                            hoursCounted++;
+                        }
+        
+                        const avgRate = hoursCounted > 0 ? totalRate / hoursCounted : 0;
+                        const endTime = new Date(now);
+                        endTime.setHours(16, 30, 0, 0);
+                        const remainingMs = endTime - now;
+                        const remainingHours = remainingMs > 0 ? remainingMs / (1000 * 60 * 60) : 0;
+                        const forecast = total + (avgRate * remainingHours);
+                        const roundedForecast = Math.round(forecast);
+        
+                        if (forecastElement.textContent !== `${roundedForecast} units`) {
+                            forecastElement.textContent = `${roundedForecast} units`;
+                            forecastElement.parentElement.classList.add('forecast-updated');
+                            setTimeout(() => forecastElement.parentElement.classList.remove('forecast-updated'), 1000);
+                        }
+                    }
+                });
+        
+                // Update rankings
+                facilities.forEach(facility => {
+                    const rankIconElement = document.getElementById(`${facility}_Rank`);
+                    const cardElement = document.getElementById(facility);
+                    const index = facilityTotals.findIndex(ft => ft.facility === facility);
+                    let rankIcon = '';
+                    if (index === 0) {
+                        rankIcon = '🏆';
+                        cardElement.classList.remove('second-place', 'third-place');
+                        cardElement.classList.add('top-performer');
+                    } else if (index === 1) {
+                        rankIcon = '🥈';
+                        cardElement.classList.remove('top-performer', 'third-place');
+                        cardElement.classList.add('second-place');
+                    } else if (index === 2) {
+                        rankIcon = '🥉';
+                        cardElement.classList.remove('top-performer', 'second-place');
+                        cardElement.classList.add('third-place');
+                    }
+                    if (rankIconElement) rankIconElement.textContent = rankIcon;
+                });
+        
+                // Update counts and rates
+                facilities.forEach(facility => {
+                    lines.forEach(line => {
+                        const elementId = `${facility}_${line.replace('-', '_')}`;
+                        if (!data[facility]?.[line] || !hourlyRates[facility]?.[line]) {
+                            console.error(`Missing data for ${facility} ${line}`);
+                            return;
+                        }
+                        const count = data[facility][line].count;
+                        const rateData = hourlyRates[facility][line];
+                        const utcHour = (currentHour + timezoneOffsetHours + 24) % 24;
+                        const rate = rateData[utcHour] || 0;
+                        const fractionalHour = currentMinutes / 60;
+                        const adjustedRate = rate * fractionalHour;
+        
+                        const countElement = document.getElementById(elementId);
+                        const rateElement = document.getElementById(`${elementId}_Rate`);
+                        if (!countElement || !rateElement) {
+                            console.error(`DOM elements missing for ${facility} ${line}`);
+                            return;
+                        }
+        
+                        const key = `${facility}_${line}`;
+                        if (currentCounts[key] !== undefined && currentCounts[key] !== count) {
+                            countElement.classList.add('update');
+                            lastUpdateTimestamps[key] = new Date().toLocaleTimeString();
+                        }
+                        currentCounts[key] = count;
+                        countElement.textContent = count;
+                        countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
+                        rateElement.innerHTML = `Units/Hour: ${adjustedRate.toFixed(2)}<span class="rate-tooltip">${adjustedRate === 0 ? 'No data for current hour' : `Rate based on ${currentMinutes} minutes`}</span>`;
+                    });
+                });
+        
+                // Update peak production
+                facilities.forEach(facility => {
+                    const peakWeeklyElement = document.getElementById(`${facility}_Peak_Weekly`);
+                    const peakAllTimeElement = document.getElementById(`${facility}_Peak_AllTime`);
+                    if (!peakWeeklyElement || !peakAllTimeElement) {
+                        console.error(`Peak production elements missing for ${facility}`);
                         return;
                     }
-                    updateElement(countElement, rateElement, count, adjustedRate, facility, line);
-                });
-            });
-        
-            function updateElement(countElement, rateElement, count, adjustedRate, facility, line) {
-                const key = `${facility}_${line}`;
-                if (currentCounts[key] !== undefined && currentCounts[key] !== count) {
-                    console.log(`Count for ${facility} ${line} changed from ${currentCounts[key]} to ${count}`);
-                    countElement.classList.add('update');
-                    lastUpdateTimestamps[key] = new Date().toLocaleTimeString();
-                }
-                currentCounts[key] = count;
-                console.log(`Setting tooltip for ${facility}_${line}: Last updated: ${lastUpdateTimestamps[key] || 'N/A'}`);
-                countElement.textContent = count;
-                countElement.innerHTML = `${count}<span class="counter-tooltip">Last updated: ${lastUpdateTimestamps[key] || 'N/A'}</span>`;
-                rateElement.innerHTML = `Units/Hour: ${adjustedRate.toFixed(2)}<span class="rate-tooltip">${adjustedRate === 0 ? 'No data for current hour' : `Rate based on ${currentMinutes} minutes`}</span>`;
-            }
-        
-            facilities.forEach(facility => {
-                const peakWeeklyElement = document.getElementById(`${facility}_Peak_Weekly`);
-                const peakAllTimeElement = document.getElementById(`${facility}_Peak_AllTime`);
-                if (!peakWeeklyElement || !peakAllTimeElement) {
-                    console.error(`Peak production elements missing for ${facility}:`, {
-                        peakWeeklyElement,
-                        peakAllTimeElement
-                    });
-                    return;
-                }
-                if (peakProduction && peakProduction[facility]) {
-                    console.log(`Updating peak production for ${facility}:`, {
-                        peakWeekly: peakProduction[facility].peakWeekly,
-                        peakDay: peakProduction[facility].peakDay
-                    });
-                    peakWeeklyElement.textContent = peakProduction[facility].peakWeekly || 0;
-                    peakAllTimeElement.textContent = peakProduction[facility].peakDay || 0;
-                } else {
-                    console.warn(`No peak production data for ${facility}`);
-                    peakWeeklyElement.textContent = '0';
-                    peakAllTimeElement.textContent = '0';
-                }
-            });
-        
-            // Update chart with hourly rates
-            if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
-                console.log('Raw hourly rates data (UTC):', hourlyRates);
-                console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
-                const datasets = productionChart.data.datasets.map(dataset => {
-                    console.log(`Processing dataset: ${dataset.label}`);
-                    let facility, line;
-                    if (dataset.label.startsWith('North Las Vegas')) {
-                        facility = 'North_Las_Vegas_Certified_Center';
-                        line = dataset.label.split(' ').slice(3).join(' ');
+                    if (peakProduction?.[facility]) {
+                        peakWeeklyElement.textContent = peakProduction[facility].peakWeekly || 0;
+                        peakAllTimeElement.textContent = peakProduction[facility].peakDay || 0;
                     } else {
-                        [facility, line] = dataset.label.split(' ');
-                        facility = `${facility}_Certified_Center`;
+                        peakWeeklyElement.textContent = '0';
+                        peakAllTimeElement.textContent = '0';
                     }
-                    console.log(`Mapped to facility: ${facility}, line: ${line}`);
-                    if (selectedFacility && facility !== selectedFacility) {
-                        console.log(`Skipping ${dataset.label} due to selectedFacility: ${selectedFacility}`);
-                        return Array(24).fill(0);
-                    }
-                    const rawData = hourlyRates[facility][line] || Array(24).fill(0);
-                    console.log(`Raw data for ${dataset.label} (UTC):`, rawData);
-                    const shiftedData = Array(24).fill(0);
-                    for (let i = 0; i < 24; i++) {
-                        const utcHour = i;
-                        const localHour = (utcHour - timezoneOffsetHours + 24) % 24;
-                        shiftedData[localHour] = rawData[i];
-                        console.log(`Mapping ${facility} ${line} UTC hour ${utcHour} to local hour ${localHour}: ${rawData[i]}`);
-                    }
-                    const currentLocalHour = (currentHour - timezoneOffsetHours + 24) % 24;
-                    shiftedData[currentLocalHour] = shiftedData[currentLocalHour] * (currentMinutes / 60);
-                    console.log(`Shifted data for ${dataset.label}:`, shiftedData);
-                    return shiftedData;
                 });
         
-                productionChart.data.datasets.forEach((dataset, index) => {
-                    dataset.data = datasets[index];
-                    dataset.hidden = false;
-                });
-                console.log('Updated chart datasets:', productionChart.data.datasets.map(ds => ({
-                    label: ds.label,
-                    data: ds.data,
-                    hidden: ds.hidden
-                })));
-                productionChart.update();
-            } else {
-                console.error('Incomplete hourly rates data:', hourlyRates);
-                showNotification('Hourly production rates unavailable.');
-            }
+                // Update chart
+                if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
+                    const datasets = productionChart.data.datasets.map(dataset => {
+                        let facility, line;
+                        if (dataset.label.startsWith('North Las Vegas')) {
+                            facility = 'North_Las_Vegas_Certified_Center';
+                            line = dataset.label.split(' ').slice(3).join(' ');
+                        } else {
+                            [facility, line] = dataset.label.split(' ');
+                            facility = `${facility}_Certified_Center`;
+                        }
+                        if (selectedFacility && facility !== selectedFacility) {
+                            return Array(24).fill(0);
+                        }
+                        const rawData = hourlyRates[facility][line] || Array(24).fill(0);
+                        const shiftedData = Array(24).fill(0);
+                        for (let i = 0; i < 24; i++) {
+                            const utcHour = i;
+                            const localHour = (utcHour - timezoneOffsetHours + 24) % 24;
+                            shiftedData[localHour] = rawData[i];
+                        }
+                        const currentLocalHour = (currentHour - timezoneOffsetHours + 24) % 24;
+                        shiftedData[currentLocalHour] = shiftedData[currentLocalHour] * (currentMinutes / 60);
+                        return shiftedData;
+                    });
         
-            if (totalProduction !== null) {
-                document.getElementById('totalProductionValue').textContent = totalProduction;
-                document.getElementById('totalProduction').classList.remove('hidden');
-            } else {
-                document.getElementById('totalProduction').classList.add('hidden');
-            }
+                    productionChart.data.datasets.forEach((dataset, index) => {
+                        dataset.data = datasets[index];
+                        dataset.hidden = false;
+                    });
+                    productionChart.update();
+                } else {
+                    console.error('Incomplete hourly rates data:', hourlyRates);
+                    showNotification('Hourly production rates unavailable.');
+                }
         
-            updateFacilityGrid();
+                if (totalProduction !== null) {
+                    document.getElementById('totalProductionValue').textContent = totalProduction;
+                    document.getElementById('totalProduction').classList.remove('hidden');
+                } else {
+                    document.getElementById('totalProduction').classList.add('hidden');
+                }
+        
+                updateFacilityGrid();
+            } catch (err) {
+                console.error('Error in updateUI:', err);
+                showNotification('Error updating UI.');
+            }
         }, 100);
 
         console.log(`Client current date: ${currentDate}`);
 
         // WebSocket connection
-           const ws = new WebSocket('wss://production-counter.onrender.com');
-           ws.onopen = () => {
-               console.log('WebSocket connection established');
-               document.getElementById('loadingSpinner').style.display = 'none';
-               ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-               loadHistoricalDates();
-           };
+            const ws = new WebSocket('wss://production-counter.onrender.com');
+            ws.onopen = () => {
+                console.log('WebSocket connection established at', new Date().toISOString());
+                document.getElementById('loadingSpinner').style.display = 'none';
+                ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
+                loadHistoricalDates();
+            };
+            ws.onclose = () => {
+                console.log('WebSocket connection closed at', new Date().toISOString());
+                document.getElementById('loadingSpinner').style.display = 'none';
+                showNotification('WebSocket connection closed. Reconnecting...');
+                setTimeout(() => {
+                    console.log('Attempting to reconnect WebSocket...');
+                    const newWs = new WebSocket('wss://production-counter.onrender.com');
+                    newWs.onopen = ws.onopen;
+                    newWs.onmessage = ws.onmessage;
+                    newWs.onerror = ws.onerror;
+                    newWs.onclose = ws.onclose;
+                    ws = newWs;
+                }, 5000);
+            };
             ws.onmessage = (event) => {
                 console.log('Received WebSocket message:', event.data);
                 let message;
@@ -2060,22 +2026,22 @@
                     message = JSON.parse(event.data);
                 } catch (err) {
                     console.error('Failed to parse WebSocket message:', err);
+                    showNotification('Error parsing server data.');
                     return;
                 }
-                
+            
                 const { date, data, hourlyRates, totalProduction, peakProduction, targetPercentages, notification } = message;
                 if (!date || !data || !hourlyRates) {
                     console.error('Invalid WebSocket message structure:', message);
+                    showNotification('Invalid server data.');
                     return;
                 }
-                
-                console.log(`Received data for date: ${date}`);
-                console.log(`Sellersburg FTN count: ${data['Sellersburg_Certified_Center']?.['FTN']?.count || 'N/A'}`);
-                console.log(`North Las Vegas Cooler count: ${data['North_Las_Vegas_Certified_Center']?.['Cooler']?.count || 'N/A'}`);
-                console.log(`A-Repair hourly rates for Sellersburg:`, hourlyRates['Sellersburg_Certified_Center']?.['A-Repair']);
-                console.log(`Cooler hourly rates for North Las Vegas:`, hourlyRates['North_Las_Vegas_Certified_Center']?.['Cooler']);
-                console.log(`Peak production data:`, peakProduction);
-                console.log(`Target percentages:`, targetPercentages);
+            
+                console.log(`Received data for date: ${date}`, {
+                    sellersburgFTN: data['Sellersburg_Certified_Center']?.['FTN']?.count || 'N/A',
+                    northLasVegasCooler: data['North_Las_Vegas_Certified_Center']?.['Cooler']?.count || 'N/A',
+                    targetPercentages
+                });
                 updateUI(date, data, hourlyRates, totalProduction, peakProduction, targetPercentages);
                 if (notification) {
                     showNotification(notification);
