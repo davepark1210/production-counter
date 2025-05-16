@@ -1229,7 +1229,12 @@
                                     padding: 10,
                                     boxWidth: 15,
                                     usePointStyle: true,
-                                    pointStyle: 'circle'
+                                    pointStyle: 'circle',
+                                    filter: function(legendItem, chartData) {
+                                        if (!selectedFacility) return true; // Show all legends if not in focused mode
+                                        const dataset = chartData.datasets[legendItem.datasetIndex];
+                                        return dataset.facility === selectedFacility;
+                                    }
                                 },
                                 onClick: function(e, legendItem, legend) {
                                     const index = legendItem.datasetIndex;
