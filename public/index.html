@@ -1851,7 +1851,7 @@
                     const percentage = facilityPeakDay > 0 ? (total / facilityPeakDay) * 100 : 0;
                     const previousTotal = previousTotals[facility] || 0;
                     const previousPercentage = facilityPeakDay > 0 ? (previousTotal / facilityPeakDay) * 100 : 0;
-        
+                    
                     if (percentage > previousPercentage) {
                         progressElement.classList.add('increase');
                     } else {
@@ -1865,10 +1865,16 @@
                             progressElement.classList.remove('completed');
                         }, 5000);
                     }
-                    if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay) {
-                        progressContainer.classList.add('starburst');
+                    // Reset starburst trigger if total drops below peak
+                    if (facilityPeakDay > 0 && total <= facilityPeakDay) {
+                        hasTriggeredStarburst[facility] = false;
                     }
-        
+                    // Trigger starburst only the first time total surpasses peak
+                    if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay && !hasTriggeredStarburst[facility]) {
+                        progressContainer.classList.add('starburst');
+                        hasTriggeredStarburst[facility] = true;
+                    }
+                    
                     const displayPercentage = Math.min(Math.round(percentage), 100);
                     progressElement.style.width = `${displayPercentage}%`;
                     if (percentageElement) percentageElement.textContent = `${displayPercentage}%`;
