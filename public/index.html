@@ -1762,7 +1762,7 @@
             }
             console.log(`Updating UI for date: ${date}`);
             console.log('Received data:', data);
-        
+            
             try {
                 updateDateTime();
                 const now = new Date();
@@ -1986,44 +1986,57 @@
                     }
                 });
         
-            // Update chart
-            if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
-                console.log('Raw hourly rates data (UTC):', hourlyRates);
-                console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
-                if (productionChart && productionChart.data && productionChart.data.datasets) {
-                    productionChart.data.datasets.forEach((dataset, index) => {
-                        let facility, line;
-                        if (dataset.label.startsWith('North Las Vegas')) {
-                            facility = 'North_Las_Vegas_Certified_Center';
-                            line = dataset.label.split(' ').slice(3).join(' ');
-                        } else {
-                            [facility, line] = dataset.label.split(' ');
-                            facility = `${facility}_Certified_Center`;
-                        }
-                        if (selectedFacility && facility !== selectedFacility) {
-                            dataset.hidden = true;
-                            return;
-                        }
-                        const rawData = hourlyRates[facility][line] || Array(24).fill(0);
-                        const shiftedData = Array(24).fill(0);
-                        for (let i = 0; i < 24; i++) {
-                            const utcHour = i;
-                            const localHour = (utcHour - timezoneOffsetHours + 24) % 24;
-                            shiftedData[localHour] = rawData[i];
-                        }
-                        const currentLocalHour = (currentHour - timezoneOffsetHours + 24) % 24;
-                        shiftedData[currentLocalHour] = shiftedData[currentLocalHour] * (currentMinutes / 60);
-                        dataset.data = shiftedData;
-                        dataset.hidden = false;
-                        console.log(`Updated ${dataset.label}:`, shiftedData);
-                    });
-                    productionChart.update();
+                // Update chart
+                if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
+                    console.log('Raw hourly rates data (UTC):', hourlyRates);
+                    console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
+                    if (productionChart && productionChart.data && productionChart.data.datasets) {
+                        productionChart.data.datasets.forEach((dataset, index) => {
+                            let facility, line;
+                            if (dataset.label.startsWith('North Las Vegas')) {
+                                facility = 'North_Las_Vegas_Certified_Center';
+                                line = dataset.label.split(' ').slice(3).join(' ');
+                            } else {
+                                [facility, line] = dataset.label.split(' ');
+                                facility = `${facility}_Certified_Center`;
+                            }
+                            if (selectedFacility && facility !== selectedFacility) {
+                                dataset.hidden = true;
+                                return;
+                            }
+                            const rawData = hourlyRates[facility][line] || Array(24).fill(0);
+                            const shiftedData = Array(24).fill(0);
+                            for (let i = 0; i < 24; i++) {
+                                const utcHour = i;
+                                const localHour = (utcHour - timezoneOffsetHours + 24) % 24;
+                                shiftedData[localHour] = rawData[i];
+                            }
+                            const currentLocalHour = (currentHour - timezoneOffsetHours + 24) % 24;
+                            shiftedData[currentLocalHour] = shiftedData[currentLocalHour] * (currentMinutes / 60);
+                            dataset.data = shiftedData;
+                            dataset.hidden = false;
+                            console.log(`Updated ${dataset.label}:`, shiftedData);
+                        });
+                        productionChart.update();
+                    } else {
+                        console.warn('Chart not initialized, skipping chart update');
+                    }
                 } else {
-                    console.warn('Chart not initialized, skipping chart update');
+                    console.error('Incomplete hourly rates data:', hourlyRates);
+                    showNotification('Hourly production rates unavailable.');
                 }
-            } else {
-                console.error('Incomplete hourly rates data:', hourlyRates);
-                showNotification('Hourly production rates unavailable.');
+        
+                if (totalProduction !== null) {
+                    document.getElementById('totalProductionValue').textContent = totalProduction;
+                    document.getElementById('totalProduction').classList.remove('hidden');
+                } else {
+                    document.getElementById('totalProduction').classList.add('hidden');
+                }
+        
+                updateFacilityGrid();
+            } catch (err) {
+                console.error('Error in updateUI:', err);
+                showNotification('Error updating UI.');
             }
         }, 100);
 
