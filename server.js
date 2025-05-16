@@ -14,7 +14,12 @@ const pool = new Pool({
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
-const lines = ['FTN', 'VV', 'A-Repair'];
+const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
+const dailyTargets = {
+  'Sellersburg_Certified_Center': 140,
+  'Williamsport_Certified_Center': 150,
+  'North_Las_Vegas_Certified_Center': 100
+};
 let currentDate = null; // Will be set by client for UI purposes
 let lastMilestone = 0;
 
@@ -468,6 +473,15 @@ async function broadcastUpdate() {
   const totalProduction = await getTotalDailyProduction();
   const peakProduction = await getPeakProduction();
   
+  // Calculate target percentages for each facility
+  const targetPercentages = {};
+  for (const facility of facilities) {
+    const facilityTotal = Object.values(data[facility]).reduce((sum, { count }) => sum + count, 0);
+    const target = dailyTargets[facility];
+    const percentage = target > 0 ? Math.round((facilityTotal / target) * 100) : 0;
+    targetPercentages[facility] = percentage;
+  }
+
   const milestone = Math.floor(totalProduction / 100) * 100;
   let notification = null;
   if (milestone > lastMilestone && totalProduction >= milestone) {
@@ -481,6 +495,7 @@ async function broadcastUpdate() {
     hourlyRates,
     totalProduction,
     peakProduction,
+    targetPercentages,
     notification
   };
   console.log('Broadcasting update:', JSON.stringify(message));
