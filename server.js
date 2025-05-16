@@ -280,18 +280,10 @@ wss.on('connection', (ws) => {
       if (parsedMessage.action === 'setClientDate' && parsedMessage.clientDate) {
         currentDate = parsedMessage.clientDate;
         console.log(`Updated currentDate to client's date: ${currentDate}`);
-        const data = await getCurrentData();
-        const hourlyRates = await getHourlyRates();
-        const totalProduction = await getTotalDailyProduction();
-        const peakProduction = await getPeakProduction();
-        ws.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction, peakProduction }));
-      }
-      if (parsedMessage.action === 'requestCurrentData') {
-        const data = await getCurrentData();
-        const hourlyRates = await getHourlyRates();
-        const totalProduction = await getTotalDailyProduction();
-        const peakProduction = await getPeakProduction();
-        ws.send(JSON.stringify({ date: currentDate, data, hourlyRates, totalProduction, peakProduction }));
+        await broadcastUpdate();
+      } else if (parsedMessage.action === 'requestCurrentData') {
+        console.log('Client requested current data');
+        await broadcastUpdate();
       }
     } catch (err) {
       console.error('Failed to parse WebSocket message:', err);
@@ -472,40 +464,46 @@ async function broadcastUpdate() {
     console.error('Cannot broadcast update: currentDate not set');
     return;
   }
-  const data = await getCurrentData();
-  const hourlyRates = await getHourlyRates();
-  const totalProduction = await getTotalDailyProduction();
-  const peakProduction = await getPeakProduction();
-  
-  // Calculate target percentages for each facility
-  const targetPercentages = {};
-  for (const facility of facilities) {
-    const facilityTotal = Object.values(data[facility]).reduce((sum, { count }) => sum + count, 0);
-    const target = dailyTargets[facility];
-    const percentage = target > 0 ? Math.round((facilityTotal / target) * 100) : 0;
-    targetPercentages[facility] = percentage;
-  }
-
-  const milestone = Math.floor(totalProduction / 100) * 100;
-  let notification = null;
-  if (milestone > lastMilestone && totalProduction >= milestone) {
-    lastMilestone = milestone;
-    notification = `Milestone Reached: Total production hit ${milestone} units!`;
-  }
-
-  const message = {
-    date: currentDate,
-    data,
-    hourlyRates,
-    totalProduction,
-    peakProduction,
-    targetPercentages,
-    notification
-  };
-  console.log('Broadcasting update:', JSON.stringify(message));
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(message));
+  try {
+    const data = await getCurrentData();
+    const hourlyRates = await getHourlyRates();
+    const totalProduction = await getTotalDailyProduction();
+    const peakProduction = await getPeakProduction();
+    
+    // Calculate target percentages for each facility
+    console.log('Production data for target percentages:', data);
+    const targetPercentages = {};
+    for (const facility of facilities) {
+      const facilityTotal = Object.values(data[facility]).reduce((sum, { count }) => sum + count, 0);
+      const target = dailyTargets[facility];
+      const percentage = target > 0 ? Math.round((facilityTotal / target) * 100) : 0;
+      targetPercentages[facility] = percentage;
     }
-  });
+    console.log('Calculated target percentages:', targetPercentages);
+
+    const milestone = Math.floor(totalProduction / 100) * 100;
+    let notification = null;
+    if (milestone > lastMilestone && totalProduction >= milestone) {
+      lastMilestone = milestone;
+      notification = `Milestone Reached: Total production hit ${milestone} units!`;
+    }
+
+    const message = {
+      date: currentDate,
+      data,
+      hourlyRates,
+      totalProduction,
+      peakProduction,
+      targetPercentages,
+      notification
+    };
+    console.log('Broadcasting update:', message);
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(message));
+      }
+    });
+  } catch (err) {
+    console.error('Broadcast Update Error:', err);
+  }
 }
