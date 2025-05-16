@@ -520,6 +520,12 @@
             transition: transform 0.3s ease, color 0.3s ease;
             display: inline-block;
         }
+        .chart-legend-item {
+            transition: opacity 0.2s ease;
+        }
+        .chart-legend-item:hover {
+            opacity: 0.7;
+        }
         .total-production span.update {
             animation: highlight 0.5s ease-in-out;
         }
@@ -1217,78 +1223,34 @@
                                 display: true,
                                 position: 'top',
                                 labels: {
-                                    font: { size: 12, family: 'Poppins' }, // Smaller font
-                                    padding: 10, // Reduced padding
-                                    boxWidth: 15, // Smaller boxes
+                                    font: { size: 12, family: 'Poppins' },
+                                    padding: 10,
+                                    boxWidth: 15,
                                     usePointStyle: true,
                                     pointStyle: 'circle',
-                                    generateLabels: function(chart) {
-                                        const datasets = chart.data.datasets;
-                                        const facilities = [
-                                            { id: 'Sellersburg_Certified_Center', name: 'Sellersburg' },
-                                            { id: 'Williamsport_Certified_Center', name: 'Williamsport' },
-                                            { id: 'North_Las_Vegas_Certified_Center', name: 'North Las Vegas' }
-                                        ];
-                                        const labels = [];
-        
-                                        facilities.forEach(facility => {
-                                            // Facility header
-                                            labels.push({
-                                                text: facility.name,
-                                                fontColor: '#1e40af',
-                                                fontStyle: 'bold',
-                                                hidden: datasets.every(ds => ds.facility === facility.id && ds.hidden),
-                                                datasetIndex: -1, // Custom index for facility toggle
-                                                facilityId: facility.id
-                                            });
-        
-                                            // Dataset sub-items
-                                            datasets.forEach((dataset, index) => {
-                                                if (dataset.facility === facility.id) {
-                                                    labels.push({
-                                                        text: `  ${dataset.label.split(' ').slice(-1)[0]}`, // Indented line name (e.g., "FTN")
-                                                        fillStyle: dataset.borderColor,
-                                                        strokeStyle: dataset.borderColor,
-                                                        lineWidth: dataset.borderWidth,
-                                                        hidden: dataset.hidden,
-                                                        datasetIndex: index
-                                                    });
-                                                }
-                                            });
-                                        });
-        
-                                        return labels;
+                                    filter: function(legendItem, chartData) {
+                                        if (!selectedFacility) return true;
+                                        const dataset = chartData.datasets[legendItem.datasetIndex];
+                                        return dataset.facility === selectedFacility;
                                     }
                                 },
                                 onClick: function(e, legendItem, legend) {
+                                    const index = legendItem.datasetIndex;
                                     const chart = legend.chart;
-                                    if (legendItem.datasetIndex === -1) {
-                                        // Facility header clicked
-                                        const facilityId = legendItem.facilityId;
-                                        const allHidden = chart.data.datasets
-                                            .filter(ds => ds.facility === facilityId)
-                                            .every(ds => ds.hidden);
-                                        chart.data.datasets.forEach((ds, index) => {
-                                            if (ds.facility === facilityId) {
-                                                if (allHidden) {
-                                                    chart.show(index);
-                                                } else {
-                                                    chart.hide(index);
-                                                }
-                                            }
-                                        });
+                                    if (chart.isDatasetVisible(index)) {
+                                        chart.hide(index);
+                                        legendItem.hidden = true;
                                     } else {
-                                        // Individual dataset clicked
-                                        const index = legendItem.datasetIndex;
-                                        if (chart.isDatasetVisible(index)) {
-                                            chart.hide(index);
-                                            legendItem.hidden = true;
-                                        } else {
-                                            chart.show(index);
-                                            legendItem.hidden = false;
-                                        }
+                                        chart.show(index);
+                                        legendItem.hidden = false;
                                     }
                                     chart.update();
+                                },
+                                onHover: function(e, legendItem, legend) {
+                                    e.native.target.style.cursor = 'pointer';
+                                },
+                                onLeave: function(e, legendItem, legend) {
+                                    e.native.target.style.cursor = 'default';
                                 }
                             },
                             tooltip: {
@@ -1379,6 +1341,12 @@
             console.error('Error initializing Chart.js:', err);
             showNotification('Error loading production chart.');
         }
+
+        // Add hover effect to legend items
+        const legendItems = document.querySelectorAll('.chart-legend li');
+        legendItems.forEach(item => {
+            item.classList.add('chart-legend-item');
+        });
 
         // Real-time clock update
         function updateDateTime() {
@@ -1528,7 +1496,7 @@
                     }
                 });
         
-                // Filter chart to show only selected facility's data
+                // Filter chart to show only selected facility's data and legends
                 if (productionChart) {
                     productionChart.data.datasets.forEach((dataset, index) => {
                         if (dataset.facility === selectedFacility) {
@@ -1538,7 +1506,7 @@
                         }
                     });
                     productionChart.update();
-                    console.log(`Chart filtered to show only ${selectedFacility} data`);
+                    console.log(`Chart filtered to show only ${selectedFacility} data and legends`);
                 }
             } else {
                 facilityGrid.classList.remove('facility-grid-single');
@@ -1550,13 +1518,13 @@
                     if (backButton) backButton.classList.add('hidden');
                 });
         
-                // Show all chart data
+                // Show all chart data and legends
                 if (productionChart) {
                     productionChart.data.datasets.forEach((dataset, index) => {
                         productionChart.show(index);
                     });
                     productionChart.update();
-                    console.log('Chart restored to show all facility data');
+                    console.log('Chart restored to show all facility data and legends');
                 }
             }
         }
