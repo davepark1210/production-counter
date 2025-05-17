@@ -471,12 +471,13 @@
             left: 50%;
             transform: translateX(-50%);
             font-size: 1.5rem;
-            animation: starburst 1.5s ease-in-out infinite;
+            animation: starburst 1.5s ease-in-out;
+            animation-iteration-count: 1;
         }
         @keyframes starburst {
             0% { transform: translateX(-50%) scale(1); opacity: 1; }
             50% { transform: translateX(-50%) scale(1.5); opacity: 0.5; }
-            100% { transform: translateX(-50%) scale(1); opacity: 1; }
+            100% { transform: translateX(-50%) scale(0); opacity: 0; }
         }
         .progress-percentage {
             position: absolute;
@@ -1884,12 +1885,17 @@
                     if (facilityPeakDay > 0 && total <= facilityPeakDay) {
                         console.log(`${facility} total (${total}) dropped to or below peak (${facilityPeakDay}), resetting starburst trigger`);
                         hasTriggeredStarburst[facility] = false;
+                        progressContainer.classList.remove('starburst'); // Ensure class is removed
                     }
                     // Trigger starburst only the first time total surpasses peak
                     if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay && !hasTriggeredStarburst[facility]) {
                         console.log(`${facility} surpassed peak day (${facilityPeakDay}) for the first time, triggering starburst animation`);
                         progressContainer.classList.add('starburst');
                         hasTriggeredStarburst[facility] = true;
+                        // Remove starburst class after animation completes (1.5 seconds)
+                        setTimeout(() => {
+                            progressContainer.classList.remove('starburst');
+                        }, 1500);
                     } else if (facilityPeakDay > 0 && total > facilityPeakDay && hasTriggeredStarburst[facility]) {
                         console.log(`${facility} already surpassed peak day (${facilityPeakDay}), not replaying starburst animation`);
                     }
