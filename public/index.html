@@ -1865,11 +1865,12 @@
                         hasTriggeredStarburst: hasTriggeredStarburst[facility]
                     });
                     
-                    if (percentage > previousPercentage && (total <= facilityPeakDay || previousTotal < facilityPeakDay)) {
-                        console.log(`${facility} percentage increased from ${previousPercentage.toFixed(2)}% to ${percentage.toFixed(2)}% and is at/below peak or just surpassed, applying increase animation`);
+                    // Apply increase animation only if below peak or just reaching peak
+                    if (percentage > previousPercentage && (previousTotal < facilityPeakDay)) {
+                        console.log(`${facility} percentage increased from ${previousPercentage.toFixed(2)}% to ${percentage.toFixed(2)}% and previous total (${previousTotal}) was below peak (${facilityPeakDay}), applying increase animation`);
                         progressElement.classList.add('increase');
                     } else {
-                        console.log(`${facility} percentage did not increase or is already above peak, removing increase animation`);
+                        console.log(`${facility} percentage did not increase or previous total (${previousTotal}) is at/above peak (${facilityPeakDay}), removing increase animation`);
                         progressElement.classList.remove('increase');
                     }
                     if (facilityPeakDay > 0 && total >= facilityPeakDay && previousTotal < facilityPeakDay) {
@@ -1885,14 +1886,13 @@
                     if (facilityPeakDay > 0 && total <= facilityPeakDay) {
                         console.log(`${facility} total (${total}) dropped to or below peak (${facilityPeakDay}), resetting starburst trigger`);
                         hasTriggeredStarburst[facility] = false;
-                        progressContainer.classList.remove('starburst'); // Ensure class is removed
+                        progressContainer.classList.remove('starburst');
                     }
                     // Trigger starburst only the first time total surpasses peak
                     if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay && !hasTriggeredStarburst[facility]) {
                         console.log(`${facility} surpassed peak day (${facilityPeakDay}) for the first time, triggering starburst animation`);
                         progressContainer.classList.add('starburst');
                         hasTriggeredStarburst[facility] = true;
-                        // Remove starburst class after animation completes (1.5 seconds)
                         setTimeout(() => {
                             progressContainer.classList.remove('starburst');
                         }, 1500);
