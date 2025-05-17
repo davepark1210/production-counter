@@ -1855,12 +1855,24 @@
                     const previousTotal = previousTotals[facility] || 0;
                     const previousPercentage = facilityPeakDay > 0 ? (previousTotal / facilityPeakDay) * 100 : 0;
                     
-                    if (percentage > previousPercentage) {
+                    console.log(`Progress bar update for ${facility}:`, {
+                        total,
+                        previousTotal,
+                        facilityPeakDay,
+                        percentage,
+                        previousPercentage,
+                        hasTriggeredStarburst: hasTriggeredStarburst[facility]
+                    });
+                    
+                    if (percentage > previousPercentage && (total <= facilityPeakDay || previousTotal < facilityPeakDay)) {
+                        console.log(`${facility} percentage increased from ${previousPercentage.toFixed(2)}% to ${percentage.toFixed(2)}% and is at/below peak or just surpassed, applying increase animation`);
                         progressElement.classList.add('increase');
                     } else {
+                        console.log(`${facility} percentage did not increase or is already above peak, removing increase animation`);
                         progressElement.classList.remove('increase');
                     }
                     if (facilityPeakDay > 0 && total >= facilityPeakDay && previousTotal < facilityPeakDay) {
+                        console.log(`${facility} reached peak day (${facilityPeakDay}), triggering past-peak and completed animations`);
                         progressContainer.classList.add('past-peak');
                         progressElement.classList.add('completed');
                         setTimeout(() => {
@@ -1870,12 +1882,16 @@
                     }
                     // Reset starburst trigger if total drops below peak
                     if (facilityPeakDay > 0 && total <= facilityPeakDay) {
+                        console.log(`${facility} total (${total}) dropped to or below peak (${facilityPeakDay}), resetting starburst trigger`);
                         hasTriggeredStarburst[facility] = false;
                     }
                     // Trigger starburst only the first time total surpasses peak
                     if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay && !hasTriggeredStarburst[facility]) {
+                        console.log(`${facility} surpassed peak day (${facilityPeakDay}) for the first time, triggering starburst animation`);
                         progressContainer.classList.add('starburst');
                         hasTriggeredStarburst[facility] = true;
+                    } else if (facilityPeakDay > 0 && total > facilityPeakDay && hasTriggeredStarburst[facility]) {
+                        console.log(`${facility} already surpassed peak day (${facilityPeakDay}), not replaying starburst animation`);
                     }
                     
                     const displayPercentage = Math.min(Math.round(percentage), 100);
