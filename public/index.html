@@ -433,13 +433,13 @@
         .progress-bar-fill.increase {
             animation: grow 1.5s ease-in-out;
         }
+        @keyframes grow {
+            0% { background: linear-gradient(90deg, #ff6384, #36a2eb); }
+            50% { background: linear-gradient(90deg, #36a2eb, #60a5fa); transform: scale(1.02); }
+            100% { background: linear-gradient(90deg, #003087, #60a5fa); transform: scale(1); }
+        }
         .progress-bar-fill.completed {
             animation: bounce 0.5s ease-in-out;
-        }
-        @keyframes grow {
-            0% { background: linear-gradient(90deg, #ff6384, #36a2eb); width: 0%; }
-            50% { background: linear-gradient(90deg, #36a2eb, #60a5fa); }
-            100% { background: linear-gradient(90deg, #003087, #60a5fa); }
         }
         @keyframes bounce {
             0% { transform: scale(1); }
@@ -1865,7 +1865,8 @@
                         facilityPeakDay,
                         percentage,
                         previousPercentage,
-                        hasTriggeredStarburst: hasTriggeredStarburst[facility]
+                        hasTriggeredStarburst: hasTriggeredStarburst[facility],
+                        classes: progressElement.classList.toString()
                     });
                     
                     // Apply increase animation only if below peak or just reaching peak
@@ -1877,17 +1878,18 @@
                         progressElement.classList.remove('increase');
                     }
                     if (facilityPeakDay > 0 && total >= facilityPeakDay && previousTotal < facilityPeakDay) {
-                        console.log(`${facility} reached peak day (${facilityPeakDay}), triggering past-peak and completed animations`);
+                        console.log(`${facility} reached peak day (${facilityPeakDay}), triggering past-peak and completed animations and disabling width transition`);
                         progressContainer.classList.add('past-peak');
                         progressElement.classList.add('completed');
                         setTimeout(() => {
                             progressContainer.classList.remove('past-peak');
                             progressElement.classList.remove('completed');
                         }, 5000);
+                        progressElement.classList.add('no-width-transition');
                     }
-                    // Reset starburst trigger and re-enable width transition if total drops to or below peak
-                    if (facilityPeakDay > 0 && total <= facilityPeakDay) {
-                        console.log(`${facility} total (${total}) dropped to or below peak (${facilityPeakDay}), resetting starburst trigger and re-enabling width transition`);
+                    // Reset starburst trigger and re-enable width transition if total drops below peak
+                    if (facilityPeakDay > 0 && total < facilityPeakDay) { // Changed to strict < to re-enable transition below peak
+                        console.log(`${facility} total (${total}) dropped below peak (${facilityPeakDay}), resetting starburst trigger and re-enabling width transition`);
                         hasTriggeredStarburst[facility] = false;
                         progressContainer.classList.remove('starburst');
                         progressElement.classList.remove('no-width-transition');
@@ -1901,7 +1903,7 @@
                             progressContainer.classList.remove('starburst');
                         }, 1500);
                         progressElement.classList.add('no-width-transition');
-                    } else if (facilityPeakDay > 0 && total > facilityPeakDay && hasTriggeredStarburst[facility]) {
+                    } else if (facilityPeakDay > 0 && total >= facilityPeakDay && hasTriggeredStarburst[facility]) { // Changed to >= to ensure width transition stays disabled
                         console.log(`${facility} already surpassed peak day (${facilityPeakDay}), not replaying starburst animation, ensuring width transition is disabled`);
                         progressElement.classList.add('no-width-transition');
                     }
