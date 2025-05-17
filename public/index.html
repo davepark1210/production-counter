@@ -403,6 +403,9 @@
             transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
         }
+        .progress-bar-fill.no-width-transition {
+            transition: none;
+        }
         .progress-bar-fill::after {
             content: '';
             position: absolute;
@@ -1882,22 +1885,25 @@
                             progressElement.classList.remove('completed');
                         }, 5000);
                     }
-                    // Reset starburst trigger if total drops below peak
+                    // Reset starburst trigger and re-enable width transition if total drops to or below peak
                     if (facilityPeakDay > 0 && total <= facilityPeakDay) {
-                        console.log(`${facility} total (${total}) dropped to or below peak (${facilityPeakDay}), resetting starburst trigger`);
+                        console.log(`${facility} total (${total}) dropped to or below peak (${facilityPeakDay}), resetting starburst trigger and re-enabling width transition`);
                         hasTriggeredStarburst[facility] = false;
                         progressContainer.classList.remove('starburst');
+                        progressElement.classList.remove('no-width-transition');
                     }
-                    // Trigger starburst only the first time total surpasses peak
+                    // Trigger starburst only the first time total surpasses peak and disable width transition
                     if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay && !hasTriggeredStarburst[facility]) {
-                        console.log(`${facility} surpassed peak day (${facilityPeakDay}) for the first time, triggering starburst animation`);
+                        console.log(`${facility} surpassed peak day (${facilityPeakDay}) for the first time, triggering starburst animation and disabling width transition`);
                         progressContainer.classList.add('starburst');
                         hasTriggeredStarburst[facility] = true;
                         setTimeout(() => {
                             progressContainer.classList.remove('starburst');
                         }, 1500);
+                        progressElement.classList.add('no-width-transition');
                     } else if (facilityPeakDay > 0 && total > facilityPeakDay && hasTriggeredStarburst[facility]) {
-                        console.log(`${facility} already surpassed peak day (${facilityPeakDay}), not replaying starburst animation`);
+                        console.log(`${facility} already surpassed peak day (${facilityPeakDay}), not replaying starburst animation, ensuring width transition is disabled`);
+                        progressElement.classList.add('no-width-transition');
                     }
                     
                     const displayPercentage = Math.min(Math.round(percentage), 100);
