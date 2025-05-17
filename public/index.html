@@ -1759,6 +1759,9 @@
         const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
         const facilityGrid = document.getElementById('facilityGrid');
         let currentDate = new Date().toISOString().split('T')[0];
+        // Track whether each facility has triggered the starburst animation
+        const hasTriggeredStarburst = {};
+        facilities.forEach(facility => hasTriggeredStarburst[facility] = false);
 
         const updateUI = debounce((date, data, hourlyRates, totalProduction, peakProduction, targetPercentages) => {
             if (date !== currentDate) {
