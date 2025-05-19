@@ -7,6 +7,10 @@
     <title>Certified Center Production</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <style>
         /* Cache-busting comment: Updated 2025-05-12 */
         body {
@@ -530,6 +534,138 @@
         .chart-legend-item:hover {
             opacity: 0.7;
         }
+        /* Ensure flex container for filters */
+        .flex.flex-wrap.items-center {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        /* Style for labels and inputs */
+        .text-xl.font-medium.text-gray-700.whitespace-nowrap {
+            white-space: nowrap;
+            font-size: 1.25rem; /* Matches text-xl */
+        }
+        
+        .border.border-gray-300.rounded-lg {
+            min-width: 200px;
+            max-width: 300px;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .border.border-gray-300.rounded-lg {
+                min-width: 150px;
+            }
+            .text-xl.font-medium.text-gray-700.whitespace-nowrap {
+                font-size: 1rem;
+            }
+        }
+        /* Flatpickr Calendar Styling */
+        .flatpickr-input {
+            cursor: pointer;
+            min-width: 200px;
+            max-width: 300px;
+            background: linear-gradient(145deg, #ffffff, #e6f0fa);
+            border: 1px solid #d1d5db;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .flatpickr-input:hover, .flatpickr-input:focus {
+            border-color: #0057b8;
+            box-shadow: 0 0 0 3px rgba(0, 87, 184, 0.2);
+            background: #ffffff;
+        }
+        
+        .flatpickr-calendar {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2), 0 0 10px rgba(0, 87, 184, 0.3);
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            overflow: hidden;
+        }
+        
+        .flatpickr-day {
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .flatpickr-day.selected, .flatpickr-day.selected:hover {
+            background: linear-gradient(90deg, #003087, #60a5fa);
+            border-color: #003087;
+            color: white;
+            box-shadow: 0 0 5px rgba(0, 87, 184, 0.5);
+        }
+        
+        .flatpickr-day:hover {
+            background: #e6f0fa;
+            border-color: #0057b8;
+        }
+        
+        .flatpickr-day.today {
+            border-color: #ff6384;
+            background: #f0f4f8;
+        }
+        
+        .flatpickr-day.today.selected {
+            border-color: #003087;
+        }
+        
+        .flatpickr-monthDropdown-months, .flatpickr-year {
+            border-radius: 6px;
+            padding: 2px;
+            font-weight: 600;
+            color: #1e40af;
+            transition: all 0.2s ease;
+        }
+        
+        .flatpickr-monthDropdown-months:hover, .flatpickr-year:hover {
+            background: #e6f0fa;
+        }
+        
+        .flatpickr-current-month .flatpickr-monthDropdown-months, .flatpickr-current-month input.cur-year {
+            font-size: 1.1rem;
+        }
+        
+        .flatpickr-weekdays {
+            background: linear-gradient(90deg, #003087, #0057b8);
+            padding: 4px 0;
+        }
+        
+        .flatpickr-weekday {
+            color: white;
+            font-weight: 600;
+        }
+        
+        .flatpickr-prev-month, .flatpickr-next-month {
+            border-radius: 50%;
+            padding: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .flatpickr-prev-month:hover, .flatpickr-next-month:hover {
+            background: #e6f0fa;
+            color: #003087;
+        }
+        
+        /* Responsive adjustments for calendar */
+        @media (max-width: 640px) {
+            .flatpickr-input {
+                min-width: 150px;
+            }
+            .flatpickr-calendar {
+                width: 280px;
+            }
+            .flatpickr-day {
+                font-size: 0.9rem;
+                width: 34px;
+                height: 34px;
+                line-height: 34px;
+            }
+        }
         .total-production span.update {
             animation: highlight 0.5s ease-in-out;
         }
@@ -769,29 +905,30 @@
     <div class="w-full max-w-6xl mb-6 flex flex-col items-center">
         <div id="loadingSpinner" class="loading-spinner"></div>
         <div id="totalProduction" class="main-total-production">
-            Total Daily Production: <span id="totalProductionValue">0</span> units
+            Daily Production of All CC's: <span id="totalProductionValue">0</span> units
         </div>
         <div class="w-full max-w-6xl mb-4">
             <div id="dateTimeDisplay" class="date-time-container"></div>
         </div>
-        <div class="flex items-center space-x-4 mb-4">
-            <label for="dateSelect" class="text-xl font-medium text-gray-700">Select Date:</label>
-            <select id="dateSelect" class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Current Day</option>
-            </select>
-            <button id="resetDateButton" class="reset-button">Reset Date</button>
-            <div id="dateLoadingSpinner" class="date-loading-spinner"></div>
+        <div class="w-full max-w-6xl mb-4">
+            <div class="flex flex-wrap items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <label for="datePicker" class="text-xl font-medium text-gray-700 whitespace-nowrap">Select Date(s):</label>
+                    <input id="datePicker" class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Select dates..." readonly>
+                    <button id="resetDateButton" class="reset-button">Reset Date</button>
+                    <div id="dateLoadingSpinner" class="date-loading-spinner"></div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="facilitySelect" class="text-xl font-medium text-gray-700 whitespace-nowrap">Select Facility:</label>
+                    <select id="facilitySelect" class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">All Facilities</option>
+                        <option value="Sellersburg_Certified_Center">Sellersburg Certified Center</option>
+                        <option value="Williamsport_Certified_Center">Williamsport Certified Center</option>
+                        <option value="North_Las_Vegas_Certified_Center">North Las Vegas Certified Center</option>
+                    </select>
+                </div>
+            </div>
         </div>
-        <div class="flex items-center space-x-4 mb-4">
-            <label for="facilitySelect" class="text-xl font-medium text-gray-700">Select Facility:</label>
-            <select id="facilitySelect" class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">All Facilities</option>
-                <option value="Sellersburg_Certified_Center">Sellersburg Certified Center</option>
-                <option value="Williamsport_Certified_Center">Williamsport Certified Center</option>
-                <option value="North_Las_Vegas_Certified_Center">North Las Vegas Certified Center</option>
-            </select>
-        </div>
-    </div>
 
     <main id="facilityGrid" class="w-full max-w-6xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <div class="facility-card bg-white p-6 rounded-xl shadow-md" id="Sellersburg_Certified_Center">
@@ -1384,6 +1521,133 @@
         updateDateTime(); // Call immediately
         setInterval(updateDateTime, 1000);
 
+        // Initialize Flatpickr for date picker
+        document.addEventListener('DOMContentLoaded', () => {
+            const datePicker = flatpickr("#datePicker", {
+                mode: "multiple", // Allow multiple date selection
+                dateFormat: "Y-m-d", // Format for selected dates
+                maxDate: "today", // Prevent selecting future dates
+                defaultDate: new Date().toISOString().split('T')[0], // Default to today
+                onChange: async function(selectedDates, dateStr, instance) {
+                    const dateLoadingSpinner = document.getElementById('dateLoadingSpinner');
+                    dateLoadingSpinner.style.display = 'inline-block';
+                    console.log(`Selected dates: ${selectedDates.map(date => date.toISOString().split('T')[0])}`);
+                    try {
+                        clearUI();
+                        previousRanking = []; // Reset ranking to force reorder
+                        if (selectedDates.length === 0) {
+                            currentDate = new Date().toISOString().split('T')[0];
+                            console.log(`Resetting to current date: ${currentDate}`);
+                            document.getElementById('graphTitle').textContent = 'Hourly Production Rates';
+                        } else {
+                            // Use the most recent date for WebSocket requests
+                            currentDate = selectedDates.sort((a, b) => b - a)[0].toISOString().split('T')[0];
+                            console.log(`Switching to most recent selected date: ${currentDate}`);
+                            if (selectedDates.length === 1) {
+                                document.getElementById('graphTitle').textContent = `Hourly Production Rates (${currentDate})`;
+                            } else {
+                                document.getElementById('graphTitle').textContent = 'Hourly Production Rates (Multiple Dates)';
+                            }
+                        }
+                        await waitForWebSocket(ws);
+                        ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
+                        ws.send(JSON.stringify({ action: 'requestCurrentData' }));
+                        showNotification(`Displaying data for ${selectedDates.length === 0 ? currentDate : selectedDates.length + ' dates'}`);
+                        // Fetch and aggregate data for all selected dates
+                        await loadDataForSelectedDates(selectedDates);
+                    } catch (err) {
+                        console.error('Failed to load data for selected dates:', err);
+                        showNotification('Error loading data for selected dates.');
+                    } finally {
+                        dateLoadingSpinner.style.display = 'none';
+                    }
+                }
+            });
+        });
+        
+        // Function to load and aggregate data for multiple selected dates
+        async function loadDataForSelectedDates(selectedDates) {
+            if (selectedDates.length === 0) return; // No dates to process
+        
+            try {
+                const dates = selectedDates.map(date => date.toISOString().split('T')[0]).sort();
+                console.log('Fetching data for dates:', dates);
+                let aggregatedData = {};
+                let aggregatedHourlyRates = {};
+                let aggregatedPeakProduction = {};
+                let totalProduction = 0;
+        
+                // Initialize aggregated structures
+                facilities.forEach(facility => {
+                    aggregatedData[facility] = {};
+                    aggregatedHourlyRates[facility] = {};
+                    lines.forEach(line => {
+                        aggregatedData[facility][line] = { count: 0, timestamp: new Date().toISOString() };
+                        aggregatedHourlyRates[facility][line] = Array(24).fill(0);
+                    });
+                    aggregatedPeakProduction[facility] = { peakDay: 0, peakWeekly: 0 };
+                });
+        
+                // Fetch data for each date
+                for (const date of dates) {
+                    const response = await fetch(`/getHistoricalData?date=${date}`);
+                    const { data } = await response.json();
+                    console.log(`Historical data for ${date}:`, data);
+        
+                    // Aggregate production counts
+                    facilities.forEach(facility => {
+                        lines.forEach(line => {
+                            aggregatedData[facility][line].count += data[facility]?.[line]?.count || 0;
+                        });
+                    });
+        
+                    // Fetch hourly rates for the date
+                    const ratesResponse = await fetch(`/getHourlyRates?date=${date}`);
+                    const { hourlyRates } = await ratesResponse.json();
+                    facilities.forEach(facility => {
+                        lines.forEach(line => {
+                            for (let hour = 0; hour < 24; hour++) {
+                                aggregatedHourlyRates[facility][line][hour] += hourlyRates[facility]?.[line]?.[hour] || 0;
+                            }
+                        });
+                    });
+        
+                    // Fetch peak production (use the overall peak, not per-date)
+                    const peakResponse = await fetch('/getPeakProduction');
+                    const peakData = await peakResponse.json();
+                    facilities.forEach(facility => {
+                        aggregatedPeakProduction[facility].peakDay = Math.max(
+                            aggregatedPeakProduction[facility].peakDay,
+                            peakData[facility]?.peakDay || 0
+                        );
+                        aggregatedPeakProduction[facility].peakWeekly = Math.max(
+                            aggregatedPeakProduction[facility].peakWeekly,
+                            peakData[facility]?.peakWeekly || 0
+                        );
+                    });
+        
+                    // Aggregate total production
+                    const totalResponse = await fetch(`/getTotalDailyProduction?date=${date}`);
+                    const totalData = await totalResponse.json();
+                    totalProduction += totalData.total || 0;
+                }
+        
+                // Calculate target percentages
+                const targetPercentages = {};
+                facilities.forEach(facility => {
+                    const facilityTotal = Object.values(aggregatedData[facility]).reduce((sum, { count }) => sum + count, 0);
+                    const target = dailyTargets[facility];
+                    targetPercentages[facility] = target > 0 ? Math.round((facilityTotal / target) * 100) : 0;
+                });
+        
+                // Update UI with aggregated data
+                updateUI(currentDate, aggregatedData, aggregatedHourlyRates, totalProduction, aggregatedPeakProduction, targetPercentages);
+            } catch (err) {
+                console.error('Error aggregating data for selected dates:', err);
+                showNotification('Error aggregating data for selected dates.');
+            }
+        }
+    
         // Display notification
         function showNotification(message) {
             const notification = document.getElementById('notification');
@@ -1434,8 +1698,8 @@
         // Reset date to current day
         const resetDateButton = document.getElementById('resetDateButton');
         resetDateButton.addEventListener('click', () => {
-            const dateSelect = document.getElementById('dateSelect');
-            dateSelect.value = '';
+            const datePicker = document.getElementById('datePicker');
+            flatpickr("#datePicker").clear(); // Clear selected dates in Flatpickr
             currentDate = new Date().toISOString().split('T')[0];
             ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
             ws.send(JSON.stringify({ action: 'requestCurrentData' }));
@@ -1458,7 +1722,6 @@
                             dataset.data = Array(24).fill(0);
                         });
                         productionChart.update();
-                        loadHistoricalDates();
                     } else {
                         showNotification('Failed to reset data.');
                     }
@@ -1615,7 +1878,6 @@
                     ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
                     ws.send(JSON.stringify({ action: 'requestCurrentData' }));
                     
-                    await loadHistoricalDates();
                 } catch (err) {
                     console.error('Failed to initialize rankings:', err);
                     showNotification('Error initializing rankings.');
@@ -1663,34 +1925,6 @@
             Object.keys(peakProductionCache).forEach(key => delete peakProductionCache[key]);
             updateFacilityGrid();
         }
-
-        // Load historical dates
-        async function loadHistoricalDates() {
-               try {
-                   console.log('Fetching historical dates...');
-                   const response = await fetch('/getHistoricalDates');
-                   const { dates } = await response.json();
-                   console.log('Received historical dates:', dates);
-                   const dateSelect = document.getElementById('dateSelect');
-                   const today = new Date().toISOString().split('T')[0];
-                   const filteredDates = dates.filter(date => date !== today);
-                   dateSelect.innerHTML = `<option value="">Current Day (${today})</option>`;
-                   filteredDates.forEach(date => {
-                       const option = document.createElement('option');
-                       option.value = date;
-                       option.textContent = date;
-                       dateSelect.appendChild(option);
-                   });
-                   if (filteredDates.includes('2025-05-04')) {
-                       console.log('Confirmed 5/4/2025 is in dropdown options.');
-                   } else {
-                       console.warn('5/4/2025 not found in historical dates.');
-                   }
-               } catch (err) {
-                   console.error('Failed to load historical dates:', err);
-                   showNotification('Failed to load historical dates.');
-               }
-           }
 
         // Function to animate counting up
         function animateCountUp(element, start, end, duration) {
@@ -2094,7 +2328,6 @@
                 console.log('WebSocket connection established at', new Date().toISOString());
                 document.getElementById('loadingSpinner').style.display = 'none';
                 ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-                loadHistoricalDates();
             };
             ws.onclose = () => {
                 console.log('WebSocket connection closed at', new Date().toISOString());
@@ -2149,7 +2382,6 @@
                        console.log('WebSocket reconnected');
                        document.getElementById('loadingSpinner').style.display = 'none';
                        newWs.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-                       loadHistoricalDates();
                    };
                    newWs.onmessage = ws.onmessage;
                    newWs.onerror = ws.onerror;
