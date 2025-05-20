@@ -289,6 +289,14 @@
             animation: pop 0.5s ease-in-out, glow 1s ease-in-out;
             position: relative;
         }
+        .badge-update {
+            animation: badge-pop 0.5s ease-in-out;
+        }
+        @keyframes badge-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
         .counter.update::before {
             content: '';
             position: absolute;
@@ -799,7 +807,11 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">Sellersburg Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="Sellersburg_Certified_Center_Total">0</span> units</div>
-                <div class="total-production">Target Percentage: <span id="Sellersburg_Certified_Center_Target_Percentage">0</span>%</div>
+                <div class="total-production flex items-center space-x-2">
+                    Target Percentage: 
+                    <span id="Sellersburg_Certified_Center_Target_Percentage" class="font-bold">0</span>
+                    <span id="Sellersburg_Certified_Center_Target_Badge" class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-500 transition-transform duration-300">%</span>
+                </div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_Cooler">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_Cooler_Tooltip"></span></span>
@@ -846,7 +858,11 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">Williamsport Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="Williamsport_Certified_Center_Total">0</span> units</div>
-                <div class="total-production">Target Percentage: <span id="Williamsport_Certified_Center_Target_Percentage">0</span>%</div>
+                <div class="total-production flex items-center space-x-2">
+                    Target Percentage: 
+                    <span id="Williamsport_Certified_Center_Target_Percentage" class="font-bold">0</span>
+                    <span id="Williamsport_Certified_Center_Target_Badge" class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-500 transition-transform duration-300">%</span>
+                </div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_Cooler">0<span class="counter-tooltip" id="Williamsport_Certified_Center_Cooler_Tooltip"></span></span>
@@ -893,7 +909,11 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">North Las Vegas Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="North_Las_Vegas_Certified_Center_Total">0</span> units</div>
-                <div class="total-production">Target Percentage: <span id="North_Las_Vegas_Certified_Center_Target_Percentage">0</span>%</div>
+                <div class="total-production flex items-center space-x-2">
+                    Target Percentage: 
+                    <span id="North_Las_Vegas_Certified_Center_Target_Percentage" class="font-bold">0</span>
+                    <span id="North_Las_Vegas_Certified_Center_Target_Badge" class="inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-500 transition-transform duration-300">%</span>
+                </div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Cooler">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Cooler_Tooltip"></span></span>
@@ -1836,17 +1856,35 @@
                         totalElement.classList.add('update');
                     }
         
-                    // Update target percentage
+                    // Update target percentage and badge
                     const targetPercentageElement = document.getElementById(`${facility}_Target_Percentage`);
-                    if (!targetPercentageElement) {
-                        console.error(`Target percentage DOM element missing for ${facility}`);
+                    const targetBadgeElement = document.getElementById(`${facility}_Target_Badge`);
+                    if (!targetPercentageElement || !targetBadgeElement) {
+                        console.error(`Target percentage or badge DOM element missing for ${facility}`);
                     } else if (targetPercentages && targetPercentages[facility] !== undefined) {
                         const percentage = Math.round(Number(targetPercentages[facility])) || 0;
+                        const previousPercentage = parseInt(targetPercentageElement.textContent) || 0;
                         targetPercentageElement.textContent = percentage;
-                        console.log(`Updated ${facility} target percentage to ${percentage}%`);
+                        // Update badge color based on percentage
+                        let badgeClass = 'bg-gray-500';
+                        if (percentage >= 75) {
+                            badgeClass = 'bg-green-500';
+                        } else if (percentage >= 50) {
+                            badgeClass = 'bg-yellow-500';
+                        } else {
+                            badgeClass = 'bg-red-500';
+                        }
+                        targetBadgeElement.className = `inline-block px-2 py-1 text-xs font-semibold text-white rounded-full ${badgeClass} transition-transform duration-300`;
+                        // Apply animation if percentage changed
+                        if (percentage !== previousPercentage) {
+                            targetBadgeElement.classList.add('badge-update');
+                            setTimeout(() => targetBadgeElement.classList.remove('badge-update'), 500);
+                        }
+                        console.log(`Updated ${facility} target percentage to ${percentage}% with badge class ${badgeClass}`);
                     } else {
                         console.warn(`Target percentages data missing for ${facility}. Full targetPercentages:`, targetPercentages);
                         targetPercentageElement.textContent = '0';
+                        targetBadgeElement.className = 'inline-block px-2 py-1 text-xs font-semibold text-white rounded-full bg-gray-500 transition-transform duration-300';
                     }
         
                     // Update progress bar
