@@ -785,48 +785,6 @@
                 right: 12px;
             }
         }
-        /* Mobile legend styling */
-        #legendContainer {
-            transition: all 0.3s ease;
-        }
-        #legendContainer ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-        .chart-legend-item {
-            transition: opacity 0.2s ease;
-        }
-        .chart-legend-item:hover {
-            opacity: 0.7;
-        }
-        @media (max-width: 640px) {
-            #legendContainer {
-                max-height: 150px; /* Compact height */
-                overflow-y: auto;
-                scrollbar-width: thin;
-                scrollbar-color: #0057b8 #e5e7eb;
-            }
-            #legendContainer::-webkit-scrollbar {
-                width: 6px;
-            }
-            #legendContainer::-webkit-scrollbar-track {
-                background: #e5e7eb;
-                border-radius: 3px;
-            }
-            #legendContainer::-webkit-scrollbar-thumb {
-                background: #0057b8;
-                border-radius: 3px;
-            }
-            .chart-legend-item {
-                font-size: 0.85rem; /* Smaller font */
-                padding: 2px 4px;
-            }
-            .chart-legend-item span.w-3 {
-                width: 10px;
-                height: 10px;
-            }
-        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-6">
@@ -1020,10 +978,6 @@
         <div id="graphSection" class="graph-section">
             <h2 id="graphTitle" class="text-3xl font-semibold text-blue-600 mb-4 text-center">Hourly Production Rates</h2>
             <div class="bg-white p-6 rounded-xl shadow-md" style="height: 400px;">
-                <div class="flex justify-center mb-2">
-                    <button id="toggleLegendButton" class="toggle-button md:hidden">Show Legends</button>
-                </div>
-                <div id="legendContainer" class="hidden md:block max-h-40 overflow-y-auto p-2 bg-white rounded-lg"></div>
                 <canvas id="productionChart"></canvas>
             </div>
         </div>
@@ -1055,55 +1009,6 @@
                     return;
                 }
                 const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
-        
-                // Custom HTML legend plugin
-                const htmlLegendPlugin = {
-                    id: 'htmlLegend',
-                    afterUpdate(chart) {
-                        const legendContainer = document.getElementById('legendContainer');
-                        if (!legendContainer) return;
-        
-                        // Clear existing legend
-                        legendContainer.innerHTML = '';
-        
-                        // Create legend items
-                        const ul = document.createElement('ul');
-                        ul.className = 'flex flex-wrap gap-2 justify-center';
-                        chart.data.datasets.forEach((dataset, index) => {
-                            if (selectedFacility && dataset.facility !== selectedFacility) return;
-                            const li = document.createElement('li');
-                            li.className = 'flex items-center gap-1 cursor-pointer chart-legend-item';
-                            li.onclick = () => {
-                                const meta = chart.getDatasetMeta(index);
-                                meta.hidden = !meta.hidden;
-                                chart.update();
-                            };
-        
-                            // Color box
-                            const boxSpan = document.createElement('span');
-                            boxSpan.className = 'inline-block w-3 h-3 rounded';
-                            boxSpan.style.backgroundColor = dataset.borderColor;
-                            if (meta.hidden) {
-                                boxSpan.style.opacity = 0.3;
-                            }
-        
-                            // Text
-                            const textSpan = document.createElement('span');
-                            textSpan.className = 'text-sm font-poppins';
-                            textSpan.textContent = dataset.label;
-                            if (meta.hidden) {
-                                textSpan.style.opacity = 0.3;
-                            }
-        
-                            li.appendChild(boxSpan);
-                            li.appendChild(textSpan);
-                            ul.appendChild(li);
-                        });
-        
-                        legendContainer.appendChild(ul);
-                    }
-                };
-        
                 productionChart = new Chart(ctx, {
                     type: 'line',
                     data: {
@@ -1114,7 +1019,7 @@
                                 facility: 'Sellersburg_Certified_Center',
                                 line: 'FTN',
                                 data: Array(24).fill(0), 
-                                borderColor: '#1f77b4',
+                                borderColor: '#1f77b4', // Blue
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1136,7 +1041,7 @@
                                 facility: 'Sellersburg_Certified_Center',
                                 line: 'Cooler',
                                 data: Array(24).fill(0), 
-                                borderColor: '#d62728',
+                                borderColor: '#d62728', // Red
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1158,7 +1063,7 @@
                                 facility: 'Sellersburg_Certified_Center',
                                 line: 'Vendor',
                                 data: Array(24).fill(0), 
-                                borderColor: '#2ca02c',
+                                borderColor: '#2ca02c', // Green
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1180,7 +1085,7 @@
                                 facility: 'Sellersburg_Certified_Center',
                                 line: 'A-Repair',
                                 data: Array(24).fill(0), 
-                                borderColor: '#9467bd',
+                                borderColor: '#9467bd', // Purple
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1202,7 +1107,7 @@
                                 facility: 'Williamsport_Certified_Center',
                                 line: 'FTN',
                                 data: Array(24).fill(0), 
-                                borderColor: '#ff7f0e',
+                                borderColor: '#ff7f0e', // Orange
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1224,7 +1129,7 @@
                                 facility: 'Williamsport_Certified_Center',
                                 line: 'Cooler',
                                 data: Array(24).fill(0), 
-                                borderColor: '#1f77b4',
+                                borderColor: '#1f77b4', // Blue
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1246,7 +1151,7 @@
                                 facility: 'Williamsport_Certified_Center',
                                 line: 'Vendor',
                                 data: Array(24).fill(0), 
-                                borderColor: '#d62728',
+                                borderColor: '#d62728', // Red
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1268,7 +1173,7 @@
                                 facility: 'Williamsport_Certified_Center',
                                 line: 'A-Repair',
                                 data: Array(24).fill(0), 
-                                borderColor: '#2ca02c',
+                                borderColor: '#2ca02c', // Green
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1290,7 +1195,7 @@
                                 facility: 'North_Las_Vegas_Certified_Center',
                                 line: 'FTN',
                                 data: Array(24).fill(0), 
-                                borderColor: '#2ca02c',
+                                borderColor: '#2ca02c', // Green
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1312,7 +1217,7 @@
                                 facility: 'North_Las_Vegas_Certified_Center',
                                 line: 'Cooler',
                                 data: Array(24).fill(0), 
-                                borderColor: '#ff7f0e',
+                                borderColor: '#ff7f0e', // Orange
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1334,7 +1239,7 @@
                                 facility: 'North_Las_Vegas_Certified_Center',
                                 line: 'Vendor',
                                 data: Array(24).fill(0), 
-                                borderColor: '#1f77b4',
+                                borderColor: '#1f77b4', // Blue
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1356,7 +1261,7 @@
                                 facility: 'North_Las_Vegas_Certified_Center',
                                 line: 'A-Repair',
                                 data: Array(24).fill(0), 
-                                borderColor: '#d62728',
+                                borderColor: '#d62728', // Red
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
@@ -1380,7 +1285,38 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: {
-                                display: false // Disable default legend
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: { size: 12, family: 'Poppins' },
+                                    padding: 10,
+                                    boxWidth: 15,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    filter: function(legendItem, chartData) {
+                                        if (!selectedFacility) return true;
+                                        const dataset = chartData.datasets[legendItem.datasetIndex];
+                                        return dataset.facility === selectedFacility;
+                                    }
+                                },
+                                onClick: function(e, legendItem, legend) {
+                                    const index = legendItem.datasetIndex;
+                                    const chart = legend.chart;
+                                    if (chart.isDatasetVisible(index)) {
+                                        chart.hide(index);
+                                        legendItem.hidden = true;
+                                    } else {
+                                        chart.show(index);
+                                        legendItem.hidden = false;
+                                    }
+                                    chart.update();
+                                },
+                                onHover: function(e, legendItem, legend) {
+                                    e.native.target.style.cursor = 'pointer';
+                                },
+                                onLeave: function(e, legendItem, legend) {
+                                    e.native.target.style.cursor = 'default';
+                                }
                             },
                             tooltip: {
                                 enabled: true,
@@ -1461,21 +1397,14 @@
                             mode: 'nearest',
                             intersect: true,
                             axis: 'x'
-                        },
-                        plugins: [htmlLegendPlugin]
+                        }
                     }
                 });
-        
-                // Toggle legend visibility on mobile
-                const toggleLegendButton = document.getElementById('toggleLegendButton');
-                const legendContainer = document.getElementById('legendContainer');
-                if (toggleLegendButton && legendContainer) {
-                    toggleLegendButton.addEventListener('click', () => {
-                        const isHidden = legendContainer.style.display === 'none';
-                        legendContainer.style.display = isHidden ? 'block' : 'none';
-                        toggleLegendButton.textContent = isHidden ? 'Hide Legends' : 'Show Legends';
-                    });
-                }
+                // Add hover effect to legend items
+                const legendItems = document.querySelectorAll('.chart-legend li');
+                legendItems.forEach(item => {
+                    item.classList.add('chart-legend-item');
+                });
             } catch (err) {
                 console.error('Error initializing Chart.js:', err);
                 showNotification('Error loading production chart.');
