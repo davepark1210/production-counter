@@ -652,14 +652,14 @@
         }
         /* Mobile dropdown fixes */
         @media (max-width: 640px) {
-            .flex-wrap.space-x-4 {
+            .flex-wrap.gap-4 {
                 flex-direction: column;
-                align-items: stretch;
+                align-items: center;
                 gap: 1rem;
             }
-            .flex.items-center.space-x-2 {
+            .flex.items-center.gap-2 {
                 width: 100%;
-                max-width: 100%;
+                max-width: 400px;
                 justify-content: space-between;
             }
             select {
@@ -805,10 +805,10 @@
         <div class="w-full max-w-6xl mb-4">
             <div id="dateTimeDisplay" class="date-time-container"></div>
         </div>
-        <div class="flex flex-col gap-4 mb-4 w-full">
-            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div class="flex flex-wrap justify-center gap-4 mb-4 w-full">
+            <div class="flex items-center gap-2">
                 <label for="dateSelect" class="text-xl font-medium text-gray-700 whitespace-nowrap">Select Date:</label>
-                <div class="flex items-center gap-2 w-full">
+                <div class="flex items-center gap-2">
                     <select id="dateSelect" class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Current Day</option>
                     </select>
@@ -816,7 +816,7 @@
                     <div id="dateLoadingSpinner" class="date-loading-spinner"></div>
                 </div>
             </div>
-            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div class="flex items-center gap-2">
                 <label for="facilitySelect" class="text-xl font-medium text-gray-700 whitespace-nowrap">Select Facility:</label>
                 <select id="facilitySelect" class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Facilities</option>
@@ -1041,14 +1041,14 @@
                                 facility: 'Sellersburg_Certified_Center',
                                 line: 'Cooler',
                                 data: Array(24).fill(0), 
-                                borderColor: '#5da5da', // Lighter blue
+                                borderColor: '#d62728', // Red
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(93, 165, 218, 0.2)';
+                                    if (!chartArea) return 'rgba(214, 39, 40, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(93, 165, 218, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(93, 165, 218, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(214, 39, 40, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(214, 39, 40, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
@@ -1063,14 +1063,14 @@
                                 facility: 'Sellersburg_Certified_Center',
                                 line: 'Vendor',
                                 data: Array(24).fill(0), 
-                                borderColor: '#316395', // Darker blue
+                                borderColor: '#2ca02c', // Green
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(49, 99, 149, 0.2)';
+                                    if (!chartArea) return 'rgba(44, 160, 44, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(49, 99, 149, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(49, 99, 149, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(44, 160, 44, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(44, 160, 44, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
@@ -1085,14 +1085,14 @@
                                 facility: 'Sellersburg_Certified_Center',
                                 line: 'A-Repair',
                                 data: Array(24).fill(0), 
-                                borderColor: '#8cc7e6', // Very light blue
+                                borderColor: '#9467bd', // Purple
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(140, 199, 230, 0.2)';
+                                    if (!chartArea) return 'rgba(148, 103, 189, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(140, 199, 230, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(140, 199, 230, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(148, 103, 189, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(148, 103, 189, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
@@ -1129,14 +1129,14 @@
                                 facility: 'Williamsport_Certified_Center',
                                 line: 'Cooler',
                                 data: Array(24).fill(0), 
-                                borderColor: '#ff9f40', // Lighter orange
+                                borderColor: '#1f77b4', // Blue
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
+                                    if (!chartArea) return 'rgba(31, 119, 180, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(31, 119, 180, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(31, 119, 180, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
@@ -1151,14 +1151,14 @@
                                 facility: 'Williamsport_Certified_Center',
                                 line: 'Vendor',
                                 data: Array(24).fill(0), 
-                                borderColor: '#c76800', // Darker orange
+                                borderColor: '#d62728', // Red
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(199, 104, 0, 0.2)';
+                                    if (!chartArea) return 'rgba(214, 39, 40, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(199, 104, 0, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(199, 104, 0, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(214, 39, 40, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(214, 39, 40, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
@@ -1173,14 +1173,14 @@
                                 facility: 'Williamsport_Certified_Center',
                                 line: 'A-Repair',
                                 data: Array(24).fill(0), 
-                                borderColor: '#ffbb78', // Very light orange
+                                borderColor: '#2ca02c', // Green
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(255, 187, 120, 0.2)';
+                                    if (!chartArea) return 'rgba(44, 160, 44, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(255, 187, 120, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(255, 187, 120, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(44, 160, 44, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(44, 160, 44, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
@@ -1217,14 +1217,14 @@
                                 facility: 'North_Las_Vegas_Certified_Center',
                                 line: 'Cooler',
                                 data: Array(24).fill(0), 
-                                borderColor: '#54b854', // Lighter green
+                                borderColor: '#ff7f0e', // Orange
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(84, 184, 84, 0.2)';
+                                    if (!chartArea) return 'rgba(255, 127, 14, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(84, 184, 84, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(84, 184, 84, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(255, 127, 14, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(255, 127, 14, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
@@ -1239,14 +1239,14 @@
                                 facility: 'North_Las_Vegas_Certified_Center',
                                 line: 'Vendor',
                                 data: Array(24).fill(0), 
-                                borderColor: '#1a661a', // Darker green
+                                borderColor: '#1f77b4', // Blue
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(26, 102, 26, 0.2)';
+                                    if (!chartArea) return 'rgba(31, 119, 180, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(26, 102, 26, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(26, 102, 26, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(31, 119, 180, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(31, 119, 180, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
@@ -1261,14 +1261,14 @@
                                 facility: 'North_Las_Vegas_Certified_Center',
                                 line: 'A-Repair',
                                 data: Array(24).fill(0), 
-                                borderColor: '#8bd88b', // Very light green
+                                borderColor: '#d62728', // Red
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(139, 216, 139, 0.2)';
+                                    if (!chartArea) return 'rgba(214, 39, 40, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(139, 216, 139, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(139, 216, 139, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(214, 39, 40, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(214, 39, 40, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
