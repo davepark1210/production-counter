@@ -1901,10 +1901,25 @@
                     } else if (targetPercentages && targetPercentages[facility] !== undefined) {
                         const percentage = Math.round(Number(targetPercentages[facility])) || 0;
                         targetPercentageElement.textContent = percentage;
-                        console.log(`Updated ${facility} target percentage to ${percentage}%`);
+                        
+                        // Remove existing color classes
+                        targetPercentageElement.classList.remove('text-red-600', 'text-yellow-600', 'text-green-600');
+                        
+                        // Apply color class based on percentage
+                        if (percentage < 50) {
+                            targetPercentageElement.classList.add('text-red-600');
+                        } else if (percentage >= 50 && percentage < 80) {
+                            targetPercentageElement.classList.add('text-yellow-600');
+                        } else {
+                            targetPercentageElement.classList.add('text-green-600');
+                        }
+                        
+                        console.log(`Updated ${facility} target percentage to ${percentage}% with color class`);
                     } else {
                         console.warn(`Target percentages data missing for ${facility}. Full targetPercentages:`, targetPercentages);
                         targetPercentageElement.textContent = '0';
+                        targetPercentageElement.classList.remove('text-red-600', 'text-yellow-600', 'text-green-600');
+                        targetPercentageElement.classList.add('text-red-600'); // Default to red for 0%
                     }
         
                     // Update progress bar
