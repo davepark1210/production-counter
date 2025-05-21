@@ -650,6 +650,37 @@
             max-width: 400px;
             margin: 0 auto;
         }
+        /* Mobile dropdown fixes */
+        @media (max-width: 640px) {
+            .flex-wrap.space-x-4 {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+            }
+            .flex.items-center.space-x-2 {
+                width: 100%;
+                max-width: 100%;
+                justify-content: space-between;
+            }
+            select {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                box-sizing: border-box;
+                z-index: 10;
+            }
+            label[for="dateSelect"], label[for="facilitySelect"] {
+                font-size: 1rem;
+                flex-shrink: 0;
+            }
+            #dateSelect, #facilitySelect {
+                flex-grow: 1;
+            }
+            #resetDateButton {
+                width: 100%;
+                margin-top: 0.5rem;
+            }
+        }
         @media (max-width: 640px) {
             .facility-card h2 {
                 font-size: 1.5rem;
@@ -774,16 +805,18 @@
         <div class="w-full max-w-6xl mb-4">
             <div id="dateTimeDisplay" class="date-time-container"></div>
         </div>
-        <div class="flex flex-wrap justify-center items-center space-x-4 mb-4">
-            <div class="flex items-center space-x-2">
+        <div class="flex flex-col gap-4 mb-4 w-full">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
                 <label for="dateSelect" class="text-xl font-medium text-gray-700 whitespace-nowrap">Select Date:</label>
-                <select id="dateSelect" class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Current Day</option>
-                </select>
-                <button id="resetDateButton" class="reset-button">Reset Date</button>
-                <div id="dateLoadingSpinner" class="date-loading-spinner"></div>
+                <div class="flex items-center gap-2 w-full">
+                    <select id="dateSelect" class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Current Day</option>
+                    </select>
+                    <button id="resetDateButton" class="reset-button">Reset Date</button>
+                    <div id="dateLoadingSpinner" class="date-loading-spinner"></div>
+                </div>
             </div>
-            <div class="flex items-center space-x-2">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2">
                 <label for="facilitySelect" class="text-xl font-medium text-gray-700 whitespace-nowrap">Select Facility:</label>
                 <select id="facilitySelect" class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Facilities</option>
@@ -984,242 +1017,266 @@
                             { 
                                 label: 'Sellersburg FTN', 
                                 facility: 'Sellersburg_Certified_Center',
+                                line: 'FTN',
                                 data: Array(24).fill(0), 
-                                borderColor: '#ff6384', 
+                                borderColor: '#1f77b4', // Blue
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(255, 99, 132, 0.2)';
+                                    if (!chartArea) return 'rgba(31, 119, 180, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(255, 99, 132, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(255, 99, 132, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(31, 119, 180, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(31, 119, 180, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'circle',
+                                borderDash: []
                             },
                             { 
                                 label: 'Sellersburg Cooler', 
                                 facility: 'Sellersburg_Certified_Center',
+                                line: 'Cooler',
                                 data: Array(24).fill(0), 
-                                borderColor: '#36a2eb', 
+                                borderColor: '#5da5da', // Lighter blue
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(54, 162, 235, 0.2)';
+                                    if (!chartArea) return 'rgba(93, 165, 218, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(54, 162, 235, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(54, 162, 235, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(93, 165, 218, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(93, 165, 218, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'triangle',
+                                borderDash: [5, 5]
                             },
                             { 
                                 label: 'Sellersburg Vendor', 
                                 facility: 'Sellersburg_Certified_Center',
+                                line: 'Vendor',
                                 data: Array(24).fill(0), 
-                                borderColor: '#4bc0c0', 
+                                borderColor: '#316395', // Darker blue
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
+                                    if (!chartArea) return 'rgba(49, 99, 149, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(49, 99, 149, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(49, 99, 149, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'rect',
+                                borderDash: []
                             },
                             { 
                                 label: 'Sellersburg A-Repair', 
                                 facility: 'Sellersburg_Certified_Center',
+                                line: 'A-Repair',
                                 data: Array(24).fill(0), 
-                                borderColor: '#ff9f40', 
+                                borderColor: '#8cc7e6', // Very light blue
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
+                                    if (!chartArea) return 'rgba(140, 199, 230, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(140, 199, 230, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(140, 199, 230, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'star',
+                                borderDash: [10, 5]
                             },
                             { 
                                 label: 'Williamsport FTN', 
                                 facility: 'Williamsport_Certified_Center',
+                                line: 'FTN',
                                 data: Array(24).fill(0), 
-                                borderColor: '#cc65fe', 
+                                borderColor: '#ff7f0e', // Orange
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(204, 101, 254, 0.2)';
+                                    if (!chartArea) return 'rgba(255, 127, 14, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(204, 101, 254, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(204, 101, 254, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(255, 127, 14, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(255, 127, 14, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'circle',
+                                borderDash: []
                             },
                             { 
                                 label: 'Williamsport Cooler', 
                                 facility: 'Williamsport_Certified_Center',
+                                line: 'Cooler',
                                 data: Array(24).fill(0), 
-                                borderColor: '#ffce56', 
+                                borderColor: '#ff9f40', // Lighter orange
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(255, 206, 86, 0.2)';
+                                    if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(255, 206, 86, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(255, 206, 86, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)';
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'triangle',
+                                borderDash: [5, 5]
                             },
                             { 
                                 label: 'Williamsport Vendor', 
                                 facility: 'Williamsport_Certified_Center',
+                                line: 'Vendor',
                                 data: Array(24).fill(0), 
-                                borderColor: '#4bc0c0', 
+                                borderColor: '#c76800', // Darker orange
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
+                                    if (!chartArea) return 'rgba(199, 104, 0, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(199, 104, 0, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(199, 104, 0, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'rect',
+                                borderDash: []
                             },
                             { 
                                 label: 'Williamsport A-Repair', 
                                 facility: 'Williamsport_Certified_Center',
+                                line: 'A-Repair',
                                 data: Array(24).fill(0), 
-                                borderColor: '#ff9f40', 
+                                borderColor: '#ffbb78', // Very light orange
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
+                                    if (!chartArea) return 'rgba(255, 187, 120, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(255, 187, 120, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(255, 187, 120, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'star',
+                                borderDash: [10, 5]
                             },
                             { 
                                 label: 'North Las Vegas FTN', 
                                 facility: 'North_Las_Vegas_Certified_Center',
+                                line: 'FTN',
                                 data: Array(24).fill(0), 
-                                borderColor: '#4bc0c0', 
+                                borderColor: '#2ca02c', // Green
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
+                                    if (!chartArea) return 'rgba(44, 160, 44, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(44, 160, 44, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(44, 160, 44, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'circle',
+                                borderDash: []
                             },
                             { 
                                 label: 'North Las Vegas Cooler', 
                                 facility: 'North_Las_Vegas_Certified_Center',
+                                line: 'Cooler',
                                 data: Array(24).fill(0), 
-                                borderColor: '#9966ff', 
+                                borderColor: '#54b854', // Lighter green
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(153, 102, 255, 0.2)';
+                                    if (!chartArea) return 'rgba(84, 184, 84, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(153, 102, 255, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(153, 102, 255, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(84, 184, 84, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(84, 184, 84, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'triangle',
+                                borderDash: [5, 5]
                             },
                             { 
                                 label: 'North Las Vegas Vendor', 
                                 facility: 'North_Las_Vegas_Certified_Center',
+                                line: 'Vendor',
                                 data: Array(24).fill(0), 
-                                borderColor: '#4bc0c0', 
+                                borderColor: '#1a661a', // Darker green
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(75, 192, 192, 0.2)';
+                                    if (!chartArea) return 'rgba(26, 102, 26, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(75, 192, 192, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(75, 192, 192, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(26, 102, 26, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(26, 102, 26, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'rect',
+                                borderDash: []
                             },
                             { 
                                 label: 'North Las Vegas A-Repair', 
                                 facility: 'North_Las_Vegas_Certified_Center',
+                                line: 'A-Repair',
                                 data: Array(24).fill(0), 
-                                borderColor: '#ff9f40', 
+                                borderColor: '#8bd88b', // Very light green
                                 backgroundColor: (ctx) => {
                                     const chart = ctx.chart;
                                     const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(255, 159, 64, 0.2)';
+                                    if (!chartArea) return 'rgba(139, 216, 139, 0.2)';
                                     const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(255, 159, 64, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(255, 159, 64, 0.4)');
+                                    gradient.addColorStop(0, 'rgba(139, 216, 139, 0.1)');
+                                    gradient.addColorStop(1, 'rgba(139, 216, 139, 0.4)');
                                     return gradient;
                                 }, 
                                 borderWidth: 2, 
                                 fill: true, 
                                 pointRadius: 3, 
                                 pointHoverRadius: 5, 
-                                pointStyle: 'circle' 
+                                pointStyle: 'star',
+                                borderDash: [10, 5]
                             }
                         ]
                     },
@@ -1237,7 +1294,7 @@
                                     usePointStyle: true,
                                     pointStyle: 'circle',
                                     filter: function(legendItem, chartData) {
-                                        if (!selectedFacility) return true; // Show all legends if not in focused mode
+                                        if (!selectedFacility) return true;
                                         const dataset = chartData.datasets[legendItem.datasetIndex];
                                         return dataset.facility === selectedFacility;
                                     }
@@ -1322,7 +1379,6 @@
                                 borderWidth: 2
                             },
                             point: {
-                                pointStyle: 'circle',
                                 backgroundColor: '#ffffff',
                                 borderWidth: 1,
                                 radius: 3,
