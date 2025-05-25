@@ -1008,6 +1008,11 @@
                     showNotification('Error: Chart canvas not found.');
                     return;
                 }
+                // Destroy existing chart instance if it exists
+                if (productionChart) {
+                    productionChart.destroy();
+                    console.log('Existing chart destroyed');
+                }
                 const labels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
                 productionChart = new Chart(ctx, {
                     type: 'line',
