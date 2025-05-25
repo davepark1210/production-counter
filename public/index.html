@@ -1616,12 +1616,14 @@
             const facilitySelectContainer = document.querySelector('label[for="facilitySelect"]').parentElement;
             const toggleGraphButton = document.getElementById('toggleGraphButton');
             const resetAllDataButton = document.getElementById('resetAllDataButton');
+            const totalProductionDiv = document.getElementById('totalProduction');
+            const header = document.querySelector('header');
+            const footer = document.querySelector('footer');
         
-            // Valid views
             const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas'];
         
             if (viewParam && validViews.includes(viewParam)) {
-                // Hide date selector, facility selector, and buttons
+                // Hide common elements for all views
                 if (dateSelectContainer) dateSelectContainer.style.display = 'none';
                 if (facilitySelectContainer) facilitySelectContainer.style.display = 'none';
                 if (toggleGraphButton) toggleGraphButton.style.display = 'none';
@@ -1633,8 +1635,13 @@
                     facilitySelect.value = '';
                     updateFacilityGrid();
                     showNotification('Showing All Facilities');
+                    // Hide footer for All view
+                    if (footer) footer.style.display = 'none';
+                    // Ensure header and total production are visible
+                    if (header) header.style.display = 'flex';
+                    if (totalProductionDiv) totalProductionDiv.style.display = 'block';
                 } else {
-                    // Map view parameter to facility ID
+                    // Facility-specific view
                     const facilityMap = {
                         'sellersburg': 'Sellersburg_Certified_Center',
                         'williamsport': 'Williamsport_Certified_Center',
@@ -1644,6 +1651,10 @@
                     facilitySelect.value = selectedFacility;
                     updateFacilityGrid();
                     showNotification(`Showing ${facilitySelect.options[facilitySelect.selectedIndex].text}`);
+                    // Hide total production, header, and footer for facility views
+                    if (totalProductionDiv) totalProductionDiv.style.display = 'none';
+                    if (header) header.style.display = 'none';
+                    if (footer) footer.style.display = 'none';
                 }
             }
         }
