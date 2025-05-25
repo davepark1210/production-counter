@@ -1602,29 +1602,54 @@
             updateFacilityGrid();
             showNotification('Showing All Facilities');
         }
+
+        // Handle view parameter from URL
+        function handleViewParameter() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const viewParam = urlParams.get('view')?.toLowerCase();
+            const dateSelectContainer = document.querySelector('.flex.items-center.gap-2').parentElement;
+            const facilitySelectContainer = document.querySelector('label[for="facilitySelect"]').parentElement;
+            const toggleGraphButton = document.getElementById('toggleGraphButton');
+            const resetAllDataButton = document.getElementById('resetAllDataButton');
         
-        // Initialize focused mode and rankings from URL query parameter
-           document.addEventListener('DOMContentLoaded', () => {
-               const urlParams = new URLSearchParams(window.location.search);
-               const facilityParam = urlParams.get('facility');
-               const validFacilities = [
-                   'Sellersburg_Certified_Center',
-                   'Williamsport_Certified_Center',
-                   'North_Las_Vegas_Certified_Center'
-               ];
-               if (facilityParam && validFacilities.includes(facilityParam)) {
-                   selectedFacility = facilityParam;
-                   facilitySelect.value = selectedFacility;
-                   updateFacilityGrid();
-                   showNotification(`Showing ${facilitySelect.options[facilitySelect.selectedIndex].text}`);
-               } else {
-                   updateFacilityGrid();
-               }
+            // Valid views
+            const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas'];
         
-               // Initialize rankings after WebSocket is ready
-               initializeRankings();
-           });
+            if (viewParam && validViews.includes(viewParam)) {
+                // Hide date selector, facility selector, and buttons
+                if (dateSelectContainer) dateSelectContainer.style.display = 'none';
+                if (facilitySelectContainer) facilitySelectContainer.style.display = 'none';
+                if (toggleGraphButton) toggleGraphButton.style.display = 'none';
+                if (resetAllDataButton) resetAllDataButton.style.display = 'none';
         
+                if (viewParam === 'all') {
+                    // Show all facilities
+                    selectedFacility = '';
+                    facilitySelect.value = '';
+                    updateFacilityGrid();
+                    showNotification('Showing All Facilities');
+                } else {
+                    // Map view parameter to facility ID
+                    const facilityMap = {
+                        'sellersburg': 'Sellersburg_Certified_Center',
+                        'williamsport': 'Williamsport_Certified_Center',
+                        'northlasvegas': 'North_Las_Vegas_Certified_Center'
+                    };
+                    selectedFacility = facilityMap[viewParam];
+                    facilitySelect.value = selectedFacility;
+                    updateFacilityGrid();
+                    showNotification(`Showing ${facilitySelect.options[facilitySelect.selectedIndex].text}`);
+                }
+            }
+        }
+        
+            // Initialize view and rankings on page load
+            document.addEventListener('DOMContentLoaded', () => {
+                handleViewParameter();
+                initializeChart();
+                initializeRankings();
+            });
+                    
            // Fetch initial data and set rankings
             async function initializeRankings() {
                 try {
