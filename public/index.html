@@ -66,48 +66,57 @@
             animation: slide 0.8s ease-in-out forwards;
         }
         .facility-card-focused {
-            max-width: 90rem; /* Wider for 1080p/4K TVs, ~1440px */
-            padding: 4rem; /* Spacious for readability */
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Stronger shadow */
-            border: 6px solid #003087; /* Darker blue, thick border */
-            transform: scale(1.0); /* Start at normal size */
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; /* Smooth transition */
+            width: 100vw; /* Full viewport width */
+            height: 100vh; /* Full viewport height */
+            max-width: none; /* Remove max-width constraint */
+            margin: 0; /* Remove margins */
+            padding: 5vw; /* Safe padding for overscan (5% of viewport width) */
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7);
+            border: 6px solid #003087;
+            transform: scale(1.0);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
             z-index: 20;
-            background: linear-gradient(145deg, #ffffff, #c3daff); /* Bolder gradient */
-            margin: 1.5rem auto; /* Reduced to match gap-6 (1.5rem) */
+            background: linear-gradient(145deg, #ffffff, #c3daff);
+            display: flex; /* Ensure content is centered */
+            flex-direction: column; /* Stack content vertically */
+            justify-content: center; /* Center vertically */
+            align-items: center; /* Center horizontally */
+            overflow: auto; /* Allow scrolling if content overflows */
         }
         .facility-card-focused:hover {
-            transform: translateY(-15px) scale(1.1); /* Larger pulse and lift */
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 87, 184, 0.6); /* Slightly softer shadow */
-            background: linear-gradient(145deg, #e6f0fa, #f0f4f8); /* Consistent hover gradient */
-            border-color: #0057b8; /* Consistent border color */
+            transform: translateY(-15px) scale(1.02); /* Smaller scale for full-screen */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 87, 184, 0.6);
+            background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
+            border-color: #0057b8;
         }
         .facility-card-focused h2 {
-            font-size: 4rem; /* Larger for 20ft visibility */
+            font-size: 6rem; /* Larger for 4K TV readability */
             color: #003087;
-            white-space: nowrap; /* Prevent text wrapping */
-            padding-right: 80px; /* Increased padding to accommodate rank icon */
-            line-height: 1; /* Reduce line height to prevent intersection */
+            white-space: nowrap;
+            padding-right: 100px;
+            line-height: 1;
         }
         .facility-card-focused .rank-icon {
-            top: 16px; /* Move down to avoid overlap with title */
-            right: 16px; /* Move further right */
+            top: 20px;
+            right: 20px;
+            font-size: 2rem; /* Larger for visibility */
+            padding: 4px;
         }
         .facility-card-focused .total-production {
-            font-size: 3.5rem;
+            font-size: 5rem;
             color: #1e40af;
         }
         .facility-card-focused .counter {
-            font-size: 5rem; /* Very large for distance */
+            font-size: 7rem;
         }
         .facility-card-focused .text-xl {
-            font-size: 3rem;
+            font-size: 4.5rem;
         }
         .facility-card-focused .text-base {
-            font-size: 2rem;
+            font-size: 3rem;
         }
         .facility-card-focused .peak-metric {
-            font-size: 1.8rem;
+            font-size: 2.5rem;
         }
         .facility-card-focused .back-button {
             display: block;
@@ -743,6 +752,20 @@
             }
             .facility-card-focused .peak-metric {
                 font-size: 1.4rem;
+            }
+            /* Remove padding and constraints for facility-specific views */
+            body.facility-view, body.facility-view main#facilityGrid {
+                padding: 0;
+                margin: 0;
+                max-width: 100%;
+                width: 100%;
+                height: 100%;
+            }
+            /* Adjust padding for 4K TV resolutions */
+            @media (min-width: 3840px) {
+                .facility-card-focused {
+                    padding: 10vw; /* Larger padding for 4K overscan */
+                }
             }
             .facility-card-focused .back-button {
                 padding: 0.5rem 1rem;
@@ -1554,6 +1577,10 @@
             if (selectedFacility) {
                 facilityGrid.classList.add('facility-grid-single');
                 facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                facilityGrid.style.width = '100%'; // Ensure full width
+                facilityGrid.style.height = '100%'; // Ensure full height
+                facilityGrid.style.margin = '0'; // Remove margins
+                facilityGrid.style.padding = '0'; // Remove padding
                 facilityCards.forEach(card => {
                     if (card.id === selectedFacility) {
                         card.style.display = 'block';
@@ -1568,21 +1595,14 @@
                     }
                 });
         
-                // Filter chart to show only selected facility's data and legends
-                if (productionChart) {
-                    productionChart.data.datasets.forEach((dataset, index) => {
-                        if (dataset.facility === selectedFacility) {
-                            productionChart.show(index);
-                        } else {
-                            productionChart.hide(index);
-                        }
-                    });
-                    productionChart.update();
-                    console.log(`Chart filtered to show only ${selectedFacility} data and legends`);
-                }
+                // Since graph is hidden via handleViewParameter, no need to update chart
             } else {
                 facilityGrid.classList.remove('facility-grid-single');
                 facilityGrid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                facilityGrid.style.width = ''; // Reset to default
+                facilityGrid.style.height = ''; // Reset to default
+                facilityGrid.style.margin = ''; // Reset to default
+                facilityGrid.style.padding = ''; // Reset to default
                 facilityCards.forEach(card => {
                     card.style.display = 'block';
                     card.classList.remove('facility-card-focused');
@@ -1615,6 +1635,7 @@
             const dateSelectContainer = document.querySelector('.flex.items-center.gap-2').parentElement;
             const facilitySelectContainer = document.querySelector('label[for="facilitySelect"]').parentElement;
             const toggleGraphButton = document.getElementById('toggleGraphButton');
+            const graphSection = document.getElementById('graphSection');
             const resetAllDataButton = document.getElementById('resetAllDataButton');
             const totalProductionDiv = document.getElementById('totalProduction');
             const header = document.querySelector('header');
@@ -1637,9 +1658,12 @@
                     showNotification('Showing All Facilities');
                     // Hide footer for All view
                     if (footer) footer.style.display = 'none';
-                    // Ensure header and total production are visible
+                    // Ensure header, total production, and graph are visible
                     if (header) header.style.display = 'flex';
                     if (totalProductionDiv) totalProductionDiv.style.display = 'block';
+                    if (graphSection) graphSection.style.display = 'block';
+                    // Remove facility-view class from body
+                    document.body.classList.remove('facility-view');
                 } else {
                     // Facility-specific view
                     const facilityMap = {
@@ -1651,10 +1675,13 @@
                     facilitySelect.value = selectedFacility;
                     updateFacilityGrid();
                     showNotification(`Showing ${facilitySelect.options[facilitySelect.selectedIndex].text}`);
-                    // Hide total production, header, and footer for facility views
+                    // Hide total production, header, footer, and graph for facility views
                     if (totalProductionDiv) totalProductionDiv.style.display = 'none';
                     if (header) header.style.display = 'none';
                     if (footer) footer.style.display = 'none';
+                    if (graphSection) graphSection.style.display = 'none';
+                    // Add facility-view class to body
+                    document.body.classList.add('facility-view');
                 }
             }
         }
