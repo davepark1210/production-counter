@@ -130,8 +130,9 @@
         }
         .rank-icon {
             position: absolute;
-            top: 8px;
-            right: 8px;
+            top: -10px; /* Move above the card */
+            right: 50%; /* Center horizontally */
+            transform: translateX(50%); /* Adjust for centering */
             font-size: 1rem;
             background: white;
             border: 1px solid #d1d5db;
@@ -267,7 +268,12 @@
         .facility-card h2 {
             font-family: 'Poppins', sans-serif;
             font-weight: 600;
-            padding-right: 40px;
+            text-align: center; /* Center the title */
+            margin-bottom: 1rem; /* Consistent spacing */
+        }
+        .facility-card-focused h2 {
+            text-align: center;
+            padding-right: 0; /* Remove padding in focused view */
         }
         .counter {
             transition: transform 0.3s ease, color 0.3s ease;
@@ -524,14 +530,33 @@
             visibility: visible;
         }
         .total-production {
-            font-size: 1.5rem;
-            font-weight: 700;
+            font-size: 2.25rem; /* Increased from 1.5rem to make more prominent */
+            font-weight: 800; /* Bolder */
             color: #1e40af;
             text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for emphasis */
+            margin-bottom: 0.5rem; /* Space below */
         }
         .total-production span {
             transition: transform 0.3s ease, color 0.3s ease;
             display: inline-block;
+            font-size: 2.5rem; /* Larger number */
+            font-weight: 900;
+        }
+        .target-percentage {
+            font-size: 1rem; /* Smaller than total-production */
+            font-weight: 600;
+            color: #1e40af;
+            text-align: center;
+        }
+        .facility-card-focused .target-percentage {
+            font-size: 2rem; /* Slightly larger in focused view but smaller than total-production */
+        }
+        .facility-card-focused .total-production {
+            font-size: 4rem; /* Even larger in focused view */
+        }
+        .facility-card-focused .total-production span {
+            font-size: 4.5rem; /* Larger number in focused view */
         }
         .chart-legend-item {
             transition: opacity 0.2s ease;
@@ -649,15 +674,21 @@
         .date-time-container {
             background: linear-gradient(90deg, #e6f0fa, #f0f4f8);
             border-radius: 8px;
-            padding: 0.5rem 1rem;
+            padding: 0.75rem 1.5rem; /* Slightly larger padding */
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             animation: slideIn 1s ease-out;
-            font-size: 1.25rem;
+            font-size: 1.5rem; /* Increased size */
             font-weight: 500;
             color: #374151;
             text-align: center;
-            max-width: 400px;
-            margin: 0 auto;
+            max-width: 500px; /* Slightly wider */
+            margin: 1rem auto 2rem; /* Increased bottom margin to prevent overlap */
+            position: relative;
+            z-index: 15; /* Ensure above facility card */
+        }
+        .facility-card-focused ~ .date-time-container,
+        .facility-grid-single .date-time-container {
+            margin-top: 2rem; /* Extra space in focused view */
         }
         /* Mobile dropdown fixes */
         @media (max-width: 640px) {
@@ -857,7 +888,7 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">Sellersburg Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="Sellersburg_Certified_Center_Total">0</span> units</div>
-                <div class="total-production">Target Percentage: <span id="Sellersburg_Certified_Center_Target_Percentage">0</span>%</div>
+                <div class="target-percentage">Target Percentage: <span id="Sellersburg_Certified_Center_Target_Percentage">0</span>%</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_Cooler">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_Cooler_Tooltip"></span></span>
@@ -895,7 +926,6 @@
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="Sellersburg_Certified_Center_Forecast">Calculating...</span></div>
                 </div>
-                <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
         </div>
 
@@ -904,7 +934,7 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">Williamsport Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="Williamsport_Certified_Center_Total">0</span> units</div>
-                <div class="total-production">Target Percentage: <span id="Williamsport_Certified_Center_Target_Percentage">0</span>%</div>
+                <div class="target-percentage">Target Percentage: <span id="Williamsport_Certified_Center_Target_Percentage">0</span>%</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_Cooler">0<span class="counter-tooltip" id="Williamsport_Certified_Center_Cooler_Tooltip"></span></span>
@@ -941,8 +971,7 @@
                         </div>
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="Williamsport_Certified_Center_Forecast">Calculating...</span></div>
-                </div>
-                <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
+                </div> 
             </div>
         </div>
 
@@ -951,7 +980,7 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">North Las Vegas Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="North_Las_Vegas_Certified_Center_Total">0</span> units</div>
-                <div class="total-production">Target Percentage: <span id="North_Las_Vegas_Certified_Center_Target_Percentage">0</span>%</div>
+                <div class="target-percentage">Target Percentage: <span id="North_Las_Vegas_Center_Target_Percentage">0</span>%</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Cooler">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Cooler_Tooltip"></span></span>
@@ -989,7 +1018,6 @@
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="North_Las_Vegas_Certified_Center_Forecast">Calculating...</span></div>
                 </div>
-                <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
         </div>
     </main>
@@ -1585,13 +1613,9 @@
                     if (card.id === selectedFacility) {
                         card.style.display = 'block';
                         card.classList.add('facility-card-focused');
-                        const backButton = card.querySelector('.back-button');
-                        if (backButton) backButton.classList.remove('hidden');
                     } else {
                         card.style.display = 'none';
                         card.classList.remove('facility-card-focused');
-                        const backButton = card.querySelector('.back-button');
-                        if (backButton) backButton.classList.add('hidden');
                     }
                 });
         
@@ -1606,8 +1630,6 @@
                 facilityCards.forEach(card => {
                     card.style.display = 'block';
                     card.classList.remove('facility-card-focused');
-                    const backButton = card.querySelector('.back-button');
-                    if (backButton) backButton.classList.add('hidden');
                 });
         
                 // Show all chart data and legends
@@ -1645,7 +1667,6 @@
         
             if (viewParam && validViews.includes(viewParam)) {
                 // Hide common elements for all views
-                if (dateSelectContainer) dateSelectContainer.style.display = 'none';
                 if (facilitySelectContainer) facilitySelectContainer.style.display = 'none';
                 if (toggleGraphButton) toggleGraphButton.style.display = 'none';
                 if (resetAllDataButton) resetAllDataButton.style.display = 'none';
