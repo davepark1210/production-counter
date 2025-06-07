@@ -107,7 +107,7 @@
             padding: 4px;
         }
         .facility-card-focused .total-production {
-            font-size: 5rem;
+            font-size: 7rem;
             color: #1e40af;
         }
         .facility-card-focused .counter {
@@ -558,12 +558,25 @@
             color: #1e40af;
             text-align: center;
         }
-        .facility-card-focused .target-percentage {
-            font-size: 2rem; /* Slightly larger in focused view but smaller than total-production */
+        .metric-group {
+            width: 100%; /* Ensure full width for alignment */
+            text-align: center; /* Center contents */
+        }
+        .facility-card-focused .metric-group {
+            margin-bottom: 1rem; /* Space between groups */
+        }
+        .facility-card-focused .metric-group .flex {
+            justify-content: center; /* Center label and count */
+            gap: 2.5rem; /* Maintain wider gap */
+        }
+        .facility-card-focused .rate-container {
+            font-size: 2rem; /* Match larger text in focused mode */
+            color: #4b5563; /* Match text-gray-600 */
+            margin-top: 0.5rem; /* Space between count and rate */
         }
         .facility-card-focused .flex.justify-between.items-center {
             justify-content: center; /* Center the entire row */
-            gap: 3rem; /* Wider gap between label and count */
+            gap: 10rem; /* Wider gap between label and count */
         }
         .chart-legend-item {
             transition: opacity 0.2s ease;
@@ -890,26 +903,34 @@
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="Sellersburg_Certified_Center_Total">0</span> units</div>
                 <div class="target-percentage">Target Percentage: <span id="Sellersburg_Certified_Center_Target_Percentage">0</span>%</div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_Cooler">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_Cooler_Tooltip"></span></span>
+                <div class="metric-group flex flex-col items-center space-y-1">
+                    <div class="flex items-center justify-center gap-10">
+                        <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
+                        <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_Cooler">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_Cooler_Tooltip"></span></span>
+                    </div>
+                    <div class="rate-container text-base text-gray-600" id="Sellersburg_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_Vendor">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_Vendor_Tooltip"></span></span>
+                <div class="metric-group flex flex-col items-center space-y-1">
+                    <div class="flex items-center justify-center gap-10">
+                        <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
+                        <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_Vendor">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_Vendor_Tooltip"></span></span>
+                    </div>
+                    <div class="rate-container text-base text-gray-600" id="Sellersburg_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_FTN_Tooltip"></span></span>
+                <div class="metric-group flex flex-col items-center space-y-1">
+                    <div class="flex items-center justify-center gap-10">
+                        <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
+                        <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_FTN_Tooltip"></span></span>
+                    </div>
+                    <div class="rate-container text-base text-gray-600" id="Sellersburg_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_A_Repair">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_A_Repair_Tooltip"></span></span>
+                <div class="metric-group flex flex-col items-center space-y-1">
+                    <div class="flex items-center justify-center gap-10">
+                        <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
+                        <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_A_Repair">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_A_Repair_Tooltip"></span></span>
+                    </div>
+                    <div class="rate-container text-base text-gray-600" id="Sellersburg_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">
                         Peak Weekly Production: <span id="Sellersburg_Certified_Center_Peak_Weekly">0</span> units
@@ -936,26 +957,34 @@
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="Williamsport_Certified_Center_Total">0</span> units</div>
                 <div class="target-percentage">Target Percentage: <span id="Williamsport_Certified_Center_Target_Percentage">0</span>%</div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_Cooler">0<span class="counter-tooltip" id="Williamsport_Certified_Center_Cooler_Tooltip"></span></span>
-                </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_Vendor">0<span class="counter-tooltip" id="Williamsport_Certified_Center_Vendor_Tooltip"></span></span>
-                </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0<span class="counter-tooltip" id="Williamsport_Certified_Center_FTN_Tooltip"></span></span>
-                </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_A_Repair">0<span class="counter-tooltip" id="Williamsport_Certified_Center_A_Repair_Tooltip"></span></span>
-                </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+               <div class="metric-group flex flex-col items-center space-y-1">
+                   <div class="flex items-center justify-center gap-10">
+                       <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
+                       <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_Cooler">0<span class="counter-tooltip" id="Williamsport_Certified_Center_Cooler_Tooltip"></span></span>
+                   </div>
+                   <div class="rate-container text-base text-gray-600" id="Williamsport_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+               </div>
+               <div class="metric-group flex flex-col items-center space-y-1">
+                   <div class="flex items-center justify-center gap-10">
+                       <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
+                       <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_Vendor">0<span class="counter-tooltip" id="Williamsport_Certified_Center_Vendor_Tooltip"></span></span>
+                   </div>
+                   <div class="rate-container text-base text-gray-600" id="Williamsport_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+               </div>
+               <div class="metric-group flex flex-col items-center space-y-1">
+                   <div class="flex items-center justify-center gap-10">
+                       <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
+                       <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0<span class="counter-tooltip" id="Williamsport_Certified_Center_FTN_Tooltip"></span></span>
+                   </div>
+                   <div class="rate-container text-base text-gray-600" id="Williamsport_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+               </div>
+               <div class="metric-group flex flex-col items-center space-y-1">
+                   <div class="flex items-center justify-center gap-10">
+                       <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
+                       <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_A_Repair">0<span class="counter-tooltip" id="Williamsport_Certified_Center_A_Repair_Tooltip"></span></span>
+                   </div>
+                   <div class="rate-container text-base text-gray-600" id="Williamsport_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+               </div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">
                         Peak Weekly Production: <span id="Williamsport_Certified_Center_Peak_Weekly">0</span> units
@@ -982,26 +1011,34 @@
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="North_Las_Vegas_Certified_Center_Total">0</span> units</div>
                 <div class="target-percentage">Target Percentage: <span id="North_Las_Vegas_Certified_Center_Target_Percentage">0</span>%</div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Cooler">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Cooler_Tooltip"></span></span>
-                </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Vendor">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Vendor_Tooltip"></span></span>
-                </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_FTN_Tooltip"></span></span>
-                </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                <div class="flex justify-between items-center">
-                    <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
-                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_A_Repair">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_A_Repair_Tooltip"></span></span>
-                </div>
-                <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                   <div class="metric-group flex flex-col items-center space-y-1">
+                       <div class="flex items-center justify-center gap-10">
+                           <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
+                           <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Cooler">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Cooler_Tooltip"></span></span>
+                       </div>
+                       <div class="rate-container text-base text-gray-600" id="North_Las_Vegas_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                   </div>
+                   <div class="metric-group flex flex-col items-center space-y-1">
+                       <div class="flex items-center justify-center gap-10">
+                           <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
+                           <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Vendor">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Vendor_Tooltip"></span></span>
+                       </div>
+                       <div class="rate-container text-base text-gray-600" id="North_Las_Vegas_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                   </div>
+                   <div class="metric-group flex flex-col items-center space-y-1">
+                       <div class="flex items-center justify-center gap-10">
+                           <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
+                           <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_FTN_Tooltip"></span></span>
+                       </div>
+                       <div class="rate-container text-base text-gray-600" id="North_Las_Vegas_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                   </div>
+                   <div class="metric-group flex flex-col items-center space-y-1">
+                       <div class="flex items-center justify-center gap-10">
+                           <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
+                           <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_A_Repair">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_A_Repair_Tooltip"></span></span>
+                       </div>
+                       <div class="rate-container text-base text-gray-600" id="North_Las_Vegas_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                   </div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">
                         Peak Weekly Production: <span id="North_Las_Vegas_Certified_Center_Peak_Weekly">0</span> units
