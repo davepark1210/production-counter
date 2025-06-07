@@ -90,11 +90,13 @@
             border-color: #0057b8;
         }
         .facility-card-focused h2 {
-            font-size: 6rem; /* Larger for 4K TV readability */
+            font-size: 6rem;
             color: #003087;
+            text-align: center; /* Center horizontally */
             white-space: nowrap;
-            padding-right: 100px;
+            padding-right: 0; /* Remove padding since centered */
             line-height: 1;
+            width: 100%; /* Ensure full width for centering */
         }
         .facility-card-focused .rank-icon {
             top: 20px;
@@ -103,8 +105,11 @@
             padding: 4px;
         }
         .facility-card-focused .total-production {
-            font-size: 5rem;
+            font-size: 8rem; /* Larger for prominence */
+            font-weight: 800; /* Bolder */
             color: #1e40af;
+            text-align: center; /* Ensure centered */
+            line-height: 1; /* Tighten spacing */
         }
         .facility-card-focused .counter {
             font-size: 7rem;
@@ -659,6 +664,17 @@
             max-width: 400px;
             margin: 0 auto;
         }
+        body.facility-view .date-time-container {
+            font-size: 3rem; /* Larger for visibility */
+            padding: 1rem 2rem; /* More spacious */
+            max-width: none; /* Full width */
+            width: auto; /* Fit content */
+            position: absolute; /* Position above card */
+            top: 2rem; /* Space from top */
+            left: 50%; /* Center horizontally */
+            transform: translateX(-50%); /* Center offset */
+            z-index: 30; /* Above card */
+        }
         /* Mobile dropdown fixes */
         @media (max-width: 640px) {
             .flex-wrap.gap-4 {
@@ -729,11 +745,11 @@
                 transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; /* Smooth transition */
                 margin: 1.5rem auto; /* Smaller margin for mobile */
             }
-            .facility-card-focused:hover {
-                transform: translateY(-10px) scale(1.1); /* Consistent pulse and lift */
-                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 87, 184, 0.5);
-                background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
-                border-color: #0057b8;
+            body.facility-view .facility-card-focused:hover {
+                transform: none; /* Disable transform */
+                box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Keep original shadow */
+                background: linear-gradient(145deg, #ffffff, #c3daff); /* Keep original background */
+                border-color: #003087; /* Keep original border */
             }
             .facility-card-focused h2 {
                 font-size: 3rem;
@@ -767,9 +783,8 @@
                     padding: 10vw; /* Larger padding for 4K overscan */
                 }
             }
-            .facility-card-focused .back-button {
-                padding: 0.5rem 1rem;
-                font-size: 1rem;
+            body.facility-view .facility-card-focused .back-button {
+                display: none; /* Hide in facility-specific views */
             }
             .progress-bar {
                 height: 14px;
@@ -856,7 +871,7 @@
             <span class="rank-icon" id="Sellersburg_Certified_Center_Rank"></span>
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">Sellersburg Certified Center</h2>
             <div class="space-y-4">
-                <div class="total-production">Total Production: <span id="Sellersburg_Certified_Center_Total">0</span> units</div>
+                <div class="total-production"><span id="Sellersburg_Certified_Center_Total">0</span> units</div>
                 <div class="total-production">Target Percentage: <span id="Sellersburg_Certified_Center_Target_Percentage">0</span>%</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
@@ -903,7 +918,7 @@
             <span class="rank-icon" id="Williamsport_Certified_Center_Rank"></span>
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">Williamsport Certified Center</h2>
             <div class="space-y-4">
-                <div class="total-production">Total Production: <span id="Williamsport_Certified_Center_Total">0</span> units</div>
+                <div class="total-production"><span id="Williamsport_Certified_Center_Total">0</span> units</div>
                 <div class="total-production">Target Percentage: <span id="Williamsport_Certified_Center_Target_Percentage">0</span>%</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
@@ -950,7 +965,7 @@
             <span class="rank-icon" id="North_Las_Vegas_Certified_Center_Rank"></span>
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">North Las Vegas Certified Center</h2>
             <div class="space-y-4">
-                <div class="total-production">Total Production: <span id="North_Las_Vegas_Certified_Center_Total">0</span> units</div>
+                <div class="total-production"><span id="North_Las_Vegas_Certified_Center_Total">0</span> units</div>
                 <div class="total-production">Target Percentage: <span id="North_Las_Vegas_Certified_Center_Target_Percentage">0</span>%</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
@@ -1640,11 +1655,12 @@
             const totalProductionDiv = document.getElementById('totalProduction');
             const header = document.querySelector('header');
             const footer = document.querySelector('footer');
+            const dateTimeDisplay = document.getElementById('dateTimeDisplay');
         
             const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas'];
         
             if (viewParam && validViews.includes(viewParam)) {
-                // Hide common elements for all views
+                // Hide common elements for all views except date/time
                 if (dateSelectContainer) dateSelectContainer.style.display = 'none';
                 if (facilitySelectContainer) facilitySelectContainer.style.display = 'none';
                 if (toggleGraphButton) toggleGraphButton.style.display = 'none';
@@ -1658,10 +1674,11 @@
                     showNotification('Showing All Facilities');
                     // Hide footer for All view
                     if (footer) footer.style.display = 'none';
-                    // Ensure header, total production, and graph are visible
+                    // Ensure header, total production, graph, and date/time are visible
                     if (header) header.style.display = 'flex';
                     if (totalProductionDiv) totalProductionDiv.style.display = 'block';
                     if (graphSection) graphSection.style.display = 'block';
+                    if (dateTimeDisplay) dateTimeDisplay.style.display = 'block';
                     // Remove facility-view class from body
                     document.body.classList.remove('facility-view');
                 } else {
@@ -1680,6 +1697,8 @@
                     if (header) header.style.display = 'none';
                     if (footer) footer.style.display = 'none';
                     if (graphSection) graphSection.style.display = 'none';
+                    // Ensure date/time is visible
+                    if (dateTimeDisplay) dateTimeDisplay.style.display = 'block';
                     // Add facility-view class to body
                     document.body.classList.add('facility-view');
                 }
