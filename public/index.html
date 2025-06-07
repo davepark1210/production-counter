@@ -83,11 +83,15 @@
             align-items: center; /* Center horizontally */
             overflow: auto; /* Allow scrolling if content overflows */
         }
-        .facility-card-focused:hover {
-            transform: translateY(-15px) scale(1.02); /* Smaller scale for full-screen */
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 87, 184, 0.6);
-            background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
-            border-color: #0057b8;
+        /* Disable hover effects for focused cards across all screen sizes */
+        .facility-card-focused:hover,
+        .facility-card-focused.top-performer:hover,
+        .facility-card-focused.second-place:hover,
+        .facility-card-focused.third-place:hover {
+            transform: none; /* No transform on hover */
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Same as non-hover */
+            background: linear-gradient(145deg, #ffffff, #c3daff); /* Same as non-hover */
+            border-color: #003087; /* Same as non-hover */
         }
         .facility-card-focused h2 {
             font-size: 6rem; /* Larger for 4K TV readability */
@@ -557,6 +561,10 @@
         .facility-card-focused .target-percentage {
             font-size: 2rem; /* Slightly larger in focused view but smaller than total-production */
         }
+        .facility-card-focused .flex.justify-between.items-center {
+            justify-content: start; /* Align items to the start */
+            gap: 1.5rem; /* Fixed gap between label and count */
+        }
         .chart-legend-item {
             transition: opacity 0.2s ease;
         }
@@ -758,12 +766,6 @@
                 transform: scale(1.0); /* Start at normal size */
                 transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; /* Smooth transition */
                 margin: 1.5rem auto; /* Smaller margin for mobile */
-            }
-            .facility-card-focused:hover {
-                transform: none; /* No transform on hover */
-                box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Same as non-hover */
-                background: linear-gradient(145deg, #ffffff, #c3daff); /* Same as non-hover */
-                border-color: #003087; /* Same as non-hover */
             }
             .facility-card-focused h2 {
                 font-size: 3rem;
