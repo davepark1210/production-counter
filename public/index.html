@@ -530,17 +530,22 @@
             visibility: visible;
         }
         .total-production {
-            font-size: 2.25rem; /* Increased from 1.5rem to make more prominent */
-            font-weight: 800; /* Bolder */
+            font-size: 1.5rem; /* Reverted to original size for main page */
+            font-weight: 700;
             color: #1e40af;
             text-align: center;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for emphasis */
-            margin-bottom: 0.5rem; /* Space below */
         }
         .total-production span {
             transition: transform 0.3s ease, color 0.3s ease;
             display: inline-block;
-            font-size: 2.5rem; /* Larger number */
+        }
+        .facility-card-focused .total-production {
+            font-size: 4rem; /* Prominent in focused view */
+            font-weight: 800;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for emphasis */
+        }
+        .facility-card-focused .total-production span {
+            font-size: 4.5rem; /* Larger number in focused view */
             font-weight: 900;
         }
         .target-percentage {
@@ -551,12 +556,6 @@
         }
         .facility-card-focused .target-percentage {
             font-size: 2rem; /* Slightly larger in focused view but smaller than total-production */
-        }
-        .facility-card-focused .total-production {
-            font-size: 4rem; /* Even larger in focused view */
-        }
-        .facility-card-focused .total-production span {
-            font-size: 4.5rem; /* Larger number in focused view */
         }
         .chart-legend-item {
             transition: opacity 0.2s ease;
@@ -761,10 +760,10 @@
                 margin: 1.5rem auto; /* Smaller margin for mobile */
             }
             .facility-card-focused:hover {
-                transform: translateY(-10px) scale(1.1); /* Consistent pulse and lift */
-                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 87, 184, 0.5);
-                background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
-                border-color: #0057b8;
+                transform: none; /* No transform on hover */
+                box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Same as non-hover */
+                background: linear-gradient(145deg, #ffffff, #c3daff); /* Same as non-hover */
+                border-color: #003087; /* Same as non-hover */
             }
             .facility-card-focused h2 {
                 font-size: 3rem;
@@ -980,7 +979,7 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">North Las Vegas Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="North_Las_Vegas_Certified_Center_Total">0</span> units</div>
-                <div class="target-percentage">Target Percentage: <span id="North_Las_Vegas_Center_Target_Percentage">0</span>%</div>
+                <div class="target-percentage">Target Percentage: <span id="North_Las_Vegas_Certified_Center_Target_Percentage">0</span>%</div>
                 <div class="flex justify-between items-center">
                     <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
                     <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Cooler">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Cooler_Tooltip"></span></span>
