@@ -1667,6 +1667,7 @@
         
             if (viewParam && validViews.includes(viewParam)) {
                 // Hide common elements for all views
+                if (dateSelectContainer) dateSelectContainer.style.display = 'none';
                 if (facilitySelectContainer) facilitySelectContainer.style.display = 'none';
                 if (toggleGraphButton) toggleGraphButton.style.display = 'none';
                 if (resetAllDataButton) resetAllDataButton.style.display = 'none';
