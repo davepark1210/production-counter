@@ -66,61 +66,48 @@
             animation: slide 0.8s ease-in-out forwards;
         }
         .facility-card-focused {
-            width: 100vw; /* Full viewport width */
-            height: 100vh; /* Full viewport height */
-            max-width: none; /* Remove max-width constraint */
-            margin: 0; /* Remove margins */
-            padding: 5vw; /* Safe padding for overscan (5% of viewport width) */
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7);
-            border: 6px solid #003087;
-            transform: scale(1.0);
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+            max-width: 90rem; /* Wider for 1080p/4K TVs, ~1440px */
+            padding: 4rem; /* Spacious for readability */
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Stronger shadow */
+            border: 6px solid #003087; /* Darker blue, thick border */
+            transform: scale(1.0); /* Start at normal size */
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; /* Smooth transition */
             z-index: 20;
-            background: linear-gradient(145deg, #ffffff, #c3daff);
-            display: flex; /* Ensure content is centered */
-            flex-direction: column; /* Stack content vertically */
-            justify-content: center; /* Center vertically */
-            align-items: center; /* Center horizontally */
-            overflow: auto; /* Allow scrolling if content overflows */
+            background: linear-gradient(145deg, #ffffff, #c3daff); /* Bolder gradient */
+            margin: 1.5rem auto; /* Reduced to match gap-6 (1.5rem) */
         }
-        /* Disable hover effects for focused cards across all screen sizes */
-        .facility-card-focused:hover,
-        .facility-card-focused.top-performer:hover,
-        .facility-card-focused.second-place:hover,
-        .facility-card-focused.third-place:hover {
-            transform: none; /* No transform on hover */
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Same as non-hover */
-            background: linear-gradient(145deg, #ffffff, #c3daff); /* Same as non-hover */
-            border-color: #003087; /* Same as non-hover */
+        .facility-card-focused:hover {
+            transform: translateY(-15px) scale(1.1); /* Larger pulse and lift */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 87, 184, 0.6); /* Slightly softer shadow */
+            background: linear-gradient(145deg, #e6f0fa, #f0f4f8); /* Consistent hover gradient */
+            border-color: #0057b8; /* Consistent border color */
         }
         .facility-card-focused h2 {
-            font-size: 6rem; /* Larger for 4K TV readability */
+            font-size: 4rem; /* Larger for 20ft visibility */
             color: #003087;
-            white-space: nowrap;
-            padding-right: 100px;
-            line-height: 1;
+            white-space: nowrap; /* Prevent text wrapping */
+            padding-right: 80px; /* Increased padding to accommodate rank icon */
+            line-height: 1; /* Reduce line height to prevent intersection */
         }
         .facility-card-focused .rank-icon {
-            top: 20px;
-            right: 20px;
-            font-size: 2rem; /* Larger for visibility */
-            padding: 4px;
+            top: 16px; /* Move down to avoid overlap with title */
+            right: 16px; /* Move further right */
         }
         .facility-card-focused .total-production {
-            font-size: 7rem;
+            font-size: 3.5rem;
             color: #1e40af;
         }
         .facility-card-focused .counter {
-            font-size: 7rem;
+            font-size: 5rem; /* Very large for distance */
         }
         .facility-card-focused .text-xl {
-            font-size: 4.5rem;
-        }
-        .facility-card-focused .text-base {
             font-size: 3rem;
         }
+        .facility-card-focused .text-base {
+            font-size: 2rem;
+        }
         .facility-card-focused .peak-metric {
-            font-size: 2.5rem;
+            font-size: 1.8rem;
         }
         .facility-card-focused .back-button {
             display: block;
@@ -134,9 +121,8 @@
         }
         .rank-icon {
             position: absolute;
-            top: -10px; /* Move above the card */
-            right: 50%; /* Center horizontally */
-            transform: translateX(50%); /* Adjust for centering */
+            top: 8px;
+            right: 8px;
             font-size: 1rem;
             background: white;
             border: 1px solid #d1d5db;
@@ -272,12 +258,7 @@
         .facility-card h2 {
             font-family: 'Poppins', sans-serif;
             font-weight: 600;
-            text-align: center; /* Center the title */
-            margin-bottom: 1rem; /* Consistent spacing */
-        }
-        .facility-card-focused h2 {
-            text-align: center;
-            padding-right: 0; /* Remove padding in focused view */
+            padding-right: 40px;
         }
         .counter {
             transition: transform 0.3s ease, color 0.3s ease;
@@ -534,7 +515,7 @@
             visibility: visible;
         }
         .total-production {
-            font-size: 1.5rem; /* Reverted to original size for main page */
+            font-size: 1.5rem;
             font-weight: 700;
             color: #1e40af;
             text-align: center;
@@ -542,41 +523,6 @@
         .total-production span {
             transition: transform 0.3s ease, color 0.3s ease;
             display: inline-block;
-        }
-        .facility-card-focused .total-production {
-            font-size: 4rem; /* Prominent in focused view */
-            font-weight: 800;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for emphasis */
-        }
-        .facility-card-focused .total-production span {
-            font-size: 4.5rem; /* Larger number in focused view */
-            font-weight: 900;
-        }
-        .target-percentage {
-            font-size: 1rem; /* Smaller than total-production */
-            font-weight: 600;
-            color: #1e40af;
-            text-align: center;
-        }
-        .metric-group {
-            width: 100%; /* Ensure full width for alignment */
-            text-align: center; /* Center contents */
-        }
-        .facility-card-focused .metric-group {
-            margin-bottom: 1rem; /* Space between groups */
-        }
-        .facility-card-focused .metric-group .flex {
-            justify-content: center; /* Center label and count */
-            gap: 2.5rem; /* Maintain wider gap */
-        }
-        .facility-card-focused .rate-container {
-            font-size: 2rem; /* Match larger text in focused mode */
-            color: #4b5563; /* Match text-gray-600 */
-            margin-top: 0.5rem; /* Space between count and rate */
-        }
-        .facility-card-focused .flex.justify-between.items-center {
-            justify-content: center; /* Center the entire row */
-            gap: 10rem; /* Wider gap between label and count */
         }
         .chart-legend-item {
             transition: opacity 0.2s ease;
@@ -694,21 +640,15 @@
         .date-time-container {
             background: linear-gradient(90deg, #e6f0fa, #f0f4f8);
             border-radius: 8px;
-            padding: 0.75rem 1.5rem; /* Slightly larger padding */
+            padding: 0.5rem 1rem;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             animation: slideIn 1s ease-out;
-            font-size: 1.5rem; /* Increased size */
+            font-size: 1.25rem;
             font-weight: 500;
             color: #374151;
             text-align: center;
-            max-width: 500px; /* Slightly wider */
-            margin: 1rem auto 2rem; /* Increased bottom margin to prevent overlap */
-            position: relative;
-            z-index: 15; /* Ensure above facility card */
-        }
-        .facility-card-focused ~ .date-time-container,
-        .facility-grid-single .date-time-container {
-            margin-top: 2rem; /* Extra space in focused view */
+            max-width: 400px;
+            margin: 0 auto;
         }
         /* Mobile dropdown fixes */
         @media (max-width: 640px) {
@@ -780,6 +720,12 @@
                 transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; /* Smooth transition */
                 margin: 1.5rem auto; /* Smaller margin for mobile */
             }
+            .facility-card-focused:hover {
+                transform: translateY(-10px) scale(1.1); /* Consistent pulse and lift */
+                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 87, 184, 0.5);
+                background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
+                border-color: #0057b8;
+            }
             .facility-card-focused h2 {
                 font-size: 3rem;
             }
@@ -797,20 +743,6 @@
             }
             .facility-card-focused .peak-metric {
                 font-size: 1.4rem;
-            }
-            /* Remove padding and constraints for facility-specific views */
-            body.facility-view, body.facility-view main#facilityGrid {
-                padding: 0;
-                margin: 0;
-                max-width: 100%;
-                width: 100%;
-                height: 100%;
-            }
-            /* Adjust padding for 4K TV resolutions */
-            @media (min-width: 3840px) {
-                .facility-card-focused {
-                    padding: 10vw; /* Larger padding for 4K overscan */
-                }
             }
             .facility-card-focused .back-button {
                 padding: 0.5rem 1rem;
@@ -902,35 +834,27 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">Sellersburg Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="Sellersburg_Certified_Center_Total">0</span> units</div>
-                <div class="target-percentage">Target Percentage: <span id="Sellersburg_Certified_Center_Target_Percentage">0</span>%</div>
-                <div class="metric-group flex flex-col items-center space-y-1">
-                    <div class="flex items-center justify-center gap-10">
-                        <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
-                        <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_Cooler">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_Cooler_Tooltip"></span></span>
-                    </div>
-                    <div class="rate-container text-base text-gray-600" id="Sellersburg_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="total-production">Target Percentage: <span id="Sellersburg_Certified_Center_Target_Percentage">0</span>%</div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_Cooler">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_Cooler_Tooltip"></span></span>
                 </div>
-                <div class="metric-group flex flex-col items-center space-y-1">
-                    <div class="flex items-center justify-center gap-10">
-                        <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
-                        <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_Vendor">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_Vendor_Tooltip"></span></span>
-                    </div>
-                    <div class="rate-container text-base text-gray-600" id="Sellersburg_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_Vendor">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_Vendor_Tooltip"></span></span>
                 </div>
-                <div class="metric-group flex flex-col items-center space-y-1">
-                    <div class="flex items-center justify-center gap-10">
-                        <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                        <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_FTN_Tooltip"></span></span>
-                    </div>
-                    <div class="rate-container text-base text-gray-600" id="Sellersburg_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_FTN">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_FTN_Tooltip"></span></span>
                 </div>
-                <div class="metric-group flex flex-col items-center space-y-1">
-                    <div class="flex items-center justify-center gap-10">
-                        <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
-                        <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_A_Repair">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_A_Repair_Tooltip"></span></span>
-                    </div>
-                    <div class="rate-container text-base text-gray-600" id="Sellersburg_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Sellersburg_Certified_Center_A_Repair">0<span class="counter-tooltip" id="Sellersburg_Certified_Center_A_Repair_Tooltip"></span></span>
                 </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Sellersburg_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">
                         Peak Weekly Production: <span id="Sellersburg_Certified_Center_Peak_Weekly">0</span> units
@@ -948,6 +872,7 @@
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="Sellersburg_Certified_Center_Forecast">Calculating...</span></div>
                 </div>
+                <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
         </div>
 
@@ -956,35 +881,27 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">Williamsport Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="Williamsport_Certified_Center_Total">0</span> units</div>
-                <div class="target-percentage">Target Percentage: <span id="Williamsport_Certified_Center_Target_Percentage">0</span>%</div>
-               <div class="metric-group flex flex-col items-center space-y-1">
-                   <div class="flex items-center justify-center gap-10">
-                       <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
-                       <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_Cooler">0<span class="counter-tooltip" id="Williamsport_Certified_Center_Cooler_Tooltip"></span></span>
-                   </div>
-                   <div class="rate-container text-base text-gray-600" id="Williamsport_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-               </div>
-               <div class="metric-group flex flex-col items-center space-y-1">
-                   <div class="flex items-center justify-center gap-10">
-                       <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
-                       <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_Vendor">0<span class="counter-tooltip" id="Williamsport_Certified_Center_Vendor_Tooltip"></span></span>
-                   </div>
-                   <div class="rate-container text-base text-gray-600" id="Williamsport_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-               </div>
-               <div class="metric-group flex flex-col items-center space-y-1">
-                   <div class="flex items-center justify-center gap-10">
-                       <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                       <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0<span class="counter-tooltip" id="Williamsport_Certified_Center_FTN_Tooltip"></span></span>
-                   </div>
-                   <div class="rate-container text-base text-gray-600" id="Williamsport_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-               </div>
-               <div class="metric-group flex flex-col items-center space-y-1">
-                   <div class="flex items-center justify-center gap-10">
-                       <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
-                       <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_A_Repair">0<span class="counter-tooltip" id="Williamsport_Certified_Center_A_Repair_Tooltip"></span></span>
-                   </div>
-                   <div class="rate-container text-base text-gray-600" id="Williamsport_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-               </div>
+                <div class="total-production">Target Percentage: <span id="Williamsport_Certified_Center_Target_Percentage">0</span>%</div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_Cooler">0<span class="counter-tooltip" id="Williamsport_Certified_Center_Cooler_Tooltip"></span></span>
+                </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_Vendor">0<span class="counter-tooltip" id="Williamsport_Certified_Center_Vendor_Tooltip"></span></span>
+                </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_FTN">0<span class="counter-tooltip" id="Williamsport_Certified_Center_FTN_Tooltip"></span></span>
+                </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="Williamsport_Certified_Center_A_Repair">0<span class="counter-tooltip" id="Williamsport_Certified_Center_A_Repair_Tooltip"></span></span>
+                </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="Williamsport_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">
                         Peak Weekly Production: <span id="Williamsport_Certified_Center_Peak_Weekly">0</span> units
@@ -1001,7 +918,8 @@
                         </div>
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="Williamsport_Certified_Center_Forecast">Calculating...</span></div>
-                </div> 
+                </div>
+                <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
         </div>
 
@@ -1010,35 +928,27 @@
             <h2 class="text-3xl font-semibold text-blue-600 mb-4">North Las Vegas Certified Center</h2>
             <div class="space-y-4">
                 <div class="total-production">Total Production: <span id="North_Las_Vegas_Certified_Center_Total">0</span> units</div>
-                <div class="target-percentage">Target Percentage: <span id="North_Las_Vegas_Certified_Center_Target_Percentage">0</span>%</div>
-                   <div class="metric-group flex flex-col items-center space-y-1">
-                       <div class="flex items-center justify-center gap-10">
-                           <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
-                           <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Cooler">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Cooler_Tooltip"></span></span>
-                       </div>
-                       <div class="rate-container text-base text-gray-600" id="North_Las_Vegas_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                   </div>
-                   <div class="metric-group flex flex-col items-center space-y-1">
-                       <div class="flex items-center justify-center gap-10">
-                           <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
-                           <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Vendor">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Vendor_Tooltip"></span></span>
-                       </div>
-                       <div class="rate-container text-base text-gray-600" id="North_Las_Vegas_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                   </div>
-                   <div class="metric-group flex flex-col items-center space-y-1">
-                       <div class="flex items-center justify-center gap-10">
-                           <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
-                           <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_FTN_Tooltip"></span></span>
-                       </div>
-                       <div class="rate-container text-base text-gray-600" id="North_Las_Vegas_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                   </div>
-                   <div class="metric-group flex flex-col items-center space-y-1">
-                       <div class="flex items-center justify-center gap-10">
-                           <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
-                           <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_A_Repair">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_A_Repair_Tooltip"></span></span>
-                       </div>
-                       <div class="rate-container text-base text-gray-600" id="North_Las_Vegas_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
-                   </div>
+                <div class="total-production">Target Percentage: <span id="North_Las_Vegas_Certified_Center_Target_Percentage">0</span>%</div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-cooler">Cooler:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Cooler">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Cooler_Tooltip"></span></span>
+                </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_Cooler_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-vendor">Vendor:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_Vendor">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_Vendor_Tooltip"></span></span>
+                </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_Vendor_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-ftn">FTN:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_FTN">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_FTN_Tooltip"></span></span>
+                </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_FTN_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xl font-medium text-gray-700 label-a-repair">A-Repair:</span>
+                    <span class="counter text-4xl font-bold text-gray-900" id="North_Las_Vegas_Certified_Center_A_Repair">0<span class="counter-tooltip" id="North_Las_Vegas_Certified_Center_A_Repair_Tooltip"></span></span>
+                </div>
+                <div class="rate-container text-base text-gray-600 text-right" id="North_Las_Vegas_Certified_Center_A_Repair_Rate">Units/Hour: 0<span class="rate-tooltip">No data for current hour</span></div>
                 <div class="space-y-2">
                     <div class="peak-metric text-left">
                         Peak Weekly Production: <span id="North_Las_Vegas_Certified_Center_Peak_Weekly">0</span> units
@@ -1056,6 +966,7 @@
                     </div>
                     <div class="peak-metric text-left">Forecasted Daily Production: <span id="North_Las_Vegas_Certified_Center_Forecast">Calculating...</span></div>
                 </div>
+                <button class="back-button hidden mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg text-base font-semibold hover:bg-blue-900 hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-500" onclick="exitFocusMode()">Back to All Facilities</button>
             </div>
         </div>
     </main>
@@ -1643,31 +1554,40 @@
             if (selectedFacility) {
                 facilityGrid.classList.add('facility-grid-single');
                 facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
-                facilityGrid.style.width = '100%'; // Ensure full width
-                facilityGrid.style.height = '100%'; // Ensure full height
-                facilityGrid.style.margin = '0'; // Remove margins
-                facilityGrid.style.padding = '0'; // Remove padding
                 facilityCards.forEach(card => {
                     if (card.id === selectedFacility) {
                         card.style.display = 'block';
                         card.classList.add('facility-card-focused');
+                        const backButton = card.querySelector('.back-button');
+                        if (backButton) backButton.classList.remove('hidden');
                     } else {
                         card.style.display = 'none';
                         card.classList.remove('facility-card-focused');
+                        const backButton = card.querySelector('.back-button');
+                        if (backButton) backButton.classList.add('hidden');
                     }
                 });
         
-                // Since graph is hidden via handleViewParameter, no need to update chart
+                // Filter chart to show only selected facility's data and legends
+                if (productionChart) {
+                    productionChart.data.datasets.forEach((dataset, index) => {
+                        if (dataset.facility === selectedFacility) {
+                            productionChart.show(index);
+                        } else {
+                            productionChart.hide(index);
+                        }
+                    });
+                    productionChart.update();
+                    console.log(`Chart filtered to show only ${selectedFacility} data and legends`);
+                }
             } else {
                 facilityGrid.classList.remove('facility-grid-single');
                 facilityGrid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
-                facilityGrid.style.width = ''; // Reset to default
-                facilityGrid.style.height = ''; // Reset to default
-                facilityGrid.style.margin = ''; // Reset to default
-                facilityGrid.style.padding = ''; // Reset to default
                 facilityCards.forEach(card => {
                     card.style.display = 'block';
                     card.classList.remove('facility-card-focused');
+                    const backButton = card.querySelector('.back-button');
+                    if (backButton) backButton.classList.add('hidden');
                 });
         
                 // Show all chart data and legends
@@ -1695,7 +1615,6 @@
             const dateSelectContainer = document.querySelector('.flex.items-center.gap-2').parentElement;
             const facilitySelectContainer = document.querySelector('label[for="facilitySelect"]').parentElement;
             const toggleGraphButton = document.getElementById('toggleGraphButton');
-            const graphSection = document.getElementById('graphSection');
             const resetAllDataButton = document.getElementById('resetAllDataButton');
             const totalProductionDiv = document.getElementById('totalProduction');
             const header = document.querySelector('header');
@@ -1718,12 +1637,9 @@
                     showNotification('Showing All Facilities');
                     // Hide footer for All view
                     if (footer) footer.style.display = 'none';
-                    // Ensure header, total production, and graph are visible
+                    // Ensure header and total production are visible
                     if (header) header.style.display = 'flex';
                     if (totalProductionDiv) totalProductionDiv.style.display = 'block';
-                    if (graphSection) graphSection.style.display = 'block';
-                    // Remove facility-view class from body
-                    document.body.classList.remove('facility-view');
                 } else {
                     // Facility-specific view
                     const facilityMap = {
@@ -1735,13 +1651,10 @@
                     facilitySelect.value = selectedFacility;
                     updateFacilityGrid();
                     showNotification(`Showing ${facilitySelect.options[facilitySelect.selectedIndex].text}`);
-                    // Hide total production, header, footer, and graph for facility views
+                    // Hide total production, header, and footer for facility views
                     if (totalProductionDiv) totalProductionDiv.style.display = 'none';
                     if (header) header.style.display = 'none';
                     if (footer) footer.style.display = 'none';
-                    if (graphSection) graphSection.style.display = 'none';
-                    // Add facility-view class to body
-                    document.body.classList.add('facility-view');
                 }
             }
         }
