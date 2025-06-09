@@ -16,9 +16,9 @@ const pool = new Pool({
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
 const dailyTargets = {
-  'Sellersburg_Certified_Center': 140,
-  'Williamsport_Certified_Center': 150,
-  'North_Las_Vegas_Certified_Center': 100
+  'Sellersburg_Certified_Center': 105,
+  'Williamsport_Certified_Center': 130,
+  'North_Las_Vegas_Certified_Center': 70
 };
 let currentDate = null; // Will be set by client for UI purposes
 let lastMilestone = 0;
