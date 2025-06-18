@@ -66,18 +66,19 @@
             animation: slide 0.8s ease-in-out forwards;
         }
         .facility-card-focused.facility-card {
-            width: 2160px; /* Match 4K portrait width */
-            height: 3600px; /* Leave space for date-time (3840 - 240px) */
-            padding: 6rem; /* Spacious for 4K */
+            width: 100vw; /* Full viewport width */
+            height: calc(100vh - 10vh); /* Full height minus date-time offset */
+            padding: 5vw; /* Proportional padding */
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Strong shadow */
-            border: 8px solid #003087; /* Thick border */
-            transform: none !important; /* Override any transform */
-            transition: none !important; /* Disable all transitions */
+            border: 0.5vw solid #003087; /* Proportional border */
+            transform: none !important; /* No transform */
+            transition: none !important; /* No transitions */
             z-index: 20;
             background: linear-gradient(145deg, #ffffff, #c3daff); /* Bold gradient */
-            margin: 240px auto 0; /* Offset for date-time */
+            margin: 10vh auto 0; /* Dynamic offset for date-time */
             position: relative;
             box-sizing: border-box;
+            overflow: auto; /* Allow scrolling if content overflows */
         }
         .facility-card-focused.facility-card:hover {
             transform: none !important; /* No hover scaling */
@@ -86,30 +87,32 @@
             border-color: #003087 !important; /* Same border */
         }
         .facility-card-focused h2 {
-            font-size: 6rem; /* Scaled for 4K visibility */
+            font-size: 6vw; /* Proportional to viewport width */
             color: #003087;
             white-space: nowrap; /* Prevent text wrapping */
-            padding-right: 120px; /* Adjusted for rank icon */
+            padding-right: 8vw; /* Proportional padding */
             line-height: 1.1; /* Slightly increased for spacing */
         }
         .facility-card-focused .total-production {
-            font-size: 5rem; /* Scaled for readability */
+            font-size: 5vw; /* Proportional */
             color: #1e40af;
         }
         .facility-card-focused .counter {
-            font-size: 7rem; /* Scaled for distance visibility */
+            font-size: 7vw; /* Proportional for visibility */
         }
         .facility-card-focused .text-xl {
-            font-size: 4.5rem; /* Scaled for 4K */
+            font-size: 4.5vw; /* Proportional */
         }
         .facility-card-focused .text-base {
-            font-size: 3.5rem; /* Scaled for 4K */
+            font-size: 3.5vw; /* Proportional */
         }
         .facility-card-focused .peak-metric {
-            font-size: 3rem; /* Scaled for readability */
+            font-size: 3vw; /* Proportional */
         }
         .facility-card-focused .back-button {
             display: block;
+            font-size: 3vw; /* Proportional */
+            padding: 1.5vw 3vw; /* Proportional */
         }
         .back-button {
             transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
@@ -650,17 +653,20 @@
             margin: 0 auto;
         }
         .focused-view-date-time {
-            font-size: 4rem; /* Large for 4K focused views */
-            width: 1200px; /* Increased to prevent wrapping */
-            padding: 1.5rem 3rem;
+            font-size: 4rem; /* Large for focused views */
+            min-width: fit-content; /* Adjust to content size */
+            max-width: 90vw; /* Limit to 90% of viewport width */
+            padding: 2rem 4rem; /* Increased padding to contain text */
             border-radius: 16px;
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
             position: fixed;
-            top: 20px;
+            top: 2vh; /* Dynamic top spacing */
             left: 50%;
             transform: translateX(-50%);
             z-index: 30;
             white-space: nowrap; /* Prevent text wrapping */
+            background: linear-gradient(90deg, #e6f0fa, #f0f4f8); /* Ensure background */
+            box-sizing: border-box; /* Include padding in width */
         }
         /* Mobile dropdown fixes */
         @media (max-width: 640px) {
@@ -727,11 +733,12 @@
             }
             .facility-card-focused.facility-card {
                 max-width: 100%;
-                padding: 2.5rem;
+                padding: 5vw; /* Proportional */
                 transform: none !important; /* No scaling */
                 transition: none !important; /* No transitions */
-                margin: 1rem auto; /* Adjusted for mobile */
-                height: auto; /* Content-driven height */
+                margin: 10vh auto 0; /* Dynamic offset */
+                height: auto; /* Content-driven */
+                border: 0.5vw solid #003087; /* Proportional */
             }
             .facility-card-focused.facility-card:hover {
                 transform: none !important; /* No hover effects */
@@ -740,26 +747,26 @@
                 border-color: #003087 !important;
             }
             .facility-card-focused h2 {
-                font-size: 2.5rem; /* Adjusted for mobile */
+                font-size: 8vw; /* Larger for mobile visibility */
             }
             .facility-card-focused .total-production {
-                font-size: 2rem;
+                font-size: 6vw;
             }
             .facility-card-focused .counter {
-                font-size: 3rem;
+                font-size: 9vw;
             }
             .facility-card-focused .text-xl {
-                font-size: 1.8rem;
+                font-size: 5vw;
             }
             .facility-card-focused .text-base {
-                font-size: 1.4rem;
+                font-size: 4vw;
             }
             .facility-card-focused .peak-metric {
-                font-size: 1.2rem;
+                font-size: 3.5vw;
             }
             .facility-card-focused .back-button {
-                padding: 0.5rem 1rem;
-                font-size: 1rem;
+                padding: 2vw 4vw;
+                font-size: 3.5vw;
             }
             .progress-bar {
                 height: 14px;
