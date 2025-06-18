@@ -66,48 +66,48 @@
             animation: slide 0.8s ease-in-out forwards;
         }
         .facility-card-focused {
-            max-width: 90rem; /* Wider for 1080p/4K TVs, ~1440px */
-            padding: 4rem; /* Spacious for readability */
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Stronger shadow */
-            border: 6px solid #003087; /* Darker blue, thick border */
-            transform: scale(1.0); /* Start at normal size */
-            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; /* Smooth transition */
+            width: 2160px; /* Match 4K portrait width */
+            height: 3600px; /* Leave space for date-time at top (3840 - 240px) */
+            padding: 6rem; /* Increased padding for spacious layout */
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Maintain strong shadow */
+            border: 8px solid #003087; /* Slightly thicker border for emphasis */
+            transform: none; /* Remove scaling for static size */
+            transition: none; /* Remove transitions for static appearance */
             z-index: 20;
-            background: linear-gradient(145deg, #ffffff, #c3daff); /* Bolder gradient */
-            margin: 1.5rem auto; /* Reduced to match gap-6 (1.5rem) */
+            background: linear-gradient(145deg, #ffffff, #c3daff); /* Maintain bold gradient */
+            margin: 240px auto 0; /* Offset for date-time container height */
+            position: relative;
+            box-sizing: border-box; /* Ensure padding doesn't overflow */
         }
         .facility-card-focused:hover {
-            transform: translateY(-15px) scale(1.1); /* Larger pulse and lift */
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 87, 184, 0.6); /* Slightly softer shadow */
-            background: linear-gradient(145deg, #e6f0fa, #f0f4f8); /* Consistent hover gradient */
-            border-color: #0057b8; /* Consistent border color */
+            /* No changes on hover to maintain static appearance */
+            transform: none;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Maintain original shadow */
+            background: linear-gradient(145deg, #ffffff, #c3daff); /* Maintain original gradient */
+            border-color: #003087; /* Maintain original border color */
         }
         .facility-card-focused h2 {
-            font-size: 4rem; /* Larger for 20ft visibility */
+            font-size: 6rem; /* Scaled for 4K visibility */
             color: #003087;
             white-space: nowrap; /* Prevent text wrapping */
-            padding-right: 80px; /* Increased padding to accommodate rank icon */
-            line-height: 1; /* Reduce line height to prevent intersection */
-        }
-        .facility-card-focused .rank-icon {
-            top: 16px; /* Move down to avoid overlap with title */
-            right: 16px; /* Move further right */
+            padding-right: 120px; /* Adjusted for rank icon */
+            line-height: 1.1; /* Slightly increased for spacing */
         }
         .facility-card-focused .total-production {
-            font-size: 3.5rem;
+            font-size: 5rem; /* Scaled for readability */
             color: #1e40af;
         }
         .facility-card-focused .counter {
-            font-size: 5rem; /* Very large for distance */
+            font-size: 7rem; /* Scaled for distance visibility */
         }
         .facility-card-focused .text-xl {
-            font-size: 3rem;
+            font-size: 4.5rem; /* Scaled for 4K */
         }
         .facility-card-focused .text-base {
-            font-size: 2rem;
+            font-size: 3.5rem; /* Scaled for 4K */
         }
         .facility-card-focused .peak-metric {
-            font-size: 1.8rem;
+            font-size: 3rem; /* Scaled for readability */
         }
         .facility-card-focused .back-button {
             display: block;
@@ -639,16 +639,20 @@
         }
         .date-time-container {
             background: linear-gradient(90deg, #e6f0fa, #f0f4f8);
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
             animation: slideIn 1s ease-out;
-            font-size: 1.25rem;
-            font-weight: 500;
+            font-size: 3rem; /* Larger for 4K visibility */
+            font-weight: 600;
             color: #374151;
             text-align: center;
-            max-width: 400px;
-            margin: 0 auto;
+            width: 800px; /* Wider for readability */
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
         }
         /* Mobile dropdown fixes */
         @media (max-width: 640px) {
@@ -716,33 +720,35 @@
             .facility-card-focused {
                 max-width: 100%;
                 padding: 2.5rem;
-                transform: scale(1.0); /* Start at normal size */
-                transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease; /* Smooth transition */
-                margin: 1.5rem auto; /* Smaller margin for mobile */
+                transform: none; /* Static size for mobile */
+                transition: none; /* No transitions */
+                margin: 1rem auto; /* Adjusted for mobile */
+                height: auto; /* Allow content to dictate height */
             }
             .facility-card-focused:hover {
-                transform: translateY(-10px) scale(1.1); /* Consistent pulse and lift */
-                box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 87, 184, 0.5);
-                background: linear-gradient(145deg, #e6f0fa, #f0f4f8);
-                border-color: #0057b8;
+                /* No hover effects for mobile */
+                transform: none;
+                box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7);
+                background: linear-gradient(145deg, #ffffff, #c3daff);
+                border-color: #003087;
             }
             .facility-card-focused h2 {
-                font-size: 3rem;
+                font-size: 2.5rem; /* Adjusted for mobile */
             }
             .facility-card-focused .total-production {
-                font-size: 2.5rem;
-            }
-            .facility-card-focused .counter {
-                font-size: 4rem;
-            }
-            .facility-card-focused .text-xl {
                 font-size: 2rem;
             }
+            .facility-card-focused .counter {
+                font-size: 3rem;
+            }
+            .facility-card-focused .text-xl {
+                font-size: 1.8rem;
+            }
             .facility-card-focused .text-base {
-                font-size: 1.6rem;
+                font-size: 1.4rem;
             }
             .facility-card-focused .peak-metric {
-                font-size: 1.4rem;
+                font-size: 1.2rem;
             }
             .facility-card-focused .back-button {
                 padding: 0.5rem 1rem;
