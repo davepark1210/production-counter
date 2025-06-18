@@ -65,26 +65,25 @@
         .facility-card.rank-changed {
             animation: slide 0.8s ease-in-out forwards;
         }
-        .facility-card-focused {
+        .facility-card-focused.facility-card {
             width: 2160px; /* Match 4K portrait width */
-            height: 3600px; /* Leave space for date-time at top (3840 - 240px) */
+            height: 3600px; /* Leave space for date-time (3840 - 240px) */
             padding: 6rem; /* Spacious for 4K */
             box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Strong shadow */
             border: 8px solid #003087; /* Thick border */
-            transform: none; /* No scaling */
-            transition: none; /* No transitions to prevent hover effects */
+            transform: none !important; /* Override any transform */
+            transition: none !important; /* Disable all transitions */
             z-index: 20;
             background: linear-gradient(145deg, #ffffff, #c3daff); /* Bold gradient */
             margin: 240px auto 0; /* Offset for date-time */
             position: relative;
             box-sizing: border-box;
         }
-        .facility-card-focused:hover {
-            /* Explicitly disable all hover effects */
-            transform: none;
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7);
-            background: linear-gradient(145deg, #ffffff, #c3daff);
-            border-color: #003087;
+        .facility-card-focused.facility-card:hover {
+            transform: none !important; /* No hover scaling */
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7) !important; /* Same shadow */
+            background: linear-gradient(145deg, #ffffff, #c3daff) !important; /* Same gradient */
+            border-color: #003087 !important; /* Same border */
         }
         .facility-card-focused h2 {
             font-size: 6rem; /* Scaled for 4K visibility */
@@ -651,8 +650,8 @@
             margin: 0 auto;
         }
         .focused-view-date-time {
-            font-size: 4rem; /* Larger for 4K focused views */
-            width: 1000px; /* Wider for readability */
+            font-size: 4rem; /* Large for 4K focused views */
+            width: 1200px; /* Increased to prevent wrapping */
             padding: 1.5rem 3rem;
             border-radius: 16px;
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
@@ -661,6 +660,7 @@
             left: 50%;
             transform: translateX(-50%);
             z-index: 30;
+            white-space: nowrap; /* Prevent text wrapping */
         }
         /* Mobile dropdown fixes */
         @media (max-width: 640px) {
@@ -725,20 +725,19 @@
                 font-size: 0.9rem;
                 padding: 1px;
             }
-            .facility-card-focused {
+            .facility-card-focused.facility-card {
                 max-width: 100%;
                 padding: 2.5rem;
-                transform: none; /* No scaling */
-                transition: none; /* No transitions */
+                transform: none !important; /* No scaling */
+                transition: none !important; /* No transitions */
                 margin: 1rem auto; /* Adjusted for mobile */
                 height: auto; /* Content-driven height */
             }
-            .facility-card-focused:hover {
-                /* No hover effects for mobile */
-                transform: none;
-                box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7);
-                background: linear-gradient(145deg, #ffffff, #c3daff);
-                border-color: #003087;
+            .facility-card-focused.facility-card:hover {
+                transform: none !important; /* No hover effects */
+                box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7) !important;
+                background: linear-gradient(145deg, #ffffff, #c3daff) !important;
+                border-color: #003087 !important;
             }
             .facility-card-focused h2 {
                 font-size: 2.5rem; /* Adjusted for mobile */
