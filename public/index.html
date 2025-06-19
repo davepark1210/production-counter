@@ -1965,8 +1965,15 @@
                         totalElement.classList.add('update');
                     }
         
+                    const dailyTargets = {
+                        'Sellersburg_Certified_Center': 105,
+                        'Williamsport_Certified_Center': 130,
+                        'North_Las_Vegas_Certified_Center': 70
+                    };
+                    
                     // Update target percentage
                     const targetPercentageElement = document.getElementById(`${facility}_Target_Percentage`);
+                    const forecastElement = document.getElementById(`${facility}_Forecast`);
                     if (!targetPercentageElement) {
                         console.error(`Target percentage DOM element missing for ${facility}`);
                     } else if (targetPercentages && targetPercentages[facility] !== undefined) {
@@ -1974,22 +1981,27 @@
                         targetPercentageElement.textContent = percentage;
                         
                         // Remove existing color classes
-                        targetPercentageElement.classList.remove('text-red-600', 'text-yellow-600', 'text-green-600');
+                        targetPercentageElement.classList.remove('text-red-600', 'text-green-600');
                         
-                        // Apply color class based on percentage
-                        if (percentage < 50) {
-                            targetPercentageElement.classList.add('text-red-600');
-                        } else if (percentage >= 50 && percentage < 80) {
-                            targetPercentageElement.classList.add('text-yellow-600');
-                        } else {
-                            targetPercentageElement.classList.add('text-green-600');
+                        // Get forecasted production
+                        let forecast = 0;
+                        if (forecastElement && forecastElement.textContent !== 'Calculating...' && forecastElement.textContent !== 'N/A (Outside operational hours)') {
+                            forecast = parseInt(forecastElement.textContent.replace(' units', '')) || 0;
                         }
                         
-                        console.log(`Updated ${facility} target percentage to ${percentage}% with color class`);
+                        // Apply color class based on forecast vs daily target
+                        const dailyTarget = dailyTargets[facility] || 0;
+                        if (forecast >= dailyTarget && dailyTarget > 0) {
+                            targetPercentageElement.classList.add('text-green-600');
+                        } else {
+                            targetPercentageElement.classList.add('text-red-600');
+                        }
+                        
+                        console.log(`Updated ${facility} target percentage to ${percentage}% with forecast ${forecast} vs target ${dailyTarget}`);
                     } else {
                         console.warn(`Target percentages data missing for ${facility}. Full targetPercentages:`, targetPercentages);
                         targetPercentageElement.textContent = '0';
-                        targetPercentageElement.classList.remove('text-red-600', 'text-yellow-600', 'text-green-600');
+                        targetPercentageElement.classList.remove('text-red-600', 'text-green-600');
                         targetPercentageElement.classList.add('text-red-600'); // Default to red for 0%
                     }
         
