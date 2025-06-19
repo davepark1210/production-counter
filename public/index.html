@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <title>Certified Center Production</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
-        /* Cache-busting comment: Updated 2025-05-12 */
+        /* Cache-busting comment: Updated 2025-06-18 */
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
@@ -1440,6 +1441,27 @@
             initializeChart();
         });
 
+        let userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        
+        // Fetch timezone based on IP
+        async function fetchUserTimeZone() {
+            try {
+                const response = await axios.get('https://ipapi.co/json/');
+                const { timezone } = response.data;
+                if (timezone) {
+                    console.log(`Detected timezone from IP: ${timezone}`);
+                    if (timezone === 'America/Los_Angeles') {
+                        userTimeZone = 'America/Los_Angeles';
+                    }
+                } else {
+                    console.warn('No timezone returned from IP API, using browser timezone');
+                }
+            } catch (err) {
+                console.error('Failed to fetch timezone from IP API:', err);
+                showNotification('Unable to detect timezone, using default browser timezone.');
+            }
+        }
+        
         // Real-time clock update
         function updateDateTime() {
             try {
@@ -1452,7 +1474,7 @@
                     minute: '2-digit',
                     second: '2-digit',
                     hour12: true,
-                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    timeZone: userTimeZone
                 };
                 const dateTimeDisplay = document.getElementById('dateTimeDisplay');
                 if (dateTimeDisplay) {
@@ -1464,8 +1486,14 @@
                 console.error('Error in updateDateTime:', err);
             }
         }
-        updateDateTime(); // Call immediately
-        setInterval(updateDateTime, 1000);
+        
+        // Initialize timezone detection and clock
+        async function initializeDateTime() {
+            await fetchUserTimeZone();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        }
+        initializeDateTime();
 
         // Display notification
         function showNotification(message) {
@@ -1909,7 +1937,10 @@
                 const now = new Date();
                 const currentHour = now.getHours();
                 const currentMinutes = now.getMinutes();
-                const timezoneOffsetHours = now.getTimezoneOffset() / 60;
+                const timeZoneOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+                const timeInTargetZone = new Date(now.toLocaleString('en-US', { timeZone: userTimeZone }));
+                const timeZoneOffsetTargetMs = timeInTargetZone.getTimezoneOffset() * 60 * 1000;
+                const timezoneOffsetHours = (timeZoneOffsetMs - timeZoneOffsetTargetMs) / (60 * 60 * 1000);
                 console.log(`Current local hour: ${currentHour}, Minutes: ${currentMinutes}, Timezone offset: ${timezoneOffsetHours} hours`);
         
                 // Calculate total production and target percentage for sorting
