@@ -1973,7 +1973,7 @@
                     
                     // Update target percentage
                     const targetPercentageElement = document.getElementById(`${facility}_Target_Percentage`);
-                    const forecastElement = document.getElementById(`${facility}_Forecast`);
+                    const targetForecastElement = document.getElementById(`${facility}_Forecast`);
                     if (!targetPercentageElement) {
                         console.error(`Target percentage DOM element missing for ${facility}`);
                     } else if (targetPercentages && targetPercentages[facility] !== undefined) {
@@ -1985,8 +1985,8 @@
                         
                         // Get forecasted production
                         let forecast = 0;
-                        if (forecastElement && forecastElement.textContent !== 'Calculating...' && forecastElement.textContent !== 'N/A (Outside operational hours)') {
-                            forecast = parseInt(forecastElement.textContent.replace(' units', '')) || 0;
+                        if (targetForecastElement && targetForecastElement.textContent !== 'Calculating...' && targetForecastElement.textContent !== 'N/A (Outside operational hours)') {
+                            forecast = parseInt(targetForecastElement.textContent.replace(' units', '')) || 0;
                         }
                         
                         // Apply color class based on forecast vs daily target
@@ -2004,87 +2004,24 @@
                         targetPercentageElement.classList.remove('text-red-600', 'text-green-600');
                         targetPercentageElement.classList.add('text-red-600'); // Default to red for 0%
                     }
-        
-                    // Update progress bar
-                    const progressElement = document.getElementById(`${facility}_Progress`);
-                    const progressContainer = document.getElementById(`${facility}_Progress_Container`);
-                    const percentageElement = document.getElementById(`${facility}_Progress_Percentage`);
-                    const tooltipElement = document.getElementById(`${facility}_Progress_Tooltip`);
-                    const facilityPeakDay = peakProduction?.[facility]?.peakDay || 0;
-                    const percentage = facilityPeakDay > 0 ? (total / facilityPeakDay) * 100 : 0;
-                    const previousTotal = previousTotals[facility] || 0;
-                    const previousPercentage = facilityPeakDay > 0 ? (previousTotal / facilityPeakDay) * 100 : 0;
                     
-                    console.log(`Progress bar update for ${facility}:`, {
-                        total,
-                        previousTotal,
-                        facilityPeakDay,
-                        percentage,
-                        previousPercentage,
-                        hasTriggeredStarburst: hasTriggeredStarburst[facility],
-                        classes: progressElement.classList.toString()
-                    });
-                    
-                    // Apply increase animation only if below peak or just reaching peak
-                    if (percentage > previousPercentage && (previousTotal < facilityPeakDay)) {
-                        console.log(`${facility} percentage increased from ${previousPercentage.toFixed(2)}% to ${percentage.toFixed(2)}% and previous total (${previousTotal}) was below peak (${facilityPeakDay}), applying increase animation`);
-                        progressElement.classList.add('increase');
-                    } else {
-                        console.log(`${facility} percentage did not increase or previous total (${previousTotal}) is at/above peak (${facilityPeakDay}), removing increase animation`);
-                        progressElement.classList.remove('increase');
-                    }
-                    if (facilityPeakDay > 0 && total >= facilityPeakDay && previousTotal < facilityPeakDay) {
-                        console.log(`${facility} reached peak day (${facilityPeakDay}), triggering past-peak and completed animations and disabling width transition`);
-                        progressContainer.classList.add('past-peak');
-                        progressElement.classList.add('completed');
-                        setTimeout(() => {
-                            progressContainer.classList.remove('past-peak');
-                            progressElement.classList.remove('completed');
-                        }, 5000);
-                        progressElement.classList.add('no-width-transition');
-                    }
-                    // Reset starburst trigger and re-enable width transition if total drops below peak
-                    if (facilityPeakDay > 0 && total < facilityPeakDay) { // Changed to strict < to re-enable transition below peak
-                        console.log(`${facility} total (${total}) dropped below peak (${facilityPeakDay}), resetting starburst trigger and re-enabling width transition`);
-                        hasTriggeredStarburst[facility] = false;
-                        progressContainer.classList.remove('starburst');
-                        progressElement.classList.remove('no-width-transition');
-                    }
-                    // Trigger starburst only the first time total surpasses peak and disable width transition
-                    if (facilityPeakDay > 0 && total > facilityPeakDay && previousTotal <= facilityPeakDay && !hasTriggeredStarburst[facility]) {
-                        console.log(`${facility} surpassed peak day (${facilityPeakDay}) for the first time, triggering starburst animation and disabling width transition`);
-                        progressContainer.classList.add('starburst');
-                        hasTriggeredStarburst[facility] = true;
-                        setTimeout(() => {
-                            progressContainer.classList.remove('starburst');
-                        }, 1500);
-                        progressElement.classList.add('no-width-transition');
-                    } else if (facilityPeakDay > 0 && total >= facilityPeakDay && hasTriggeredStarburst[facility]) { // Changed to >= to ensure width transition stays disabled
-                        console.log(`${facility} already surpassed peak day (${facilityPeakDay}), not replaying starburst animation, ensuring width transition is disabled`);
-                        progressElement.classList.add('no-width-transition');
-                    }
-                    
-                    const displayPercentage = Math.min(Math.round(percentage), 100);
-                    progressElement.style.width = `${displayPercentage}%`;
-                    if (percentageElement) percentageElement.textContent = `${displayPercentage}%`;
-                    if (tooltipElement) tooltipElement.textContent = `${displayPercentage}% of Peak`;
-                    previousTotals[facility] = total;
-        
                     // Update forecast
-                    const forecastElement = document.getElementById(`${facility}_Forecast`);
-                    if (forecastElement) {
-                        const isOperational = currentHour >= 6 && (currentHour < 16 || (currentHour === 16 && currentMinutes <= 30));
+                    if (targetForecastElement) {
+                        const isNorthLasVegas = facility === 'North_Las_Vegas_Certified_Center';
+                        const startHour = isNorthLasVegas ? 4 : 6;
+                        const endHourOperational = isNorthLasVegas ? 14 : 16;
+                        const endMinuteOperational = 30;
+                        const isOperational = currentHour >= startHour && (currentHour < endHourOperational || (currentHour === endHourOperational && currentMinutes <= endMinuteOperational));
                         if (!isOperational || !hourlyRates[facility]) {
-                            forecastElement.textContent = 'N/A (Outside operational hours)';
+                            targetForecastElement.textContent = 'N/A (Outside operational hours)';
                             return;
                         }
-        
+                    
                         let totalRate = 0;
                         let hoursCounted = 0;
-                        const startHour = 6;
-                        const endHour = Math.min(currentHour, 16);
+                        const endHour = Math.min(currentHour, endHourOperational);
                         for (let h = startHour; h <= endHour; h++) {
-                            if (h === 16 && currentMinutes > 30) continue;
+                            if (h === endHourOperational && currentMinutes > endMinuteOperational) continue;
                             const utcHour = (h + timezoneOffsetHours + 24) % 24;
                             const ftnRate = hourlyRates[facility]['FTN']?.[utcHour] || 0;
                             const coolerRate = hourlyRates[facility]['Cooler']?.[utcHour] || 0;
@@ -2093,19 +2030,19 @@
                             totalRate += ftnRate + coolerRate + vendorRate + aRepairRate;
                             hoursCounted++;
                         }
-        
+                    
                         const avgRate = hoursCounted > 0 ? totalRate / hoursCounted : 0;
                         const endTime = new Date(now);
-                        endTime.setHours(16, 30, 0, 0);
+                        endTime.setHours(endHourOperational, endMinuteOperational, 0, 0);
                         const remainingMs = endTime - now;
                         const remainingHours = remainingMs > 0 ? remainingMs / (1000 * 60 * 60) : 0;
                         const forecast = total + (avgRate * remainingHours);
                         const roundedForecast = Math.round(forecast);
-        
-                        if (forecastElement.textContent !== `${roundedForecast} units`) {
-                            forecastElement.textContent = `${roundedForecast} units`;
-                            forecastElement.parentElement.classList.add('forecast-updated');
-                            setTimeout(() => forecastElement.parentElement.classList.remove('forecast-updated'), 1000);
+                    
+                        if (targetForecastElement.textContent !== `${roundedForecast} units`) {
+                            targetForecastElement.textContent = `${roundedForecast} units`;
+                            targetForecastElement.parentElement.classList.add('forecast-updated');
+                            setTimeout(() => targetForecastElement.parentElement.classList.remove('forecast-updated'), 1000);
                         }
                     }
                 });
