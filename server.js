@@ -10,10 +10,23 @@ const pool = new Pool({
   password: process.env.PGPASSWORD || 'npg_4Vw0dKkJeILi',
   database: process.env.PGDATABASE || 'neondb',
   port: process.env.PGPORT || 5432,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+  max: 10,  // Limit pool size to avoid over-scaling
+  idleTimeoutMillis: 1000,  // Close idle connections quickly to allow suspend
+  connectionTimeoutMillis: 2000  // Fail fast on timeouts
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
+const cache = {};  // In-memory cache object
+const CACHE_TTL = 300000;  // 5 minutes in ms - match Neon's suspend time
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+const debouncedBroadcast = debounce(broadcastUpdate, 5000);  // 5-second debounce
 const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
 const dailyTargets = {
   'Sellersburg_Certified_Center': 105,
@@ -172,7 +185,7 @@ app.post('/increment', async (req, res) => {
   }
   try {
     await updateCount(facility, line, 1, date);
-    broadcastUpdate();
+    debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
     console.error('Increment Error:', err);
@@ -193,7 +206,7 @@ app.post('/decrement', async (req, res) => {
   }
   try {
     await updateCount(facility, line, -1, date);
-    broadcastUpdate();
+    debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
     console.error('Decrement Error:', err);
@@ -326,6 +339,11 @@ async function getHourlyRates(date = currentDate) {
   if (!date) {
     throw new Error('Date not set');
   }
+  const cacheKey = `hourlyRates_${date}`;
+  if (cache[cacheKey] && Date.now() - cache[cacheKey].timestamp < CACHE_TTL) {
+    console.log(`Serving cached hourly rates for ${date}`);
+    return cache[cacheKey].data;
+  }
   const client = await pool.connect();
   try {
     console.log(`Fetching hourly rates for date: ${date}`);
@@ -361,7 +379,7 @@ async function getHourlyRates(date = currentDate) {
       });
     });
     console.log('Constructed hourlyRates (UTC):', hourlyRates);
-
+    cache[cacheKey] = { data: hourlyRates, timestamp: Date.now() };
     return hourlyRates;
   } catch (err) {
     console.error('Error in getHourlyRates:', err);
@@ -393,70 +411,71 @@ async function getTotalDailyProduction() {
 }
 
 async function getPeakProduction() {
-    if (!currentDate) {
-        throw new Error('Current date not set');
-    }
-    const client = await pool.connect();
-    try {
-        // Calculate peak daily production
-        const peakDayResult = await client.query(
-            `SELECT facility, date, SUM(count) as daily_total
-             FROM ProductionCounts
-             GROUP BY facility, date
-             ORDER BY facility, daily_total DESC`
-        );
-        console.log('Peak day query result:', peakDayResult.rows);
+  if (!currentDate) {
+    throw new Error('Current date not set');
+  }
+  const cacheKey = `peakProduction_${currentDate}`;
+  if (cache[cacheKey] && Date.now() - cache[cacheKey].timestamp < CACHE_TTL) {
+    console.log(`Serving cached peak production for ${currentDate}`);
+    return cache[cacheKey].data;
+  }
+  const client = await pool.connect();
+  try {
+    const peakDayResult = await client.query(
+      `SELECT facility, date, SUM(count) as daily_total
+       FROM ProductionCounts
+       GROUP BY facility, date
+       ORDER BY facility, daily_total DESC`
+    );
+    console.log('Peak day query result:', peakDayResult.rows);
 
-        // Calculate peak weekly production
-        const allDailyTotals = await client.query(
-            `SELECT facility, date, SUM(count) as daily_total
-             FROM ProductionCounts
-             GROUP BY facility, date
-             ORDER BY facility, date`
-        );
-        console.log('All daily totals query result:', allDailyTotals.rows);
+    const allDailyTotals = await client.query(
+      `SELECT facility, date, SUM(count) as daily_total
+       FROM ProductionCounts
+       GROUP BY facility, date
+       ORDER BY facility, date`
+    );
+    console.log('All daily totals query result:', allDailyTotals.rows);
 
-        const peakProduction = {};
-        facilities.forEach(f => {
-            // Find the highest daily total
-            const facilityRows = peakDayResult.rows.filter(row => row.facility === f);
-            const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
+    const peakProduction = {};
+    facilities.forEach(f => {
+      const facilityRows = peakDayResult.rows.filter(row => row.facility === f);
+      const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
 
-            // Calculate max weekly sum
-            const facilityDailyTotals = allDailyTotals.rows
-                .filter(row => row.facility === f)
-                .map(row => ({
-                    date: new Date(row.date).toISOString().split('T')[0], // Normalize date
-                    daily_total: parseInt(row.daily_total)
-                }))
-                .sort((a, b) => a.date.localeCompare(b.date)); // Sort by ISO date string
-            console.log(`Daily totals for ${f}:`, facilityDailyTotals);
+      const facilityDailyTotals = allDailyTotals.rows
+        .filter(row => row.facility === f)
+        .map(row => ({
+          date: new Date(row.date).toISOString().split('T')[0],
+          daily_total: parseInt(row.daily_total)
+        }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+      console.log(`Daily totals for ${f}:`, facilityDailyTotals);
 
-            let maxWeeklySum = 0;
-            if (facilityDailyTotals.length > 0) {
-                // Handle fewer than 7 days by using available data
-                const availableDays = Math.min(facilityDailyTotals.length, 7);
-                for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
-                    const weekTotals = facilityDailyTotals.slice(i, i + availableDays);
-                    const weekSum = weekTotals.reduce((sum, day) => sum + day.daily_total, 0);
-                    maxWeeklySum = Math.max(maxWeeklySum, weekSum);
-                }
-            }
+      let maxWeeklySum = 0;
+      if (facilityDailyTotals.length > 0) {
+        const availableDays = Math.min(facilityDailyTotals.length, 7);
+        for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
+          const weekTotals = facilityDailyTotals.slice(i, i + availableDays);
+          const weekSum = weekTotals.reduce((sum, day) => sum + day.daily_total, 0);
+          maxWeeklySum = Math.max(maxWeeklySum, weekSum);
+        }
+      }
 
-            peakProduction[f] = {
-                peakDay: peakDay,
-                peakWeekly: maxWeeklySum
-            };
-        });
+      peakProduction[f] = {
+        peakDay: peakDay,
+        peakWeekly: maxWeeklySum
+      };
+    });
 
-        console.log('Peak production:', peakProduction);
-        return peakProduction;
-    } catch (err) {
-        console.error('GetPeakProduction Error:', err);
-        throw err;
-    } finally {
-        client.release();
-    }
+    console.log('Peak production:', peakProduction);
+    cache[cacheKey] = { data: peakProduction, timestamp: Date.now() };
+    return peakProduction;
+  } catch (err) {
+    console.error('GetPeakProduction Error:', err);
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 async function broadcastUpdate() {
@@ -464,14 +483,71 @@ async function broadcastUpdate() {
     console.error('Cannot broadcast update: currentDate not set');
     return;
   }
+  const client = await pool.connect();
   try {
-    const data = await getCurrentData();
-    const hourlyRates = await getHourlyRates();
-    const totalProduction = await getTotalDailyProduction();
-    const peakProduction = await getPeakProduction();
-    
-    // Calculate target percentages for each facility
-    console.log('Production data for target percentages:', data);
+    const [currentRes, eventsRes, totalsRes, peakDayRes, allDailyRes] = await Promise.all([
+      client.query('SELECT facility, line, count FROM ProductionCounts WHERE Date = $1', [currentDate]),
+      client.query(
+        `SELECT facility, line, delta, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour
+         FROM ProductionEvents WHERE date = $1`, [currentDate]
+      ),
+      client.query('SELECT SUM(count) as total FROM ProductionCounts WHERE Date = $1', [currentDate]),
+      client.query(
+        `SELECT facility, date, SUM(count) as daily_total
+         FROM ProductionCounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
+      ),
+      client.query(
+        `SELECT facility, date, SUM(count) as daily_total
+         FROM ProductionCounts GROUP BY facility, date ORDER BY facility, date`
+      )
+    ]);
+
+    const data = {};
+    facilities.forEach(f => {
+      data[f] = {};
+      lines.forEach(l => {
+        const row = currentRes.rows.find(r => r.facility === f && r.line === l);
+        data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
+      });
+    });
+
+    const hourlyRates = {};
+    facilities.forEach(f => {
+      hourlyRates[f] = {};
+      lines.forEach(l => {
+        hourlyRates[f][l] = Array(24).fill(0);
+      });
+    });
+    eventsRes.rows.forEach(row => {
+      const { facility, line, delta, hour } = row;
+      if (hourlyRates[facility] && hourlyRates[facility][line]) {
+        hourlyRates[facility][line][parseInt(hour)] += parseInt(delta);
+      }
+    });
+
+    const totalProduction = totalsRes.rows[0]?.total || 0;
+
+    const peakProduction = {};
+    facilities.forEach(f => {
+      const facilityRows = peakDayRes.rows.filter(row => row.facility === f);
+      const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
+
+      const facilityDailyTotals = allDailyRes.rows
+        .filter(row => row.facility === f)
+        .map(row => ({ date: new Date(row.date).toISOString().split('T')[0], daily_total: parseInt(row.daily_total) }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      let maxWeeklySum = 0;
+      if (facilityDailyTotals.length > 0) {
+        const availableDays = Math.min(facilityDailyTotals.length, 7);
+        for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
+          const weekSum = facilityDailyTotals.slice(i, i + availableDays).reduce((sum, day) => sum + day.daily_total, 0);
+          maxWeeklySum = Math.max(maxWeeklySum, weekSum);
+        }
+      }
+      peakProduction[f] = { peakDay, peakWeekly: maxWeeklySum };
+    });
+
     const targetPercentages = {};
     for (const facility of facilities) {
       const facilityTotal = Object.values(data[facility]).reduce((sum, { count }) => sum + count, 0);
@@ -479,7 +555,6 @@ async function broadcastUpdate() {
       const percentage = target > 0 ? Math.round((facilityTotal / target) * 100) : 0;
       targetPercentages[facility] = percentage;
     }
-    console.log('Calculated target percentages:', targetPercentages);
 
     const milestone = Math.floor(totalProduction / 100) * 100;
     let notification = null;
@@ -505,5 +580,7 @@ async function broadcastUpdate() {
     });
   } catch (err) {
     console.error('Broadcast Update Error:', err);
+  } finally {
+    client.release();
   }
 }
