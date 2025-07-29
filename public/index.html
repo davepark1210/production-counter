@@ -2239,6 +2239,9 @@
                 document.getElementById('loadingSpinner').style.display = 'none';
                 ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
                 loadHistoricalDates();
+                setInterval(() => {
+                    ws.send(JSON.stringify({ action: 'requestCurrentData' }));
+                }, 30000);  // Request every 30 seconds
             };
             ws.onclose = () => {
                 console.log('WebSocket connection closed at', new Date().toISOString());
