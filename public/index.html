@@ -724,7 +724,7 @@
             margin-top: calc(4rem * calc(1 - var(--tw-space-y-reverse)));
             margin-bottom: calc(4rem * var(--tw-space-y-reverse));
         }
-        /* Disable all hover effects for ?view=all */
+        /* Disable all hover effects, including highlighting, for ?view=all */
         .facility-grid-all .facility-card:hover,
         .facility-grid-all .facility-card.top-performer:hover,
         .facility-grid-all .facility-card.second-place:hover,
@@ -732,12 +732,15 @@
         .facility-grid-all .rank-icon:hover {
             transform: none;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-            background: white;
+            background: white !important; /* Explicitly prevent highlighting */
             border-color: #d1d5db;
         }
         /* Hide Certified Center Production bar for ?view=all */
-        .facility-grid-all + header.gradient-header {
-            display: none;
+        header.gradient-header {
+            display: block;
+        }
+        :where(.facility-grid-all) + header.gradient-header {
+            display: none !important;
         }
         /* Mobile dropdown fixes */
         @media (max-width: 640px) {
