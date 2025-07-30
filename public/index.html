@@ -718,6 +718,22 @@
         .facility-card-focused .text-2xl {
             font-size: 7vw; /* Adjusted for larger labels in focused view */
         }
+        /* Increased spacing for metric blocks in focused views */
+        .facility-card-focused .space-y-8 {
+            --tw-space-y-reverse: 0;
+            margin-top: calc(4rem * calc(1 - var(--tw-space-y-reverse)));
+            margin-bottom: calc(4rem * var(--tw-space-y-reverse));
+        }
+        /* Disable hover effects for ?view=all */
+        .facility-grid-all .facility-card:hover,
+        .facility-grid-all .facility-card.top-performer:hover,
+        .facility-grid-all .facility-card.second-place:hover,
+        .facility-grid-all .facility-card.third-place:hover {
+            transform: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); /* Default shadow */
+            background: white; /* Default background */
+            border-color: #d1d5db; /* Default border */
+        }
         /* Mobile dropdown fixes */
         @media (max-width: 640px) {
             .flex-wrap.gap-4 {
@@ -1650,18 +1666,14 @@
         
             if (selectedFacility) {
                 facilityGrid.classList.add('facility-grid-single');
-                facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'facility-grid-all');
                 facilityCards.forEach(card => {
                     if (card.id === selectedFacility) {
                         card.style.display = 'block';
                         card.classList.add('facility-card-focused');
-                        const backButton = card.querySelector('.back-button');
-                        if (backButton) backButton.classList.remove('hidden');
                     } else {
                         card.style.display = 'none';
                         card.classList.remove('facility-card-focused');
-                        const backButton = card.querySelector('.back-button');
-                        if (backButton) backButton.classList.add('hidden');
                     }
                 });
         
@@ -1679,12 +1691,10 @@
                 }
             } else {
                 facilityGrid.classList.remove('facility-grid-single');
-                facilityGrid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                facilityGrid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'facility-grid-all');
                 facilityCards.forEach(card => {
                     card.style.display = 'block';
                     card.classList.remove('facility-card-focused');
-                    const backButton = card.querySelector('.back-button');
-                    if (backButton) backButton.classList.add('hidden');
                 });
         
                 // Show all chart data and legends
