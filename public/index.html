@@ -732,14 +732,11 @@
         .facility-grid-all .rank-icon:hover {
             transform: none;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-            background: white !important; /* Explicitly prevent highlighting */
+            background: white !important;
             border-color: #d1d5db;
         }
         /* Hide Certified Center Production bar for ?view=all */
-        header.gradient-header {
-            display: block;
-        }
-        :where(.facility-grid-all) + header.gradient-header {
+        .facility-grid-all-container header.gradient-header {
             display: none !important;
         }
         /* Mobile dropdown fixes */
@@ -1665,6 +1662,7 @@
         
         function updateFacilityGrid() {
             const facilityGrid = document.getElementById('facilityGrid');
+            const body = document.body;
             if (!facilityGrid) {
                 console.error('Facility grid not found during updateFacilityGrid');
                 return;
@@ -1674,7 +1672,8 @@
         
             if (selectedFacility) {
                 facilityGrid.classList.add('facility-grid-single');
-                facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'facility-grid-all');
+                facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                body.classList.remove('facility-grid-all-container');
                 facilityCards.forEach(card => {
                     if (card.id === selectedFacility) {
                         card.style.display = 'block';
@@ -1699,7 +1698,8 @@
                 }
             } else {
                 facilityGrid.classList.remove('facility-grid-single');
-                facilityGrid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'facility-grid-all');
+                facilityGrid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                body.classList.add('facility-grid-all-container');
                 facilityCards.forEach(card => {
                     card.style.display = 'block';
                     card.classList.remove('facility-card-focused');
