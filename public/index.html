@@ -1723,7 +1723,6 @@
             showNotification('Showing All Facilities');
         }
 
-        // Handle view parameter from URL
         function handleViewParameter() {
             const urlParams = new URLSearchParams(window.location.search);
             const viewParam = urlParams.get('view')?.toLowerCase();
@@ -1734,7 +1733,6 @@
             const totalProductionDiv = document.getElementById('totalProduction');
             const header = document.querySelector('header');
             const footer = document.querySelector('footer');
-        
             const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas'];
             const dateTimeContainer = document.getElementById('dateTimeDisplay');
         
@@ -1744,9 +1742,9 @@
                 if (facilitySelectContainer) facilitySelectContainer.style.display = 'none';
                 if (toggleGraphButton) toggleGraphButton.style.display = 'none';
                 if (resetAllDataButton) resetAllDataButton.style.display = 'none';
-            
+        
                 const graphSection = document.getElementById('graphSection');
-            
+        
                 if (viewParam === 'all') {
                     // Show all facilities
                     selectedFacility = '';
@@ -1755,10 +1753,8 @@
                     showNotification('Showing All Facilities');
                     // Hide footer for All view
                     if (footer) footer.style.display = 'none';
-                    // Ensure header and total production are visible
-                    if (header) header.style.display = 'flex';
+                    // Show total production and chart
                     if (totalProductionDiv) totalProductionDiv.style.display = 'block';
-                    // Show the chart for the 'all' view
                     if (graphSection) graphSection.style.display = 'block';
                     // Remove focused view date-time styles
                     if (dateTimeContainer) dateTimeContainer.classList.remove('focused-view-date-time');
