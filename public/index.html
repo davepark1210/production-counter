@@ -731,9 +731,24 @@
         .facility-grid-all .facility-card.third-place:hover {
             transform: none !important;
             box-shadow: none !important; /* Remove any shadow changes */
-            background: white !important; /* Keep base background */
+            background: inherit !important; /* Preserve the original background */
             border-color: #d1d5db !important; /* Keep base border */
             cursor: default !important; /* No pointer to indicate no interaction */
+        }
+        
+        .facility-grid-all .facility-card.top-performer:hover {
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.1), rgba(255, 245, 157, 0.1)) !important; /* Match top-performer non-hover */
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.3) !important; /* Match top-performer non-hover */
+        }
+        
+        .facility-grid-all .facility-card.second-place:hover {
+            background: linear-gradient(145deg, rgba(192, 192, 192, 0.1), rgba(224, 224, 224, 0.1)) !important; /* Match second-place non-hover */
+            box-shadow: 0 0 8px rgba(192, 192, 192, 0.3) !important; /* Match second-place non-hover */
+        }
+        
+        .facility-grid-all .facility-card.third-place:hover {
+            background: linear-gradient(145deg, rgba(205, 127, 50, 0.1), rgba(231, 171, 111, 0.1)) !important; /* Match third-place non-hover */
+            box-shadow: 0 0 8px rgba(205, 127, 50, 0.3) !important; /* Match third-place non-hover */
         }
         
         .facility-grid-all .rank-icon:hover {
