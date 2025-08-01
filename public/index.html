@@ -937,6 +937,134 @@
                 right: 12px;
             }
         }
+        /* Responsive facility card for new views (e.g., ?view=sellersburg2) */
+        .facility-card-responsive.facility-card {
+            width: 90vw; /* Slightly less than full viewport width for margins */
+            max-height: 90vh; /* Ensure card fits within viewport height */
+            padding: 3vw; /* Proportional padding */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 87, 184, 0.5);
+            border: 0.3vw solid #003087;
+            transform: none !important;
+            transition: none !important;
+            z-index: 20;
+            background: linear-gradient(145deg, #ffffff, #c3daff);
+            margin: 5vh auto; /* Center with dynamic offset */
+            position: relative;
+            box-sizing: border-box;
+            overflow-y: auto; /* Allow scrolling if absolutely necessary */
+            display: flex;
+            flex-direction: column;
+            gap: 2vw; /* Proportional spacing */
+        }
+        
+        .facility-card-responsive.facility-card:hover {
+            transform: none !important;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 87, 184, 0.5) !important;
+            background: linear-gradient(145deg, #ffffff, #c3daff) !important;
+            border-color: #003087 !important;
+        }
+        
+        .facility-card-responsive h2 {
+            font-size: clamp(3rem, 5vw, 4rem); /* Responsive font size */
+            color: #003087;
+            white-space: nowrap;
+            padding-right: 5vw;
+            line-height: 1.2;
+        }
+        
+        .facility-card-responsive .total-production {
+            font-size: clamp(2rem, 4vw, 3rem);
+            color: #1e40af;
+        }
+        
+        .facility-card-responsive .counter {
+            font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+        }
+        
+        .facility-card-responsive .text-xl {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+        }
+        
+        .facility-card-responsive .text-base {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+        }
+        
+        .facility-card-responsive .peak-metric {
+            font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+        }
+        
+        .facility-card-responsive .back-button {
+            display: block;
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            padding: 1vw 2vw;
+            margin-top: 2vw;
+        }
+        
+        .facility-card-responsive .metric-cooler,
+        .facility-card-responsive .metric-vendor,
+        .facility-card-responsive .metric-ftn,
+        .facility-card-responsive .metric-a-repair {
+            padding: 2vw;
+            margin-bottom: 2vh;
+            gap: 2vw;
+            border-width: 0.3vw;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .facility-card-responsive .space-y-8 {
+            --tw-space-y-reverse: 0;
+            margin-top: calc(3rem * calc(1 - var(--tw-space-y-reverse)));
+            margin-bottom: calc(3rem * var(--tw-space-y-reverse));
+        }
+        
+        @media (max-width: 640px) {
+            .facility-card-responsive.facility-card {
+                width: 95vw;
+                max-height: 85vh;
+                padding: 4vw;
+                margin: 7vh auto;
+            }
+            .facility-card-responsive h2 {
+                font-size: clamp(2rem, 6vw, 3rem);
+                padding-right: 6vw;
+                white-space: normal; /* Allow wrapping on very small screens */
+            }
+            .facility-card-responsive .total-production {
+                font-size: clamp(1.5rem, 5vw, 2.5rem);
+            }
+            .facility-card-responsive .counter {
+                font-size: clamp(1.5rem, 4.5vw, 2.2rem);
+            }
+            .facility-card-responsive .text-xl {
+                font-size: clamp(1rem, 3vw, 1.5rem);
+            }
+            .facility-card-responsive .text-base {
+                font-size: clamp(0.8rem, 2.5vw, 1.2rem);
+            }
+            .facility-card-responsive .peak-metric {
+                font-size: clamp(0.7rem, 2vw, 1rem);
+            }
+            .facility-card-responsive .back-button {
+                font-size: clamp(0.8rem, 2.5vw, 1.2rem);
+                padding: 1.5vw 3vw;
+            }
+            .facility-card-responsive .metric-cooler,
+            .facility-card-responsive .metric-vendor,
+            .facility-card-responsive .metric-ftn,
+            .facility-card-responsive .metric-a-repair {
+                padding: 3vw;
+                margin-bottom: 3vh;
+                gap: 3vw;
+            }
+        }
+        
+        /* Ensure date-time container is adjusted for responsive views */
+        .focused-view-date-time.responsive-view {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            padding: 1rem 2rem;
+            max-width: 95vw;
+            top: 1vh;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-6">
@@ -1730,6 +1858,9 @@
             }
             const facilityCards = facilityGrid.querySelectorAll('.facility-card');
             console.log(`Updating facility grid, selectedFacility: ${selectedFacility}, cards found: ${facilityCards.length}`);
+            const urlParams = new URLSearchParams(window.location.search);
+            const viewParam = urlParams.get('view')?.toLowerCase();
+            const isResponsiveView = viewParam && viewParam.endsWith('2');
         
             if (selectedFacility) {
                 facilityGrid.classList.add('facility-grid-single');
@@ -1738,13 +1869,18 @@
                 facilityCards.forEach(card => {
                     if (card.id === selectedFacility) {
                         card.style.display = 'block';
-                        card.classList.add('facility-card-focused');
+                        if (isResponsiveView) {
+                            card.classList.add('facility-card-responsive');
+                            card.classList.remove('facility-card-focused');
+                        } else {
+                            card.classList.add('facility-card-focused');
+                            card.classList.remove('facility-card-responsive');
+                        }
                     } else {
                         card.style.display = 'none';
-                        card.classList.remove('facility-card-focused');
+                        card.classList.remove('facility-card-focused', 'facility-card-responsive');
                     }
                 });
-        
                 // Filter chart to show only selected facility's data and legends
                 if (productionChart) {
                     productionChart.data.datasets.forEach((dataset, index) => {
@@ -1759,15 +1895,23 @@
                 }
                 // Remove class to enable normal hovers
                 facilityGrid.classList.remove('facility-grid-all');
+                // Update date-time container class
+                const dateTimeContainer = document.getElementById('dateTimeDisplay');
+                if (dateTimeContainer) {
+                    if (isResponsiveView) {
+                        dateTimeContainer.classList.add('responsive-view');
+                    } else {
+                        dateTimeContainer.classList.remove('responsive-view');
+                    }
+                }
             } else {
                 facilityGrid.classList.remove('facility-grid-single');
                 facilityGrid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
                 body.classList.add('facility-grid-all-container');
                 facilityCards.forEach(card => {
                     card.style.display = 'block';
-                    card.classList.remove('facility-card-focused');
+                    card.classList.remove('facility-card-focused', 'facility-card-responsive');
                 });
-        
                 // Show all chart data and legends
                 if (productionChart) {
                     productionChart.data.datasets.forEach((dataset, index) => {
@@ -1778,6 +1922,11 @@
                 }
                 // Add class to disable hover effects
                 facilityGrid.classList.add('facility-grid-all');
+                // Remove responsive-view class from date-time container
+                const dateTimeContainer = document.getElementById('dateTimeDisplay');
+                if (dateTimeContainer) {
+                    dateTimeContainer.classList.remove('responsive-view');
+                }
             }
         }
         
@@ -1798,7 +1947,7 @@
             const totalProductionDiv = document.getElementById('totalProduction');
             const header = document.querySelector('header');
             const footer = document.querySelector('footer');
-            const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas'];
+            const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas', 'sellersburg2', 'williamsport2', 'northlasvegas2'];
             const dateTimeContainer = document.getElementById('dateTimeDisplay');
         
             if (viewParam && validViews.includes(viewParam)) {
@@ -1831,10 +1980,36 @@
                     const facilityMap = {
                         'sellersburg': 'Sellersburg_Certified_Center',
                         'williamsport': 'Williamsport_Certified_Center',
-                        'northlasvegas': 'North_Las_Vegas_Certified_Center'
+                        'northlasvegas': 'North_Las_Vegas_Certified_Center',
+                        'sellersburg2': 'Sellersburg_Certified_Center',
+                        'williamsport2': 'Williamsport_Certified_Center',
+                        'northlasvegas2': 'North_Las_Vegas_Certified_Center'
                     };
                     selectedFacility = facilityMap[viewParam];
                     facilitySelect.value = selectedFacility;
+                    
+                    // Apply the appropriate class based on viewParam
+                    const isResponsiveView = viewParam.endsWith('2');
+                    facilityGrid.classList.add('facility-grid-single');
+                    facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                    body.classList.remove('facility-grid-all-container');
+                    
+                    facilityCards.forEach(card => {
+                        if (card.id === selectedFacility) {
+                            card.style.display = 'block';
+                            if (isResponsiveView) {
+                                card.classList.add('facility-card-responsive');
+                                card.classList.remove('facility-card-focused');
+                            } else {
+                                card.classList.add('facility-card-focused');
+                                card.classList.remove('facility-card-responsive');
+                            }
+                        } else {
+                            card.style.display = 'none';
+                            card.classList.remove('facility-card-focused', 'facility-card-responsive');
+                        }
+                    });
+                    
                     updateFacilityGrid();
                     showNotification(`Showing ${facilitySelect.options[facilitySelect.selectedIndex].text}`);
                     // Hide total production, header, footer, and chart for facility views
