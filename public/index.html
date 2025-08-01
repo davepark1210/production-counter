@@ -1090,6 +1090,58 @@
                 font-size: 3rem; /* Reduced */
             }
         }
+        /* Adjusted date-time for optimized views to prevent overlap */
+        .facility-card-focused2 ~ .w-full.max-w-6xl.mb-4 .focused-view-date-time {
+            font-size: 2rem; /* Slightly reduced from 2.5rem for fit */
+            padding: 0.5rem 1.5rem; /* Reduced padding */
+            top: 0; /* Stick to very top */
+            max-width: 80vw;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Softer shadow to blend */
+            z-index: 30; /* Keep above card */
+        }
+        
+        /* Adjust card to start below date-time, preventing overlap */
+        .facility-card-focused2.facility-card {
+            margin-top: 8vh; /* Space for date-time (adjust if date-time height changes) */
+            height: calc(100vh - 8vh); /* Full height minus date-time space */
+            overflow: hidden; /* Ensure no scroll */
+        }
+        
+        /* Media queries updates for smaller screens in optimized views */
+        @media (max-height: 1080px) {
+            .facility-card-focused2 ~ .w-full.max-w-6xl.mb-4 .focused-view-date-time {
+                font-size: 1.5rem; /* Further reduce */
+                padding: 0.3rem 1rem;
+            }
+            .facility-card-focused2.facility-card {
+                margin-top: 6vh; /* Reduced space */
+                height: calc(100vh - 6vh);
+            }
+        }
+        
+        @media (max-width: 1920px) {
+            .facility-card-focused2 ~ .w-full.max-w-6xl.mb-4 .focused-view-date-time {
+                font-size: 1.8rem;
+            }
+            .facility-card-focused2.facility-card {
+                margin-top: 7vh;
+                height: calc(100vh - 7vh);
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .facility-card-focused2 ~ .w-full.max-w-6xl.mb-4 .focused-view-date-time {
+                font-size: 2.5rem; /* Adjusted for mobile visibility */
+                padding: 0.5rem 1.5rem;
+            }
+            .facility-card-focused2.facility-card {
+                margin-top: 10vh; /* Slightly larger for mobile */
+                height: calc(100vh - 10vh);
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-6">
