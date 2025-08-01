@@ -1145,97 +1145,97 @@
                 height: calc(100vh - 10vh);
             }
         }
-        /* Styles for ?view=all2 to fit all cards without scrolling */
+        /* Styles for ?view=all2 to fit all cards without scrolling, full width */
         .facility-grid-all2 {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1.5vw; /* Reduced gap */
+            gap: 1.5vw; /* Unchanged gap */
             max-width: 100vw;
-            padding: 1vw; /* Minimal padding */
+            padding: 0.5vw; /* Reduced padding to maximize card width */
             margin: 0 auto;
             height: calc(100vh - 8vh); /* Space for date-time and total production */
             overflow: hidden; /* No scrolling */
         }
         
-        /* Compact cards for all2 view */
+        /* Full-width cards for all2 view */
         .facility-grid-all2 .facility-card {
-            width: 90vw; /* Slightly less than full width for padding */
-            padding: 1.5vw; /* Reduced padding */
-            border-radius: 8px; /* Smaller border-radius */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Lighter shadow */
+            width: 98vw; /* Increased from 90vw to fill screen */
+            padding: 1.65vw; /* Scaled up from 1.5vw (~10% increase) */
+            border-radius: 8.8px; /* Scaled up from 8px */
+            box-shadow: 0 4.4px 8.8px rgba(0, 0, 0, 0.1); /* Scaled shadow */
             background: white;
-            border: 0.2vw solid #d1d5db; /* Thinner border */
+            border: 0.22vw solid #d1d5db; /* Scaled border */
         }
         
-        /* Adjust card content */
+        /* Adjust card content proportionally */
         .facility-grid-all2 .facility-card h2 {
-            font-size: 3vw; /* Reduced font size */
-            text-align: center; /* Centered for consistency */
-            margin-bottom: 0.5rem;
-            padding-right: 0; /* Remove padding for centering */
+            font-size: 3.3vw; /* Scaled up from 3vw (~10%) */
+            text-align: center;
+            margin-bottom: 0.55rem; /* Scaled up from 0.5rem */
+            padding-right: 0;
         }
         
         .facility-grid-all2 .total-production {
-            font-size: 2.5vw; /* Reduced */
+            font-size: 2.75vw; /* Scaled up from 2.5vw */
             text-align: center;
         }
         
         .facility-grid-all2 .counter {
-            font-size: 2.5vw; /* Reduced */
+            font-size: 2.75vw; /* Scaled up from 2.5vw */
         }
         
         .facility-grid-all2 .text-xl {
-            font-size: 2vw; /* Reduced */
+            font-size: 2.2vw; /* Scaled up from 2vw */
         }
         
         .facility-grid-all2 .text-base {
-            font-size: 1.5vw; /* Reduced */
+            font-size: 1.65vw; /* Scaled up from 1.5vw */
         }
         
         .facility-grid-all2 .peak-metric {
-            font-size: 1.2vw; /* Reduced */
+            font-size: 1.32vw; /* Scaled up from 1.2vw */
         }
         
-        /* Compact metric blocks */
+        /* Compact metric blocks, scaled */
         .facility-grid-all2 .metric-cooler,
         .facility-grid-all2 .metric-vendor,
         .facility-grid-all2 .metric-ftn,
         .facility-grid-all2 .metric-a-repair {
-            padding: 1rem; /* Reduced */
-            margin-bottom: 1rem; /* Reduced */
-            gap: 1rem; /* Reduced */
-            border-width: 2px; /* Thinner */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Lighter */
+            padding: 1.1rem; /* Scaled up from 1rem */
+            margin-bottom: 1.1rem; /* Scaled up from 1rem */
+            gap: 1.1rem; /* Scaled up from 1rem */
+            border-width: 2.2px; /* Scaled up from 2px */
+            box-shadow: 0 2.2px 4.4px rgba(0, 0, 0, 0.1); /* Scaled shadow */
         }
         
         /* Reduced spacing for metric blocks */
         .facility-grid-all2 .space-y-8 {
             --tw-space-y-reverse: 0;
-            margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse))); /* Reduced */
-            margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+            margin-top: calc(1.1rem * calc(1 - var(--tw-space-y-reverse))); /* Scaled up from 1rem */
+            margin-bottom: calc(1.1rem * var(--tw-space-y-reverse));
         }
         
         /* Compact date-time for all2 view */
         .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
-            font-size: 1.5rem; /* Reduced */
-            padding: 0.5rem 1rem; /* Compact */
+            font-size: 1.65rem; /* Scaled up from 1.5rem */
+            padding: 0.55rem 1.1rem; /* Scaled up from 0.5rem 1rem */
             max-width: 80vw;
-            margin: 0.5vh auto; /* Minimal margin */
+            margin: 0.55vh auto; /* Scaled up from 0.5vh */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Lighter shadow */
+            box-shadow: 0 2.2px 4.4px rgba(0, 0, 0, 0.1); /* Scaled shadow */
         }
         
         /* Adjust total production */
         .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production {
-            font-size: 2rem; /* Reduced */
-            margin-bottom: 0.5rem;
+            font-size: 2.2rem; /* Scaled up from 2rem */
+            margin-bottom: 0.55rem; /* Scaled up from 0.5rem */
         }
         
         .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production span {
-            font-size: 2.5rem; /* Reduced */
+            font-size: 2.75rem; /* Scaled up from 2.5rem */
         }
         
         /* Disable hover effects for all2 (consistent with ?view=all) */
@@ -1252,22 +1252,17 @@
         
         .facility-grid-all2 .facility-card.top-performer {
             background: linear-gradient(145deg, rgba(255, 215, 0, 0.1), rgba(255, 245, 157, 0.1)) !important;
-            box-shadow: 0 0 4px rgba(255, 215, 0, 0.2) !important; /* Lighter shadow */
+            box-shadow: 0 0 4.4px rgba(255, 215, 0, 0.2) !important; /* Scaled shadow */
         }
         
         .facility-grid-all2 .facility-card.second-place {
             background: linear-gradient(145deg, rgba(192, 192, 192, 0.1), rgba(224, 224, 224, 0.1)) !important;
-            box-shadow: 0 0 4px rgba(192, 192, 192, 0.2) !important;
+            box-shadow: 0 0 4.4px rgba(192, 192, 192, 0.2) !important;
         }
         
         .facility-grid-all2 .facility-card.third-place {
             background: linear-gradient(145deg, rgba(205, 127, 50, 0.1), rgba(231, 171, 111, 0.1)) !important;
-            box-shadow: 0 0 4px rgba(205, 127, 50, 0.2) !important;
-        }
-        
-        .facility-grid-all2 .rank-icon:hover {
-            transform: none !important;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+            box-shadow: 0 0 4.4px rgba(205, 127, 50, 0.2) !important;
         }
         
         /* Keep tooltips visible on hover */
@@ -1281,104 +1276,104 @@
         /* Media queries for smaller screens */
         @media (max-height: 1080px) {
             .facility-grid-all2 .facility-card {
-                padding: 1vw;
-                width: 95vw; /* Slightly tighter */
+                padding: 1.1vw; /* Scaled up from 1vw */
+                width: 98vw; /* Full width */
             }
             .facility-grid-all2 .facility-card h2 {
-                font-size: 2.5vw;
+                font-size: 2.75vw; /* Scaled up from 2.5vw */
             }
             .facility-grid-all2 .total-production {
-                font-size: 2vw;
+                font-size: 2.2vw; /* Scaled up from 2vw */
             }
             .facility-grid-all2 .counter {
-                font-size: 2vw;
+                font-size: 2.2vw; /* Scaled up from 2vw */
             }
             .facility-grid-all2 .text-xl {
-                font-size: 1.5vw;
+                font-size: 1.65vw; /* Scaled up from 1.5vw */
             }
             .facility-grid-all2 .text-base {
-                font-size: 1.2vw;
+                font-size: 1.32vw; /* Scaled up from 1.2vw */
             }
             .facility-grid-all2 .peak-metric {
-                font-size: 1vw;
+                font-size: 1.1vw; /* Scaled up from 1vw */
             }
             .facility-grid-all2 .metric-cooler,
             .facility-grid-all2 .metric-vendor,
             .facility-grid-all2 .metric-ftn,
             .facility-grid-all2 .metric-a-repair {
-                padding: 0.8rem;
-                margin-bottom: 0.8rem;
-                gap: 0.8rem;
+                padding: 0.88rem; /* Scaled up from 0.8rem */
+                margin-bottom: 0.88rem;
+                gap: 0.88rem;
             }
             .facility-grid-all2 .space-y-8 {
-                margin-top: 0.8rem;
-                margin-bottom: 0.8rem;
+                margin-top: 0.88rem;
+                margin-bottom: 0.88rem;
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
-                font-size: 1.2rem;
-                padding: 0.3rem 0.8rem;
+                font-size: 1.32rem; /* Scaled up from 1.2rem */
+                padding: 0.33rem 0.88rem; /* Scaled up */
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production {
-                font-size: 1.5rem;
+                font-size: 1.65rem; /* Scaled up from 1.5rem */
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production span {
-                font-size: 2rem;
+                font-size: 2.2rem; /* Scaled up from 2rem */
             }
         }
         
         @media (max-width: 1920px) {
             .facility-grid-all2 .facility-card h2 {
-                font-size: 2.8vw;
+                font-size: 3.08vw; /* Scaled up from 2.8vw */
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
-                font-size: 1.3rem;
+                font-size: 1.43rem; /* Scaled up from 1.3rem */
             }
         }
         
         @media (max-width: 640px) {
             .facility-grid-all2 {
-                gap: 2vw; /* Slightly larger for touch */
+                gap: 2.2vw; /* Scaled up from 2vw */
             }
             .facility-grid-all2 .facility-card {
-                width: 92vw;
-                padding: 2vw;
+                width: 96vw; /* Slightly reduced for mobile touch */
+                padding: 2.2vw; /* Scaled up from 2vw */
             }
             .facility-grid-all2 .facility-card h2 {
-                font-size: 5vw; /* Larger for mobile readability */
-                white-space: normal; /* Allow wrapping */
+                font-size: 5.5vw; /* Scaled up from 5vw */
+                white-space: normal;
             }
             .facility-grid-all2 .total-production {
-                font-size: 3.5vw;
+                font-size: 3.85vw; /* Scaled up from 3.5vw */
             }
             .facility-grid-all2 .counter {
-                font-size: 3.5vw;
+                font-size: 3.85vw; /* Scaled up from 3.5vw */
             }
             .facility-grid-all2 .text-xl {
-                font-size: 2.5vw;
+                font-size: 2.75vw; /* Scaled up from 2.5vw */
             }
             .facility-grid-all2 .text-base {
-                font-size: 2vw;
+                font-size: 2.2vw; /* Scaled up from 2vw */
             }
             .facility-grid-all2 .peak-metric {
-                font-size: 1.5vw;
+                font-size: 1.65vw; /* Scaled up from 1.5vw */
             }
             .facility-grid-all2 .metric-cooler,
             .facility-grid-all2 .metric-vendor,
             .facility-grid-all2 .metric-ftn,
             .facility-grid-all2 .metric-a-repair {
-                padding: 1.2rem;
-                margin-bottom: 1.2rem;
-                gap: 1.2rem;
+                padding: 1.32rem; /* Scaled up from 1.2rem */
+                margin-bottom: 1.32rem;
+                gap: 1.32rem;
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
-                font-size: 2rem;
-                padding: 0.5rem 1rem;
+                font-size: 2.2rem; /* Scaled up from 2rem */
+                padding: 0.55rem 1.1rem; /* Scaled up */
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production {
-                font-size: 2.5rem;
+                font-size: 2.75rem; /* Scaled up from 2.5rem */
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production span {
-                font-size: 3rem;
+                font-size: 3.3rem; /* Scaled up from 3rem */
             }
         }
     </style>
