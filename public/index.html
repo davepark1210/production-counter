@@ -1151,58 +1151,56 @@
         }
         
         .facility-grid-all2 {
-            display: flex !important; /* Override grid */
+            display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1.5vw;
-            width: 100vw !important; /* Full viewport width, override max-w-6xl */
-            max-width: none !important; /* Remove max-width restriction */
-            padding: 0 !important; /* Remove padding */
-            margin: 0 !important; /* Remove margin */
+            gap: 1.5vw; /* Unchanged gap */
+            width: 100vw; /* Full viewport width */
+            padding: 0; /* Remove padding to eliminate side white space */
+            margin: 0; /* Remove margin */
             height: calc(100vh - 8vh); /* Space for date-time and total production */
             overflow: hidden; /* No scrolling */
-            grid-template-columns: none !important; /* Disable grid columns */
         }
         
         /* Full-width cards for all2 view */
         .facility-grid-all2 .facility-card {
             width: 100vw; /* Full width, no margins */
-            padding: 1.725vw; /* Scaled for readability */
-            border-radius: 9.2px;
-            box-shadow: 0 4.6px 9.2px rgba(0, 0, 0, 0.1);
+            padding: 1.725vw; /* Scaled up from 1.65vw (~15% increase from original 1.5vw) */
+            border-radius: 9.2px; /* Scaled up from 8.8px */
+            box-shadow: 0 4.6px 9.2px rgba(0, 0, 0, 0.1); /* Scaled shadow */
             background: white;
-            border: 0.23vw solid #d1d5db;
+            border: 0.23vw solid #d1d5db; /* Scaled border */
             margin: 0; /* Ensure no card margins */
         }
         
         /* Adjust card content proportionally */
         .facility-grid-all2 .facility-card h2 {
-            font-size: 3.45vw;
+            font-size: 3.45vw; /* Scaled up from 3.3vw (~15% increase from original 3vw) */
             text-align: center;
-            margin-bottom: 0.575rem;
+            margin-bottom: 0.575rem; /* Scaled up from 0.55rem */
             padding-right: 0;
             padding-left: 0;
         }
         
         .facility-grid-all2 .total-production {
-            font-size: 2.875vw;
+            font-size: 2.875vw; /* Scaled up from 2.75vw */
             text-align: center;
         }
         
         .facility-grid-all2 .counter {
-            font-size: 2.875vw;
+            font-size: 2.875vw; /* Scaled up from 2.75vw */
         }
         
         .facility-grid-all2 .text-xl {
-            font-size: 2.3vw;
+            font-size: 2.3vw; /* Scaled up from 2.2vw */
         }
         
         .facility-grid-all2 .text-base {
-            font-size: 1.725vw;
+            font-size: 1.725vw; /* Scaled up from 1.65vw */
         }
         
         .facility-grid-all2 .peak-metric {
-            font-size: 1.38vw;
+            font-size: 1.38vw; /* Scaled up from 1.32vw */
         }
         
         /* Compact metric blocks, scaled */
@@ -1210,54 +1208,52 @@
         .facility-grid-all2 .metric-vendor,
         .facility-grid-all2 .metric-ftn,
         .facility-grid-all2 .metric-a-repair {
-            padding: 1.15rem;
-            margin-bottom: 1.15rem;
-            gap: 1.15rem;
-            border-width: 2.3px;
-            box-shadow: 0 2.3px 4.6px rgba(0, 0, 0, 0.1);
+            padding: 1.15rem; /* Scaled up from 1.1rem */
+            margin-bottom: 1.15rem; /* Scaled up from 1.1rem */
+            gap: 1.15rem; /* Scaled up from 1.1rem */
+            border-width: 2.3px; /* Scaled up from 2.2px */
+            box-shadow: 0 2.3px 4.6px rgba(0, 0, 0, 0.1); /* Scaled shadow */
         }
         
         /* Reduced spacing for metric blocks */
         .facility-grid-all2 .space-y-8 {
             --tw-space-y-reverse: 0;
-            margin-top: calc(1.15rem * calc(1 - var(--tw-space-y-reverse)));
+            margin-top: calc(1.15rem * calc(1 - var(--tw-space-y-reverse))); /* Scaled up from 1.1rem */
             margin-bottom: calc(1.15rem * var(--tw-space-y-reverse));
         }
         
         /* Compact date-time for all2 view */
         .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100vw !important;
-            max-width: none !important;
+            margin: 0; /* Remove parent margin */
+            padding: 0; /* Remove parent padding */
+            width: 100vw; /* Full width */
         }
         
         .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
-            font-size: 1.725rem;
-            padding: 0.575rem 1.15rem;
-            max-width: 90vw;
-            margin: 0.575vh auto;
+            font-size: 1.725rem; /* Scaled up from 1.65rem */
+            padding: 0.575rem 1.15rem; /* Scaled up from 0.55rem 1.1rem */
+            max-width: 90vw; /* Slightly wider for readability */
+            margin: 0.575vh auto; /* Scaled up from 0.55vh */
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            box-shadow: 0 2.3px 4.6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2.3px 4.6px rgba(0, 0, 0, 0.1); /* Scaled shadow */
         }
         
         /* Adjust total production */
         .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 {
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 100vw !important;
-            max-width: none !important;
+            margin: 0; /* Remove parent margin */
+            padding: 0; /* Remove parent padding */
+            width: 100vw; /* Full width */
         }
         
         .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production {
-            font-size: 2.3rem;
-            margin-bottom: 0.575rem;
+            font-size: 2.3rem; /* Scaled up from 2.2rem */
+            margin-bottom: 0.575rem; /* Scaled up from 0.55rem */
         }
         
         .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production span {
-            font-size: 2.875rem;
+            font-size: 2.875rem; /* Scaled up from 2.75rem */
         }
         
         /* Disable hover effects for all2 (consistent with ?view=all) */
@@ -1274,7 +1270,7 @@
         
         .facility-grid-all2 .facility-card.top-performer {
             background: linear-gradient(145deg, rgba(255, 215, 0, 0.1), rgba(255, 245, 157, 0.1)) !important;
-            box-shadow: 0 0 4.6px rgba(255, 215, 0, 0.2) !important;
+            box-shadow: 0 0 4.6px rgba(255, 215, 0, 0.2) !important; /* Scaled shadow */
         }
         
         .facility-grid-all2 .facility-card.second-place {
@@ -1298,32 +1294,32 @@
         /* Media queries for smaller screens */
         @media (max-height: 1080px) {
             .facility-grid-all2 .facility-card {
-                padding: 1.15vw;
-                width: 100vw;
+                padding: 1.15vw; /* Scaled up from 1.1vw */
+                width: 100vw; /* Full width */
             }
             .facility-grid-all2 .facility-card h2 {
-                font-size: 2.875vw;
+                font-size: 2.875vw; /* Scaled up from 2.75vw */
             }
             .facility-grid-all2 .total-production {
-                font-size: 2.3vw;
+                font-size: 2.3vw; /* Scaled up from 2.2vw */
             }
             .facility-grid-all2 .counter {
-                font-size: 2.3vw;
+                font-size: 2.3vw; /* Scaled up from 2.2vw */
             }
             .facility-grid-all2 .text-xl {
-                font-size: 1.725vw;
+                font-size: 1.725vw; /* Scaled up from 1.65vw */
             }
             .facility-grid-all2 .text-base {
-                font-size: 1.38vw;
+                font-size: 1.38vw; /* Scaled up from 1.32vw */
             }
             .facility-grid-all2 .peak-metric {
-                font-size: 1.15vw;
+                font-size: 1.15vw; /* Scaled up from 1.1vw */
             }
             .facility-grid-all2 .metric-cooler,
             .facility-grid-all2 .metric-vendor,
             .facility-grid-all2 .metric-ftn,
             .facility-grid-all2 .metric-a-repair {
-                padding: 0.92rem;
+                padding: 0.92rem; /* Scaled up from 0.88rem */
                 margin-bottom: 0.92rem;
                 gap: 0.92rem;
             }
@@ -1332,70 +1328,70 @@
                 margin-bottom: 0.92rem;
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
-                font-size: 1.38rem;
-                padding: 0.345rem 0.92rem;
+                font-size: 1.38rem; /* Scaled up from 1.32rem */
+                padding: 0.345rem 0.92rem; /* Scaled up */
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production {
-                font-size: 1.725rem;
+                font-size: 1.725rem; /* Scaled up from 1.65rem */
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production span {
-                font-size: 2.3rem;
+                font-size: 2.3rem; /* Scaled up from 2.2rem */
             }
         }
         
         @media (max-width: 1920px) {
             .facility-grid-all2 .facility-card h2 {
-                font-size: 3.234vw;
+                font-size: 3.234vw; /* Scaled up from 3.08vw */
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
-                font-size: 1.5rem;
+                font-size: 1.5rem; /* Scaled up from 1.43rem */
             }
         }
         
         @media (max-width: 640px) {
             .facility-grid-all2 {
-                gap: 2.3vw;
+                gap: 2.3vw; /* Scaled up from 2.2vw */
             }
             .facility-grid-all2 .facility-card {
-                width: 98vw; /* Slight margin for mobile touch */
-                padding: 2.3vw;
+                width: 98vw; /* Slightly reduced for mobile touch */
+                padding: 2.3vw; /* Scaled up from 2.2vw */
             }
             .facility-grid-all2 .facility-card h2 {
-                font-size: 5.75vw;
+                font-size: 5.75vw; /* Scaled up from 5.5vw */
                 white-space: normal;
             }
             .facility-grid-all2 .total-production {
-                font-size: 4.025vw;
+                font-size: 4.025vw; /* Scaled up from 3.85vw */
             }
             .facility-grid-all2 .counter {
-                font-size: 4.025vw;
+                font-size: 4.025vw; /* Scaled up from 3.85vw */
             }
             .facility-grid-all2 .text-xl {
-                font-size: 2.875vw;
+                font-size: 2.875vw; /* Scaled up from 2.75vw */
             }
             .facility-grid-all2 .text-base {
-                font-size: 2.3vw;
+                font-size: 2.3vw; /* Scaled up from 2.2vw */
             }
             .facility-grid-all2 .peak-metric {
-                font-size: 1.725vw;
+                font-size: 1.725vw; /* Scaled up from 1.65vw */
             }
             .facility-grid-all2 .metric-cooler,
             .facility-grid-all2 .metric-vendor,
             .facility-grid-all2 .metric-ftn,
             .facility-grid-all2 .metric-a-repair {
-                padding: 1.38rem;
+                padding: 1.38rem; /* Scaled up from 1.32rem */
                 margin-bottom: 1.38rem;
                 gap: 1.38rem;
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
-                font-size: 2.3rem;
-                padding: 0.575rem 1.15rem;
+                font-size: 2.3rem; /* Scaled up from 2.2rem */
+                padding: 0.575rem 1.15rem; /* Scaled up */
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production {
-                font-size: 2.875rem;
+                font-size: 2.875rem; /* Scaled up from 2.75rem */
             }
             .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production span {
-                font-size: 3.45rem;
+                font-size: 3.45rem; /* Scaled up from 3.3rem */
             }
         }
     </style>
@@ -2192,19 +2188,19 @@
             const facilityCards = facilityGrid.querySelectorAll('.facility-card');
             console.log(`Updating facility grid, selectedFacility: ${selectedFacility}, cards found: ${facilityCards.length}`);
         
-            const focusedClass = isOptimized ? 'facility-card-focused2' : 'facility-card-focused';
+            const focusedClass = isOptimized ? 'facility-card-focused2' : 'facility-card-focused'; // Use new class if optimized
         
             if (selectedFacility) {
                 facilityGrid.classList.add('facility-grid-single');
-                facilityGrid.classList.remove('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'facility-grid-all', 'facility-grid-all2');
+                facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'facility-grid-all', 'facility-grid-all2');
                 body.classList.remove('facility-grid-all-container', 'facility-grid-all2-container');
                 facilityCards.forEach(card => {
                     if (card.id === selectedFacility) {
                         card.style.display = 'block';
-                        card.classList.add(focusedClass);
+                        card.classList.add(focusedClass); // Apply optimized or regular class
                     } else {
                         card.style.display = 'none';
-                        card.classList.remove('facility-card-focused', 'facility-card-focused2');
+                        card.classList.remove('facility-card-focused', 'facility-card-focused2'); // Clean up both
                     }
                 });
         
@@ -2224,12 +2220,12 @@
                 facilityGrid.classList.remove('facility-grid-all', 'facility-grid-all2');
             } else {
                 facilityGrid.classList.remove('facility-grid-single');
-                facilityGrid.classList.remove('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3'); // Explicitly remove grid classes
+                facilityGrid.classList.add(isOptimized ? 'facility-grid-all2' : 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
                 body.classList.add(isOptimized ? 'facility-grid-all2-container' : 'facility-grid-all-container');
                 body.classList.remove(isOptimized ? 'facility-grid-all-container' : 'facility-grid-all2-container');
                 facilityCards.forEach(card => {
                     card.style.display = 'block';
-                    card.classList.remove('facility-card-focused', 'facility-card-focused2');
+                    card.classList.remove('facility-card-focused', 'facility-card-focused2'); // Clean up both
                 });
         
                 // Show all chart data and legends
