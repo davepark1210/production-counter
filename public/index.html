@@ -1145,6 +1145,242 @@
                 height: calc(100vh - 10vh);
             }
         }
+        /* Styles for ?view=all2 to fit all cards without scrolling */
+        .facility-grid-all2 {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5vw; /* Reduced gap */
+            max-width: 100vw;
+            padding: 1vw; /* Minimal padding */
+            margin: 0 auto;
+            height: calc(100vh - 8vh); /* Space for date-time and total production */
+            overflow: hidden; /* No scrolling */
+        }
+        
+        /* Compact cards for all2 view */
+        .facility-grid-all2 .facility-card {
+            width: 90vw; /* Slightly less than full width for padding */
+            padding: 1.5vw; /* Reduced padding */
+            border-radius: 8px; /* Smaller border-radius */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Lighter shadow */
+            background: white;
+            border: 0.2vw solid #d1d5db; /* Thinner border */
+        }
+        
+        /* Adjust card content */
+        .facility-grid-all2 .facility-card h2 {
+            font-size: 3vw; /* Reduced font size */
+            text-align: center; /* Centered for consistency */
+            margin-bottom: 0.5rem;
+            padding-right: 0; /* Remove padding for centering */
+        }
+        
+        .facility-grid-all2 .total-production {
+            font-size: 2.5vw; /* Reduced */
+            text-align: center;
+        }
+        
+        .facility-grid-all2 .counter {
+            font-size: 2.5vw; /* Reduced */
+        }
+        
+        .facility-grid-all2 .text-xl {
+            font-size: 2vw; /* Reduced */
+        }
+        
+        .facility-grid-all2 .text-base {
+            font-size: 1.5vw; /* Reduced */
+        }
+        
+        .facility-grid-all2 .peak-metric {
+            font-size: 1.2vw; /* Reduced */
+        }
+        
+        /* Compact metric blocks */
+        .facility-grid-all2 .metric-cooler,
+        .facility-grid-all2 .metric-vendor,
+        .facility-grid-all2 .metric-ftn,
+        .facility-grid-all2 .metric-a-repair {
+            padding: 1rem; /* Reduced */
+            margin-bottom: 1rem; /* Reduced */
+            gap: 1rem; /* Reduced */
+            border-width: 2px; /* Thinner */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Lighter */
+        }
+        
+        /* Reduced spacing for metric blocks */
+        .facility-grid-all2 .space-y-8 {
+            --tw-space-y-reverse: 0;
+            margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse))); /* Reduced */
+            margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+        }
+        
+        /* Compact date-time for all2 view */
+        .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
+            font-size: 1.5rem; /* Reduced */
+            padding: 0.5rem 1rem; /* Compact */
+            max-width: 80vw;
+            margin: 0.5vh auto; /* Minimal margin */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Lighter shadow */
+        }
+        
+        /* Adjust total production */
+        .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production {
+            font-size: 2rem; /* Reduced */
+            margin-bottom: 0.5rem;
+        }
+        
+        .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production span {
+            font-size: 2.5rem; /* Reduced */
+        }
+        
+        /* Disable hover effects for all2 (consistent with ?view=all) */
+        .facility-grid-all2 .facility-card:hover,
+        .facility-grid-all2 .facility-card.top-performer:hover,
+        .facility-grid-all2 .facility-card.second-place:hover,
+        .facility-grid-all2 .facility-card.third-place:hover {
+            transform: none !important;
+            box-shadow: none !important;
+            background: inherit !important;
+            border-color: #d1d5db !important;
+            cursor: default !important;
+        }
+        
+        .facility-grid-all2 .facility-card.top-performer {
+            background: linear-gradient(145deg, rgba(255, 215, 0, 0.1), rgba(255, 245, 157, 0.1)) !important;
+            box-shadow: 0 0 4px rgba(255, 215, 0, 0.2) !important; /* Lighter shadow */
+        }
+        
+        .facility-grid-all2 .facility-card.second-place {
+            background: linear-gradient(145deg, rgba(192, 192, 192, 0.1), rgba(224, 224, 224, 0.1)) !important;
+            box-shadow: 0 0 4px rgba(192, 192, 192, 0.2) !important;
+        }
+        
+        .facility-grid-all2 .facility-card.third-place {
+            background: linear-gradient(145deg, rgba(205, 127, 50, 0.1), rgba(231, 171, 111, 0.1)) !important;
+            box-shadow: 0 0 4px rgba(205, 127, 50, 0.2) !important;
+        }
+        
+        .facility-grid-all2 .rank-icon:hover {
+            transform: none !important;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        /* Keep tooltips visible on hover */
+        .facility-grid-all2 .counter:hover > .counter-tooltip,
+        .facility-grid-all2 .peak-metric:hover > .peak-tooltip,
+        .facility-grid-all2 .progress-bar:hover > .progress-tooltip,
+        .facility-grid-all2 .rate-container:hover > .rate-tooltip {
+            visibility: visible !important;
+        }
+        
+        /* Media queries for smaller screens */
+        @media (max-height: 1080px) {
+            .facility-grid-all2 .facility-card {
+                padding: 1vw;
+                width: 95vw; /* Slightly tighter */
+            }
+            .facility-grid-all2 .facility-card h2 {
+                font-size: 2.5vw;
+            }
+            .facility-grid-all2 .total-production {
+                font-size: 2vw;
+            }
+            .facility-grid-all2 .counter {
+                font-size: 2vw;
+            }
+            .facility-grid-all2 .text-xl {
+                font-size: 1.5vw;
+            }
+            .facility-grid-all2 .text-base {
+                font-size: 1.2vw;
+            }
+            .facility-grid-all2 .peak-metric {
+                font-size: 1vw;
+            }
+            .facility-grid-all2 .metric-cooler,
+            .facility-grid-all2 .metric-vendor,
+            .facility-grid-all2 .metric-ftn,
+            .facility-grid-all2 .metric-a-repair {
+                padding: 0.8rem;
+                margin-bottom: 0.8rem;
+                gap: 0.8rem;
+            }
+            .facility-grid-all2 .space-y-8 {
+                margin-top: 0.8rem;
+                margin-bottom: 0.8rem;
+            }
+            .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
+                font-size: 1.2rem;
+                padding: 0.3rem 0.8rem;
+            }
+            .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production {
+                font-size: 1.5rem;
+            }
+            .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production span {
+                font-size: 2rem;
+            }
+        }
+        
+        @media (max-width: 1920px) {
+            .facility-grid-all2 .facility-card h2 {
+                font-size: 2.8vw;
+            }
+            .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
+                font-size: 1.3rem;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .facility-grid-all2 {
+                gap: 2vw; /* Slightly larger for touch */
+            }
+            .facility-grid-all2 .facility-card {
+                width: 92vw;
+                padding: 2vw;
+            }
+            .facility-grid-all2 .facility-card h2 {
+                font-size: 5vw; /* Larger for mobile readability */
+                white-space: normal; /* Allow wrapping */
+            }
+            .facility-grid-all2 .total-production {
+                font-size: 3.5vw;
+            }
+            .facility-grid-all2 .counter {
+                font-size: 3.5vw;
+            }
+            .facility-grid-all2 .text-xl {
+                font-size: 2.5vw;
+            }
+            .facility-grid-all2 .text-base {
+                font-size: 2vw;
+            }
+            .facility-grid-all2 .peak-metric {
+                font-size: 1.5vw;
+            }
+            .facility-grid-all2 .metric-cooler,
+            .facility-grid-all2 .metric-vendor,
+            .facility-grid-all2 .metric-ftn,
+            .facility-grid-all2 .metric-a-repair {
+                padding: 1.2rem;
+                margin-bottom: 1.2rem;
+                gap: 1.2rem;
+            }
+            .facility-grid-all2 ~ .w-full.max-w-6xl.mb-4 .date-time-container {
+                font-size: 2rem;
+                padding: 0.5rem 1rem;
+            }
+            .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production {
+                font-size: 2.5rem;
+            }
+            .facility-grid-all2 ~ .w-full.max-w-6xl.mb-6 .main-total-production span {
+                font-size: 3rem;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-6">
@@ -1943,8 +2179,8 @@
         
             if (selectedFacility) {
                 facilityGrid.classList.add('facility-grid-single');
-                facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
-                body.classList.remove('facility-grid-all-container');
+                facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'facility-grid-all', 'facility-grid-all2');
+                body.classList.remove('facility-grid-all-container', 'facility-grid-all2-container');
                 facilityCards.forEach(card => {
                     if (card.id === selectedFacility) {
                         card.style.display = 'block';
@@ -1968,11 +2204,12 @@
                     console.log(`Chart filtered to show only ${selectedFacility} data and legends`);
                 }
                 // Remove class to enable normal hovers
-                facilityGrid.classList.remove('facility-grid-all');
+                facilityGrid.classList.remove('facility-grid-all', 'facility-grid-all2');
             } else {
                 facilityGrid.classList.remove('facility-grid-single');
-                facilityGrid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
-                body.classList.add('facility-grid-all-container');
+                facilityGrid.classList.add(isOptimized ? 'facility-grid-all2' : 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+                body.classList.add(isOptimized ? 'facility-grid-all2-container' : 'facility-grid-all-container');
+                body.classList.remove(isOptimized ? 'facility-grid-all-container' : 'facility-grid-all2-container');
                 facilityCards.forEach(card => {
                     card.style.display = 'block';
                     card.classList.remove('facility-card-focused', 'facility-card-focused2'); // Clean up both
@@ -1986,8 +2223,9 @@
                     productionChart.update();
                     console.log('Chart restored to show all facility data and legends');
                 }
-                // Add class to disable hover effects
-                facilityGrid.classList.add('facility-grid-all');
+                // Apply appropriate grid class
+                facilityGrid.classList.add(isOptimized ? 'facility-grid-all2' : 'facility-grid-all');
+                facilityGrid.classList.remove(isOptimized ? 'facility-grid-all' : 'facility-grid-all2');
             }
         }
         
@@ -2008,8 +2246,9 @@
             const totalProductionDiv = document.getElementById('totalProduction');
             const header = document.querySelector('header');
             const footer = document.querySelector('footer');
-            const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas', 'sellersburg2', 'williamsport2', 'northlasvegas2']; // Added new optimized views
+            const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas', 'sellersburg2', 'williamsport2', 'northlasvegas2', 'all2']; // Added all2
             const dateTimeContainer = document.getElementById('dateTimeDisplay');
+            const facilityGrid = document.getElementById('facilityGrid');
         
             if (viewParam && validViews.includes(viewParam)) {
                 // Hide common elements for all views
@@ -2019,24 +2258,26 @@
                 if (resetAllDataButton) resetAllDataButton.style.display = 'none';
         
                 const graphSection = document.getElementById('graphSection');
-                const isOptimized = viewParam.endsWith('2'); // Flag for new optimized views
+                const isOptimized = viewParam.endsWith('2'); // Flag for optimized views (including all2)
         
-                if (viewParam === 'all') {
-                    // Show all facilities (unchanged)
+                if (viewParam === 'all' || viewParam === 'all2') {
+                    // Show all facilities
                     selectedFacility = '';
                     facilitySelect.value = '';
-                    updateFacilityGrid();
+                    updateFacilityGrid(isOptimized); // Pass isOptimized for all2
                     showNotification('Showing All Facilities');
-                    // Hide footer for All view
+                    // Hide header and footer
                     if (header) header.style.display = 'none';
                     if (footer) footer.style.display = 'none';
-                    // Show total production and chart
+                    // Show total production and chart (for all, not all2)
                     if (totalProductionDiv) totalProductionDiv.style.display = 'block';
-                    if (graphSection) graphSection.style.display = 'block';
+                    if (graphSection) graphSection.style.display = viewParam === 'all' ? 'block' : 'none';
                     // Remove focused view date-time styles
                     if (dateTimeContainer) dateTimeContainer.classList.remove('focused-view-date-time');
-                    // Add class to disable hover effects
-                    facilityGrid.classList.add('facility-grid-all');
+                    // Apply appropriate grid class
+                    facilityGrid.classList.remove('facility-grid-all', 'facility-grid-all2');
+                    facilityGrid.classList.add(viewParam === 'all2' ? 'facility-grid-all2' : 'facility-grid-all');
+                    document.body.classList.add(viewParam === 'all2' ? 'facility-grid-all2-container' : 'facility-grid-all-container');
                 } else {
                     // Facility-specific view
                     const baseView = viewParam.replace('2', ''); // Strip '2' for mapping
@@ -2047,18 +2288,18 @@
                     };
                     selectedFacility = facilityMap[baseView];
                     facilitySelect.value = selectedFacility;
-                    // Pass the isOptimized flag to updateFacilityGrid
                     updateFacilityGrid(isOptimized);
                     showNotification(`Showing ${facilitySelect.options[facilitySelect.selectedIndex].text}`);
-                    // Hide total production, header, footer, and chart for facility views
+                    // Hide total production, header, footer, and chart
                     if (totalProductionDiv) totalProductionDiv.style.display = 'none';
                     if (header) header.style.display = 'none';
                     if (footer) footer.style.display = 'none';
                     if (graphSection) graphSection.style.display = 'none';
                     // Apply focused view date-time styles
                     if (dateTimeContainer) dateTimeContainer.classList.add('focused-view-date-time');
-                    // Remove class to enable normal hovers (if needed)
-                    facilityGrid.classList.remove('facility-grid-all');
+                    // Remove grid classes
+                    facilityGrid.classList.remove('facility-grid-all', 'facility-grid-all2');
+                    document.body.classList.remove('facility-grid-all-container', 'facility-grid-all2-container');
                 }
             }
         }
