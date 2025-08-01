@@ -937,6 +937,159 @@
                 right: 12px;
             }
         }
+        /* New optimized focused view styles - only for ?view=xxx2 links */
+        .facility-card-focused2.facility-card {
+            width: 100vw; /* Full width */
+            height: 100vh; /* Full height, no offset */
+            padding: 2vw; /* Reduced proportional padding */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 87, 184, 0.6); /* Lighter shadow */
+            border: 0.3vw solid #003087; /* Thinner border */
+            transform: none !important;
+            transition: none !important;
+            z-index: 20;
+            background: linear-gradient(145deg, #ffffff, #c3daff);
+            margin: 0 auto; /* No top margin */
+            position: relative;
+            box-sizing: border-box;
+            overflow: hidden; /* Prevent scrolling, content will scale */
+        }
+        
+        .facility-card-focused2.facility-card:hover {
+            transform: none !important;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 87, 184, 0.6) !important;
+            background: linear-gradient(145deg, #ffffff, #c3daff) !important;
+            border-color: #003087 !important;
+        }
+        
+        .facility-card-focused2 h2 {
+            font-size: 4vw; /* Reduced for better fit */
+            color: #003087;
+            white-space: nowrap;
+            padding-right: 6vw; /* Reduced padding */
+            line-height: 1.1;
+        }
+        
+        .facility-card-focused2 .total-production {
+            font-size: 5vw; /* Reduced */
+            color: #1e40af;
+        }
+        
+        .facility-card-focused2 .counter {
+            font-size: 5vw; /* Reduced */
+        }
+        
+        .facility-card-focused2 .text-xl {
+            font-size: 3vw; /* Reduced */
+        }
+        
+        .facility-card-focused2 .text-base {
+            font-size: 2.5vw; /* Reduced */
+        }
+        
+        .facility-card-focused2 .peak-metric {
+            font-size: 2vw; /* Reduced */
+        }
+        
+        .facility-card-focused2 .back-button {
+            display: block;
+            font-size: 2vw; /* Reduced */
+            padding: 1vw 2vw; /* Reduced */
+        }
+        
+        /* Reduced spacing for metric blocks in optimized focused views */
+        .facility-card-focused2 .space-y-8 {
+            --tw-space-y-reverse: 0;
+            margin-top: calc(3rem * calc(1 - var(--tw-space-y-reverse))); /* Reduced from 7rem */
+            margin-bottom: calc(3rem * var(--tw-space-y-reverse));
+        }
+        
+        /* Adjusted metric blocks for better fit */
+        .facility-card-focused2 .metric-cooler,
+        .facility-card-focused2 .metric-vendor,
+        .facility-card-focused2 .metric-ftn,
+        .facility-card-focused2 .metric-a-repair {
+            margin-bottom: 1.5rem; /* Reduced */
+            padding: 1.5rem; /* Reduced */
+            gap: 2rem; /* Reduced */
+            border-width: 3px; /* Thinner */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Lighter shadow */
+        }
+        
+        /* Adjust date-time for optimized views to fit without pushing content down */
+        .facility-card-focused2 ~ .w-full.max-w-6xl.mb-4 .focused-view-date-time {
+            font-size: 2.5rem; /* Reduced from 4rem */
+            padding: 1rem 2rem; /* Reduced */
+            top: 1vh; /* Closer to top */
+            max-width: 80vw; /* Smaller width */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; /* Prevent overflow */
+        }
+        
+        /* Media queries for smaller screens (e.g., 1080p or less) in optimized views */
+        @media (max-height: 1080px) {
+            .facility-card-focused2.facility-card {
+                padding: 1vw; /* Further reduce padding */
+            }
+            .facility-card-focused2 h2 {
+                font-size: 3.5vw; /* Smaller */
+            }
+            .facility-card-focused2 .total-production {
+                font-size: 4.5vw;
+            }
+            .facility-card-focused2 .counter {
+                font-size: 4vw;
+            }
+            .facility-card-focused2 .text-xl {
+                font-size: 2.5vw;
+            }
+            .facility-card-focused2 .text-base {
+                font-size: 2vw;
+            }
+            .facility-card-focused2 .peak-metric {
+                font-size: 1.5vw;
+            }
+            .facility-card-focused2 .metric-cooler,
+            .facility-card-focused2 .metric-vendor,
+            .facility-card-focused2 .metric-ftn,
+            .facility-card-focused2 .metric-a-repair {
+                margin-bottom: 1rem;
+                padding: 1rem;
+                gap: 1.5rem;
+            }
+            .facility-card-focused2 .space-y-8 {
+                margin-top: 2rem;
+                margin-bottom: 2rem;
+            }
+            .facility-card-focused2 ~ .w-full.max-w-6xl.mb-4 .focused-view-date-time {
+                font-size: 2rem;
+                padding: 0.5rem 1rem;
+            }
+        }
+        
+        @media (max-width: 1920px) { /* For 1080p width or less */
+            .facility-card-focused2 h2 {
+                font-size: 3vw; /* Even smaller adjustment */
+            }
+            /* Add similar reductions as above if needed */
+        }
+        
+        @media (max-width: 640px) { /* Enhance existing mobile query for optimized views */
+            .facility-card-focused2.facility-card {
+                padding: 3vw; /* Slightly larger than desktop reduction for touch */
+                height: auto; /* Allow content-driven on very small, but hidden overflow prevents scroll */
+            }
+            .facility-card-focused2 h2 {
+                font-size: 6vw; /* Adjusted from existing 8vw */
+                white-space: normal; /* Allow wrap */
+            }
+            .facility-card-focused2 .counter {
+                font-size: 7vw; /* Reduced from 9vw */
+            }
+            .facility-card-focused2 ~ .w-full.max-w-6xl.mb-4 .focused-view-date-time {
+                font-size: 3rem; /* Reduced */
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-6">
@@ -1721,7 +1874,7 @@
             showNotification(`Showing ${selectedFacility ? facilitySelect.options[facilitySelect.selectedIndex].text : 'All Facilities'}`);
         });
         
-        function updateFacilityGrid() {
+        function updateFacilityGrid(isOptimized = false) {
             const facilityGrid = document.getElementById('facilityGrid');
             const body = document.body;
             if (!facilityGrid) {
@@ -1731,6 +1884,8 @@
             const facilityCards = facilityGrid.querySelectorAll('.facility-card');
             console.log(`Updating facility grid, selectedFacility: ${selectedFacility}, cards found: ${facilityCards.length}`);
         
+            const focusedClass = isOptimized ? 'facility-card-focused2' : 'facility-card-focused'; // Use new class if optimized
+        
             if (selectedFacility) {
                 facilityGrid.classList.add('facility-grid-single');
                 facilityGrid.classList.remove('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
@@ -1738,10 +1893,10 @@
                 facilityCards.forEach(card => {
                     if (card.id === selectedFacility) {
                         card.style.display = 'block';
-                        card.classList.add('facility-card-focused');
+                        card.classList.add(focusedClass); // Apply optimized or regular class
                     } else {
                         card.style.display = 'none';
-                        card.classList.remove('facility-card-focused');
+                        card.classList.remove('facility-card-focused', 'facility-card-focused2'); // Clean up both
                     }
                 });
         
@@ -1765,7 +1920,7 @@
                 body.classList.add('facility-grid-all-container');
                 facilityCards.forEach(card => {
                     card.style.display = 'block';
-                    card.classList.remove('facility-card-focused');
+                    card.classList.remove('facility-card-focused', 'facility-card-focused2'); // Clean up both
                 });
         
                 // Show all chart data and legends
@@ -1798,7 +1953,7 @@
             const totalProductionDiv = document.getElementById('totalProduction');
             const header = document.querySelector('header');
             const footer = document.querySelector('footer');
-            const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas'];
+            const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas', 'sellersburg2', 'williamsport2', 'northlasvegas2']; // Added new optimized views
             const dateTimeContainer = document.getElementById('dateTimeDisplay');
         
             if (viewParam && validViews.includes(viewParam)) {
@@ -1809,9 +1964,10 @@
                 if (resetAllDataButton) resetAllDataButton.style.display = 'none';
         
                 const graphSection = document.getElementById('graphSection');
+                const isOptimized = viewParam.endsWith('2'); // Flag for new optimized views
         
                 if (viewParam === 'all') {
-                    // Show all facilities
+                    // Show all facilities (unchanged)
                     selectedFacility = '';
                     facilitySelect.value = '';
                     updateFacilityGrid();
@@ -1828,14 +1984,16 @@
                     facilityGrid.classList.add('facility-grid-all');
                 } else {
                     // Facility-specific view
+                    const baseView = viewParam.replace('2', ''); // Strip '2' for mapping
                     const facilityMap = {
                         'sellersburg': 'Sellersburg_Certified_Center',
                         'williamsport': 'Williamsport_Certified_Center',
                         'northlasvegas': 'North_Las_Vegas_Certified_Center'
                     };
-                    selectedFacility = facilityMap[viewParam];
+                    selectedFacility = facilityMap[baseView];
                     facilitySelect.value = selectedFacility;
-                    updateFacilityGrid();
+                    // Pass the isOptimized flag to updateFacilityGrid
+                    updateFacilityGrid(isOptimized);
                     showNotification(`Showing ${facilitySelect.options[facilitySelect.selectedIndex].text}`);
                     // Hide total production, header, footer, and chart for facility views
                     if (totalProductionDiv) totalProductionDiv.style.display = 'none';
