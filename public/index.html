@@ -94,7 +94,7 @@
             line-height: 1.1; /* Slightly increased for spacing */
         }
         .facility-card-focused .total-production {
-            font-size: 6vw; /* Proportional */
+            font-size: 8vw; /* Proportional */
             color: #1e40af;
         }
         .facility-card-focused .counter {
@@ -521,7 +521,7 @@
             font-weight: 700;
             color: #1e40af;
             text-align: center;
-            line-height: 1;
+            line-height: 1.2;
         }
         .total-production span {
             transition: transform 0.3s ease, color 0.3s ease;
@@ -2133,24 +2133,22 @@
                     } else if (targetPercentages && targetPercentages[facility] !== undefined) {
                         const percentage = Math.round(Number(targetPercentages[facility])) || 0;
                         targetPercentageElement.textContent = percentage;
-                        
+                       
                         // Remove existing color classes
-                        targetPercentageElement.classList.remove('text-red-600', 'text-yellow-600', 'text-green-600');
-                        
+                        targetPercentageElement.classList.remove('text-red-600', 'text-green-600');
+                       
                         // Apply color class based on percentage
-                        if (percentage < 50) {
+                        if (percentage < 100) {
                             targetPercentageElement.classList.add('text-red-600');
-                        } else if (percentage >= 50 && percentage < 80) {
-                            targetPercentageElement.classList.add('text-yellow-600');
                         } else {
                             targetPercentageElement.classList.add('text-green-600');
                         }
-                        
+                       
                         console.log(`Updated ${facility} target percentage to ${percentage}% with color class`);
                     } else {
                         console.warn(`Target percentages data missing for ${facility}. Full targetPercentages:`, targetPercentages);
                         targetPercentageElement.textContent = '0';
-                        targetPercentageElement.classList.remove('text-red-600', 'text-yellow-600', 'text-green-600');
+                        targetPercentageElement.classList.remove('text-red-600', 'text-green-600');
                         targetPercentageElement.classList.add('text-red-600'); // Default to red for 0%
                     }
         
