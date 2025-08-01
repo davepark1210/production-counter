@@ -65,57 +65,246 @@
         .facility-card.rank-changed {
             animation: slide 0.8s ease-in-out forwards;
         }
+        /* Existing focused card styles for ?view=sellersburg, etc. */
         .facility-card-focused.facility-card {
             width: 100vw; /* Full viewport width */
-            height: calc(100vh - 10vh); /* Full height minus date-time offset */
-            padding: 5vw; /* Proportional padding */
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7); /* Strong shadow */
-            border: 0.5vw solid #003087; /* Proportional border */
+            height: auto; /* Content-driven height */
+            max-height: calc(100vh - 8vh); /* Ensure it fits within viewport minus date-time */
+            padding: 4vw; /* Reduced proportional padding */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 87, 184, 0.6); /* Adjusted shadow */
+            border: 0.4vw solid #003087; /* Slightly thinner border */
             transform: none !important; /* No transform */
             transition: none !important; /* No transitions */
             z-index: 20;
             background: linear-gradient(145deg, #ffffff, #c3daff); /* Bold gradient */
-            margin: 10vh auto 0; /* Dynamic offset for date-time */
+            margin: 8vh auto 0; /* Adjusted offset for date-time */
             position: relative;
             box-sizing: border-box;
-            overflow: auto; /* Allow scrolling if content overflows */
+            overflow: hidden; /* Prevent scrolling */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Center content vertically */
         }
+        
         .facility-card-focused.facility-card:hover {
             transform: none !important; /* No hover scaling */
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 87, 184, 0.7) !important; /* Same shadow */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 87, 184, 0.6) !important; /* Same shadow */
             background: linear-gradient(145deg, #ffffff, #c3daff) !important; /* Same gradient */
             border-color: #003087 !important; /* Same border */
         }
+        
         .facility-card-focused h2 {
-            font-size: 6vw; /* Proportional to viewport width */
+            font-size: 5vw; /* Slightly smaller for better fit */
             color: #003087;
-            white-space: nowrap; /* Prevent text wrapping */
-            padding-right: 8vw; /* Proportional padding */
-            line-height: 1.1; /* Slightly increased for spacing */
+            white-space: normal; /* Allow wrapping for small screens */
+            padding-right: 6vw; /* Reduced padding */
+            line-height: 1.2; /* Adjusted for readability */
         }
+        
         .facility-card-focused .total-production {
-            font-size: 7.5vw; /* Proportional */
+            font-size: 6vw; /* Adjusted for better fit */
             color: #1e40af;
         }
+        
         .facility-card-focused .counter {
-            font-size: 7vw; /* Proportional for visibility */
+            font-size: 5.5vw; /* Adjusted for better fit */
         }
+        
         .facility-card-focused .text-xl {
-            font-size: 4.5vw; /* Proportional */
+            font-size: 4vw; /* Adjusted for better fit */
         }
+        
         .facility-card-focused .text-base {
-            font-size: 3.5vw; /* Proportional */
+            font-size: 3vw; /* Adjusted for better fit */
         }
+        
         .facility-card-focused .peak-metric {
-            font-size: 3vw; /* Proportional */
+            font-size: 2.5vw; /* Adjusted for better fit */
         }
+        
         .facility-card-focused .back-button {
             display: block;
-            font-size: 3vw; /* Proportional */
-            padding: 1.5vw 3vw; /* Proportional */
+            font-size: 2.5vw; /* Adjusted for better fit */
+            padding: 1vw 2vw; /* Adjusted for better fit */
         }
-        .back-button {
-            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+        
+        /* New fullscreen card styles for ?view=sellersburg2, etc. */
+        .facility-card-focused-fullscreen.facility-card {
+            width: 100vw; /* Full viewport width */
+            height: auto; /* Content-driven height */
+            max-height: 100vh; /* Ensure it fits within viewport */
+            padding: 3vmin; /* Use vmin for consistent scaling */
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 87, 184, 0.5); /* Lighter shadow */
+            border: 0.3vmin solid #003087; /* Thinner, viewport-based border */
+            transform: none !important; /* No transform */
+            transition: none !important; /* No transitions */
+            z-index: 20;
+            background: linear-gradient(145deg, #ffffff, #c3daff); /* Same gradient */
+            margin: 0 auto; /* No top margin; date-time handled separately */
+            position: relative;
+            box-sizing: border-box;
+            overflow: hidden; /* Prevent scrolling */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Center content vertically */
+        }
+        
+        .facility-card-focused-fullscreen.facility-card:hover {
+            transform: none !important; /* No hover scaling */
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 87, 184, 0.5) !important; /* Same shadow */
+            background: linear-gradient(145deg, #ffffff, #c3daff) !important; /* Same gradient */
+            border-color: #003087 !important; /* Same border */
+        }
+        
+        .facility-card-focused-fullscreen h2 {
+            font-size: 4.5vmin; /* Viewport-based for scaling */
+            color: #003087;
+            white-space: normal; /* Allow wrapping */
+            padding-right: 4vmin;
+            line-height: 1.3; /* Better readability */
+        }
+        
+        .facility-card-focused-fullscreen .total-production {
+            font-size: 5vmin; /* Adjusted for scaling */
+            color: #1e40af;
+        }
+        
+        .facility-card-focused-fullscreen .counter {
+            font-size: 5vmin; /* Adjusted for scaling */
+        }
+        
+        .facility-card-focused-fullscreen .text-xl {
+            font-size: 3.5vmin; /* Adjusted for scaling */
+        }
+        
+        .facility-card-focused-fullscreen .text-base {
+            font-size: 2.5vmin; /* Adjusted for scaling */
+        }
+        
+        .facility-card-focused-fullscreen .peak-metric {
+            font-size: 2vmin; /* Adjusted for scaling */
+        }
+        
+        .facility-card-focused-fullscreen .back-button {
+            display: block;
+            font-size: 2vmin; /* Adjusted for scaling */
+            padding: 0.8vmin 1.6vmin; /* Adjusted for scaling */
+        }
+        
+        .facility-card-focused-fullscreen .space-y-8 {
+            margin-top: calc(4vmin); /* Viewport-based spacing */
+            margin-bottom: calc(4vmin);
+        }
+        
+        .facility-card-focused-fullscreen .metric-cooler,
+        .facility-card-focused-fullscreen .metric-vendor,
+        .facility-card-focused-fullscreen .metric-ftn,
+        .facility-card-focused-fullscreen .metric-a-repair {
+            margin-bottom: 2vmin; /* Reduced viewport-based spacing */
+            padding: 2vmin; /* Reduced padding */
+            gap: 2.5vmin; /* Reduced gap */
+            border-width: 0.4vmin; /* Viewport-based border */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Lighter shadow */
+        }
+        
+        /* Media query for portrait orientation (e.g., 28-inch 1080p vertical display) */
+        @media (orientation: portrait) {
+            .facility-card-focused-fullscreen.facility-card {
+                padding: 2vmin; /* Further reduced padding */
+                max-height: 100vh; /* Ensure full fit */
+            }
+        
+            .facility-card-focused-fullscreen h2 {
+                font-size: 4vmin; /* Smaller for portrait */
+            }
+        
+            .facility-card-focused-fullscreen .total-production {
+                font-size: 4.5vmin;
+            }
+        
+            .facility-card-focused-fullscreen .counter {
+                font-size: 4.5vmin;
+            }
+        
+            .facility-card-focused-fullscreen .text-xl {
+                font-size: 3vmin;
+            }
+        
+            .facility-card-focused-fullscreen .text-base {
+                font-size: 2vmin;
+            }
+        
+            .facility-card-focused-fullscreen .peak-metric {
+                font-size: 1.8vmin;
+            }
+        
+            .facility-card-focused-fullscreen .space-y-8 {
+                margin-top: 3vmin;
+                margin-bottom: 3vmin;
+            }
+        
+            .facility-card-focused-fullscreen .metric-cooler,
+            .facility-card-focused-fullscreen .metric-vendor,
+            .facility-card-focused-fullscreen .metric-ftn,
+            .facility-card-focused-fullscreen .metric-a-repair {
+                margin-bottom: 1.5vmin;
+                padding: 1.5vmin;
+                gap: 2vmin;
+            }
+        }
+        
+        /* Media query for landscape orientation */
+        @media (orientation: landscape) {
+            .facility-card-focused-fullscreen.facility-card {
+                padding: 3vmin; /* Slightly more padding in landscape */
+            }
+        
+            .facility-card-focused-fullscreen h2 {
+                font-size: 4.5vmin;
+            }
+        
+            .facility-card-focused-fullscreen .total-production {
+                font-size: 5vmin;
+            }
+        
+            .facility-card-focused-fullscreen .counter {
+                font-size: 5vmin;
+            }
+        
+            .facility-card-focused-fullscreen .text-xl {
+                font-size: 3.5vmin;
+            }
+        
+            .facility-card-focused-fullscreen .text-base {
+                font-size: 2.5vmin;
+            }
+        
+            .facility-card-focused-fullscreen .peak-metric {
+                font-size: 2vmin;
+            }
+        
+            .facility-card-focused-fullscreen .space-y-8 {
+                margin-top: 4vmin;
+                margin-bottom: 4vmin;
+            }
+        
+            .facility-card-focused-fullscreen .metric-cooler,
+            .facility-card-focused-fullscreen .metric-vendor,
+            .facility-card-focused-fullscreen .metric-ftn,
+            .facility-card-focused-fullscreen .metric-a-repair {
+                margin-bottom: 2vmin;
+                padding: 2vmin;
+                gap: 2.5vmin;
+            }
+        }
+        
+        /* Ensure date-time container is compact for fullscreen views */
+        .focused-view-date-time {
+            font-size: 2.5vmin; /* Smaller, viewport-based */
+            padding: 1vmin 2vmin;
+            border-radius: 8px;
+            top: 1vh; /* Minimal top spacing */
+            max-width: 95vw; /* Allow more width flexibility */
         }
         .back-button:hover {
             background-color: #003087;
@@ -1728,6 +1917,7 @@
                 console.error('Facility grid not found during updateFacilityGrid');
                 return;
             }
+        
             const facilityCards = facilityGrid.querySelectorAll('.facility-card');
             console.log(`Updating facility grid, selectedFacility: ${selectedFacility}, cards found: ${facilityCards.length}`);
         
@@ -1798,8 +1988,8 @@
             const totalProductionDiv = document.getElementById('totalProduction');
             const header = document.querySelector('header');
             const footer = document.querySelector('footer');
-            const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas'];
-            const dateTimeContainer = document.getElementById('dateTimeDisplay');
+            const validViews = ['all', 'sellersburg', 'williamsport', 'northlasvegas', 'sellersburg2', 'williamsport2', 'northlasvegas2'];
+            const dateTimeContainer = document.getElementById('dateTimeContainer');
         
             if (viewParam && validViews.includes(viewParam)) {
                 // Hide common elements for all views
@@ -1831,11 +2021,14 @@
                     const facilityMap = {
                         'sellersburg': 'Sellersburg_Certified_Center',
                         'williamsport': 'Williamsport_Certified_Center',
-                        'northlasvegas': 'North_Las_Vegas_Certified_Center'
+                        'northlasvegas': 'North_Las_Vegas_Certified_Center',
+                        'sellersburg2': 'Sellersburg_Certified_Center',
+                        'williamsport2': 'Williamsport_Certified_Center',
+                        'northlasvegas2': 'North_Las_Vegas_Certified_Center'
                     };
                     selectedFacility = facilityMap[viewParam];
                     facilitySelect.value = selectedFacility;
-                    updateFacilityGrid();
+                    updateFacilityGrid(viewParam.includes('2') ? 'facility-card-focused-fullscreen' : 'facility-card-focused');
                     showNotification(`Showing ${facilitySelect.options[facilitySelect.selectedIndex].text}`);
                     // Hide total production, header, footer, and chart for facility views
                     if (totalProductionDiv) totalProductionDiv.style.display = 'none';
