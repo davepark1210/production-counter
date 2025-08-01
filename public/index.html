@@ -670,51 +670,51 @@
             box-sizing: border-box; /* Include padding in width */
         }
         .metric-cooler {
-            border: 2px solid rgba(54, 162, 235, 0.8); /* Thicker border with increased opacity */
-            border-radius: 8px; /* Slightly larger border-radius for prominence */
-            padding: 1.5rem; /* Increased padding for more internal space */
-            margin-bottom: 1.5rem; /* Increased margin for more spacing between sections */
+            border: 4px solid #36a2eb; /* Thicker, fully opaque border for maximum contrast */
+            border-radius: 12px; /* Larger border-radius for softer, prominent look */
+            padding: 2rem; /* Increased padding for more internal space */
+            margin-bottom: 2.5rem; /* Further increased margin for more vertical separation */
             background-color: rgba(54, 162, 235, 0.05);
             display: flex;
             flex-direction: column;
-            gap: 2.5rem; /* Increased internal gap for better separation */
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+            gap: 3.5rem; /* Increased internal gap for better separation */
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* Stronger shadow for static depth */
         }
         
         .metric-vendor {
-            border: 2px solid rgba(75, 192, 192, 0.8); /* Thicker border with increased opacity */
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            border: 4px solid #4bc0c0;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
             background-color: rgba(75, 192, 192, 0.05);
             display: flex;
             flex-direction: column;
-            gap: 2.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            gap: 3.5rem;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
         }
         
         .metric-ftn {
-            border: 2px solid rgba(255, 99, 132, 0.8); /* Thicker border with increased opacity */
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            border: 4px solid #ff6384;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
             background-color: rgba(255, 99, 132, 0.05);
             display: flex;
             flex-direction: column;
-            gap: 2.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            gap: 3.5rem;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
         }
         
         .metric-a-repair {
-            border: 2px solid rgba(255, 159, 64, 0.8); /* Thicker border with increased opacity */
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            border: 4px solid #ff9f40;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
             background-color: rgba(255, 159, 64, 0.05);
             display: flex;
             flex-direction: column;
-            gap: 2.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            gap: 3.5rem;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
         }
         
         .metric-cooler .flex.justify-between.items-center,
@@ -731,18 +731,20 @@
         /* Increased spacing for metric blocks in focused views */
         .facility-card-focused .space-y-8 {
             --tw-space-y-reverse: 0;
-            margin-top: calc(5rem * calc(1 - var(--tw-space-y-reverse))); /* Increased spacing */
-            margin-bottom: calc(5rem * var(--tw-space-y-reverse));
+            margin-top: calc(7rem * calc(1 - var(--tw-space-y-reverse))); /* Further increased spacing */
+            margin-bottom: calc(7rem * var(--tw-space-y-reverse));
         }
         
-        /* Ensure consistent spacing in focused views */
+        /* Ensure consistent spacing and enhanced borders in focused views */
         .facility-card-focused .metric-cooler,
         .facility-card-focused .metric-vendor,
         .facility-card-focused .metric-ftn,
         .facility-card-focused .metric-a-repair {
-            margin-bottom: 2rem; /* Further increased spacing in focused view */
-            padding: 2rem; /* Larger padding for focused view */
-            gap: 3rem; /* Larger internal gap for focused view */
+            margin-bottom: 3rem; /* Even more spacing in focused view */
+            padding: 3rem; /* Larger padding for focused view */
+            gap: 4rem; /* Larger internal gap for focused view */
+            border-width: 5px; /* Thicker border in focused view */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25); /* Stronger shadow in focused view */
         }
         /* Disable all hover effects, including highlighting, enlarging, or any visual changes, for ?view=all */
         .facility-grid-all .facility-card:hover,
