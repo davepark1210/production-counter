@@ -1394,6 +1394,12 @@
                 font-size: 3.45rem; /* Scaled up from 3.3rem */
             }
         }
+        /* Specific adjustment for North Las Vegas in focused view to reduce font size and allow wrapping */
+        .facility-card-focused#North_Las_Vegas_Certified_Center h2 {
+            font-size: 4.5vw; /* Reduced from 6vw to fit longer title */
+            white-space: normal; /* Allow text wrapping to prevent cutoff */
+            padding-right: 4vw; /* Reduced padding to give more space */
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center p-6">
