@@ -29,9 +29,9 @@ function debounce(func, wait) {
 const debouncedBroadcast = debounce(broadcastUpdate, 5000);  // 5-second debounce
 const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
 const dailyTargets = {
-  'Sellersburg_Certified_Center': 105,
-  'Williamsport_Certified_Center': 130,
-  'North_Las_Vegas_Certified_Center': 70
+  'Sellersburg_Certified_Center': 120,
+  'Williamsport_Certified_Center': 133,
+  'North_Las_Vegas_Certified_Center': 80
 };
 let currentDate = null; // Will be set by client for UI purposes
 let lastMilestone = 0;
