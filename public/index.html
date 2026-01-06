@@ -2064,7 +2064,13 @@
             initializeChart();
         });
 
-        // Real-time clock update
+        // Detect if user is in Las Vegas (Pacific) time zone
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const isLasVegasTimeZone = userTimeZone === 'America/Los_Angeles';
+        let displayTimeZone = isLasVegasTimeZone ? 'America/Los_Angeles' : undefined; // undefined = use browser local
+        let timeZoneLabel = isLasVegasTimeZone ? ' (Las Vegas Time)' : ' (Local Time)';
+        
+        // Real-time clock update — conditionally use Las Vegas time
         function updateDateTime() {
             try {
                 const now = new Date();
@@ -2076,20 +2082,26 @@
                     minute: '2-digit',
                     second: '2-digit',
                     hour12: true,
-                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    timeZone: displayTimeZone
                 };
+                const formattedTime = now.toLocaleString('en-US', options);
+        
                 const dateTimeDisplay = document.getElementById('dateTimeDisplay');
                 if (dateTimeDisplay) {
-                    dateTimeDisplay.textContent = now.toLocaleString(undefined, options);
-                } else {
-                    console.error('Date/time display element not found');
+                    dateTimeDisplay.textContent = formattedTime + timeZoneLabel;
+                }
+        
+                // Update chart x-axis title to match
+                if (productionChart && productionChart.options && productionChart.options.scales && productionChart.options.scales.x) {
+                    productionChart.options.scales.x.title.text = `Hour of Day${timeZoneLabel}`;
+                    productionChart.update('none'); // Quiet update, no animation
                 }
             } catch (err) {
                 console.error('Error in updateDateTime:', err);
             }
         }
-        updateDateTime(); // Call immediately
-        setInterval(updateDateTime, 1000);
+        updateDateTime(); // Initial call
+        setInterval(updateDateTime, 1000); // Update every second
 
         // Display notification
         function showNotification(message) {
@@ -2542,10 +2554,16 @@
             
             try {
                 updateDateTime();
+                // Use the same display time zone for consistency in forecast and partial hour calc
                 const now = new Date();
-                const currentHour = now.getHours();
-                const currentMinutes = now.getMinutes();
-                const timezoneOffsetHours = now.getTimezoneOffset() / 60;
+                const displayOptions = { timeZone: displayTimeZone, hour12: false, hour: 'numeric', minute: 'numeric' };
+                const displayFormatter = new Intl.DateTimeFormat('en-US', displayOptions);
+                const parts = displayFormatter.formatToParts(now);
+                const currentHour = parseInt(parts.find(p => p.type === 'hour').value);
+                const currentMinutes = parseInt(parts.find(p => p.type === 'minute').value);
+                
+                // For UTC offset (used only if needed for shifting — but we'll use direct conversion below)
+                const utcOffsetMinutes = displayTimeZone ? new Date().getTimezoneOffset() : now.getTimezoneOffset(); // Approximate, but we use direct method below
                 console.log(`Current local hour: ${currentHour}, Minutes: ${currentMinutes}, Timezone offset: ${timezoneOffsetHours} hours`);
         
                 // Calculate total production and target percentage for sorting
@@ -2813,7 +2831,6 @@
                 // Update chart
                 if (hourlyRates['Sellersburg_Certified_Center'] && hourlyRates['Williamsport_Certified_Center'] && hourlyRates['North_Las_Vegas_Certified_Center']) {
                     console.log('Raw hourly rates data (UTC):', hourlyRates);
-                    console.log(`Client timezone offset in hours: ${timezoneOffsetHours}`);
                     if (productionChart && productionChart.data && productionChart.data.datasets) {
                         productionChart.data.datasets.forEach((dataset, index) => {
                             let facility, line;
@@ -2830,13 +2847,25 @@
                             }
                             const rawData = hourlyRates[facility][line] || Array(24).fill(0);
                             const shiftedData = Array(24).fill(0);
+                
+                            // Shift UTC hours → displayed time zone (Las Vegas if in Pacific, otherwise browser local)
                             for (let i = 0; i < 24; i++) {
                                 const utcHour = i;
-                                const localHour = (utcHour - timezoneOffsetHours + 24) % 24;
-                                shiftedData[localHour] = rawData[i];
+                                const tempDate = new Date(Date.UTC(2020, 0, 1, utcHour));
+                                const displayHourStr = tempDate.toLocaleString('en-US', {
+                                    timeZone: displayTimeZone,
+                                    hour: 'numeric',
+                                    hour12: false
+                                });
+                                const displayHour = parseInt(displayHourStr);
+                                shiftedData[displayHour] += rawData[i];
                             }
-                            const currentLocalHour = (currentHour - timezoneOffsetHours + 24) % 24;
-                            shiftedData[currentLocalHour] = shiftedData[currentLocalHour] * (currentMinutes / 60);
+                
+                            // Apply partial current hour fraction
+                            if (currentHour >= 0 && currentHour < 24) {
+                                shiftedData[currentHour] *= (currentMinutes / 60);
+                            }
+                
                             dataset.data = shiftedData;
                             dataset.hidden = false;
                             console.log(`Updated ${dataset.label}:`, shiftedData);
