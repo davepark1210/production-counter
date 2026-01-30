@@ -3,17 +3,16 @@ const WebSocket = require('ws');
 const { Pool } = require('pg');
 const app = express();
 
-// PostgreSQL configuration (Neon.tech)
+// PostgreSQL configuration (Supabase)
+// We use 'connectionString' to handle all details (host, user, pass) in one go.
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:ENsy2GrmOFokLBh2@db.srrplydwpxtnuczohwwh.supabase.co:5432/postgres';
+
 const pool = new Pool({
-  host: process.env.PGHOST || 'ep-falling-tree-a58of1lj-pooler.us-east-2.aws.neon.tech',
-  user: process.env.PGUSER || 'neondb_owner',
-  password: process.env.PGPASSWORD || 'npg_4Vw0dKkJeILi',
-  database: process.env.PGDATABASE || 'neondb',
-  port: process.env.PGPORT || 5432,
-  ssl: { rejectUnauthorized: false },
-  max: 10,  // Limit pool size to avoid over-scaling
-  idleTimeoutMillis: 1000,  // Close idle connections quickly to allow suspend
-  connectionTimeoutMillis: 2000  // Fail fast on timeouts
+  connectionString: connectionString,
+  ssl: { rejectUnauthorized: false }, // Required for Supabase
+  max: 10,
+  idleTimeoutMillis: 1000,
+  connectionTimeoutMillis: 2000
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
