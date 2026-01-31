@@ -3,16 +3,16 @@ const WebSocket = require('ws');
 const { Pool } = require('pg');
 const app = express();
 
-// PostgreSQL configuration (Supabase)
-// We use 'connectionString' to handle all details (host, user, pass) in one go.
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:ENsy2GrmOFokLBh2@db.kwwfilgkxzvrcxurkpng.supabase.co:5432/postgres';
+// PostgreSQL configuration (Supabase Pooler)
+// Using the 'pooler' hostname (aws-1...) to ensure IPv4 compatibility for Render.
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwfilgkxzvrcxurkpng:ENsy2GrmOFokLBh2@aws-1-us-east-2.pooler.supabase.com:5432/postgres';
 
 const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, // Required for Supabase
   max: 10,
   idleTimeoutMillis: 1000,
-  connectionTimeoutMillis: 2000
+  connectionTimeoutMillis: 5000
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
