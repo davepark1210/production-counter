@@ -5,7 +5,7 @@ const app = express();
 
 // PostgreSQL configuration (Supabase)
 // We use 'connectionString' to handle all details (host, user, pass) in one go.
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:ENsy2GrmOFokLBh2@db.srrplydwpxtnuczohwwh.supabase.co:5432/postgres';
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:ENsy2GrmOFokLBh2@db.kwwfilgkxzvrcxurkpng.supabase.co:5432/postgres';
 
 const pool = new Pool({
   connectionString: connectionString,
