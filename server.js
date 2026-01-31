@@ -4,20 +4,20 @@ const { Pool } = require('pg');
 const app = express();
 
 // PostgreSQL configuration (Supabase Pooler)
-// Using the 'pooler' hostname (aws-1...) to ensure IPv4 compatibility for Render.
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwfilgkxzvrcxurkpng:ENsy2GrmOFokLBh2@aws-1-us-east-2.pooler.supabase.com:5432/postgres';
 
 const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, 
-  max: 10, // Supabase free tier allows ~60 connections. 10 is safe for the pooler.
-  idleTimeoutMillis: 30000, // INCREASE THIS: 30 seconds (was 1 second)
+  max: 10,
+  // OPTIMIZATION: Keep idle connections for 30s to reduce SSL handshake overhead
+  idleTimeoutMillis: 30000, 
   connectionTimeoutMillis: 5000
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
-const cache = {};  // In-memory cache object
-// REDUCED: 30 seconds cache (was 5 minutes)
+const cache = {};  
+// OPTIMIZATION: Reduce cache to 30s for "live" feel
 const CACHE_TTL = 30000;  
 
 function debounce(func, wait) {
@@ -27,30 +27,28 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func(...args), wait);
   };
 }
-// REDUCED: 1-second delay (was 5 seconds) so the UI updates instantly
-const debouncedBroadcast = debounce(broadcastUpdate, 1000);
+// OPTIMIZATION: 1-second debounce for instant UI updates
+const debouncedBroadcast = debounce(broadcastUpdate, 1000);  
+
 const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
 const dailyTargets = {
   'Sellersburg_Certified_Center': 120,
   'Williamsport_Certified_Center': 133,
   'North_Las_Vegas_Certified_Center': 80
 };
-let currentDate = null; // Will be set by client for UI purposes
+let currentDate = null; 
 let lastMilestone = 0;
 
-// Serve static files
 app.use(express.static('public'));
 
-//Using Keepalive strategy to prevent spindown
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', uptime: process.uptime() });
 });
 
-// HTTP endpoint to get the current count for a facility and line
+// HTTP endpoint to get the current count
 app.get('/getCount', async (req, res) => {
   const { facility, line, date = currentDate } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) {
-    console.log(`Invalid facility or line: ${facility}, ${line}`);
     return res.status(400).json({ error: 'Invalid facility or line' });
   }
   if (!date) {
@@ -58,13 +56,11 @@ app.get('/getCount', async (req, res) => {
   }
   const client = await pool.connect();
   try {
-    console.log(`Fetching count for ${facility}, ${line}, ${date}`);
     const result = await client.query(
       'SELECT count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
       [date, facility, line]
     );
     const count = result.rows.length > 0 ? result.rows[0].count : 0;
-    console.log(`Fetched count: ${count}`);
     res.json({ count });
   } catch (err) {
     console.error('GetCount Error:', err);
@@ -74,21 +70,13 @@ app.get('/getCount', async (req, res) => {
   }
 });
 
-// HTTP endpoint to get hourly production rates (in UTC)
+// HTTP endpoint to get hourly production rates
 app.get('/getHourlyRates', async (req, res) => {
   const { date = currentDate } = req.query;
-  if (!date) {
-    return res.status(400).json({ error: 'Date is required' });
-  }
+  if (!date) return res.status(400).json({ error: 'Date is required' });
+
   const client = await pool.connect();
   try {
-    console.log(`Fetching hourly rates for date: ${date}`);
-    // Debug: Fetch raw events to verify data
-    const rawEvents = await client.query(
-      'SELECT facility, line, delta, EXTRACT(HOUR FROM timestamp AT TIME ZONE \'UTC\') as hour FROM ProductionEvents WHERE date = $1',
-      [date]
-    );
-    console.log(`Raw ProductionEvents for ${date}:`, rawEvents.rows);
     const result = await client.query(
       `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
        FROM ProductionEvents
@@ -97,7 +85,6 @@ app.get('/getHourlyRates', async (req, res) => {
        ORDER BY facility, line, hour`,
       [date]
     );
-    console.log(`Hourly rates query result for ${date} (raw rows):`, result.rows);
 
     const hourlyRates = {};
     facilities.forEach(f => {
@@ -109,12 +96,9 @@ app.get('/getHourlyRates', async (req, res) => {
           const hour = parseInt(row.hour);
           const rate = parseInt(row.rate);
           hourlyRates[f][l][hour] = rate;
-          console.log(`Hourly rate for ${f}, ${l}, UTC hour ${hour}: ${rate}`);
         });
       });
     });
-    console.log(`Constructed hourlyRates for ${date} (UTC):`, hourlyRates);
-
     res.json({ hourlyRates });
   } catch (err) {
     console.error('GetHourlyRates Error:', err);
@@ -124,7 +108,6 @@ app.get('/getHourlyRates', async (req, res) => {
   }
 });
 
-// HTTP endpoint to get historical dates
 app.get('/getHistoricalDates', async (req, res) => {
   const client = await pool.connect();
   try {
@@ -132,7 +115,6 @@ app.get('/getHistoricalDates', async (req, res) => {
       'SELECT DISTINCT date FROM ProductionCounts ORDER BY date DESC'
     );
     const dates = result.rows.map(row => row.date.toISOString().split('T')[0]);
-    console.log('Returning historical dates:', dates);
     res.json({ dates });
   } catch (err) {
     console.error('GetHistoricalDates Error:', err);
@@ -142,15 +124,12 @@ app.get('/getHistoricalDates', async (req, res) => {
   }
 });
 
-// HTTP endpoint to get historical data for a specific date
 app.get('/getHistoricalData', async (req, res) => {
   const { date } = req.query;
-  if (!date) {
-    return res.status(400).json({ error: 'Date parameter is required' });
-  }
+  if (!date) return res.status(400).json({ error: 'Date parameter is required' });
+
   const client = await pool.connect();
   try {
-    console.log(`Fetching historical data for date: ${date}`);
     const resCounts = await client.query(
       'SELECT facility, line, count FROM ProductionCounts WHERE Date = $1',
       [date]
@@ -163,7 +142,6 @@ app.get('/getHistoricalData', async (req, res) => {
         data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
       });
     });
-    console.log(`Historical data for ${date}:`, data);
     res.json({ data });
   } catch (err) {
     console.error('GetHistoricalData Error:', err);
@@ -175,16 +153,10 @@ app.get('/getHistoricalData', async (req, res) => {
 
 // HTTP endpoints for ESP32
 app.post('/increment', async (req, res) => {
-  const requestTime = new Date().toISOString();
-  console.log(`Received /increment request at ${requestTime}`);
   const { facility, line, date } = req.query;
-  if (!facilities.includes(facility) || !lines.includes(line)) {
-    console.log(`Invalid facility or line: ${facility}, ${line}`);
-    return res.status(400).json({ error: 'Invalid facility or line' });
-  }
-  if (!date) {
-    return res.status(400).json({ error: 'Date query parameter is required' });
-  }
+  if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
+  if (!date) return res.status(400).json({ error: 'Date required' });
+
   try {
     await updateCount(facility, line, 1, date);
     debouncedBroadcast();
@@ -196,16 +168,10 @@ app.post('/increment', async (req, res) => {
 });
 
 app.post('/decrement', async (req, res) => {
-  const requestTime = new Date().toISOString();
-  console.log(`Received /decrement request at ${requestTime}`);
   const { facility, line, date } = req.query;
-  if (!facilities.includes(facility) || !lines.includes(line)) {
-    console.log(`Invalid facility or line: ${facility}, ${line}`);
-    return res.status(400).json({ error: 'Invalid facility or line' });
-  }
-  if (!date) {
-    return res.status(400).json({ error: 'Date query parameter is required' });
-  }
+  if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
+  if (!date) return res.status(400).json({ error: 'Date required' });
+
   try {
     await updateCount(facility, line, -1, date);
     debouncedBroadcast();
@@ -216,13 +182,11 @@ app.post('/decrement', async (req, res) => {
   }
 });
 
-// Reset all data endpoint
 app.post('/resetAllData', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('TRUNCATE TABLE ProductionCounts, ProductionEvents');
     lastMilestone = 0;
-    console.log('All data reset successfully');
     broadcastUpdate();
     res.sendStatus(200);
   } catch (err) {
@@ -233,49 +197,31 @@ app.post('/resetAllData', async (req, res) => {
   }
 });
 
-// Update count in database and log the event
+// OPTIMIZATION: Atomic Upsert to prevent race conditions
 async function updateCount(facility, line, delta, date) {
   const client = await pool.connect();
   try {
-    const serverTime = new Date().toISOString();
-    console.log(`Server time (UTC) at update: ${serverTime}`);
-    console.log(`Using date for insertion: ${date}`);
+    // 1. Log the event
     await client.query(
       `INSERT INTO ProductionEvents (date, facility, line, delta, timestamp)
        VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
       [date, facility, line, delta]
     );
-    console.log(`Updating count for ${facility}, ${line}, delta: ${delta}, date: ${date}`);
-    const res = await client.query(
-      'SELECT Count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
-      [date, facility, line]
-    );
-    console.log('Query result:', res.rows);
-    let newCount;
-    if (res.rows.length > 0) {
-      newCount = Math.max(res.rows[0].count + delta, 0);
-      await client.query(
-        `UPDATE ProductionCounts SET Count = $1, Timestamp = NOW() AT TIME ZONE 'UTC'
-         WHERE Date = $2 AND Facility = $3 AND Line = $4`,
-        [newCount, date, facility, line]
-      );
-      console.log(`Updated count to ${newCount}`);
-    } else {
-      newCount = delta > 0 ? delta : 0;
-      await client.query(
-        `INSERT INTO ProductionCounts (Date, Facility, Line, Count, Timestamp)
-         VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
-        [date, facility, line, newCount]
-      );
-      console.log(`Inserted new count: ${newCount}`);
-    }
-    const verifyRes = await client.query(
-      'SELECT Count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
-      [date, facility, line]
-    );
-    console.log(`Verified count after update: ${verifyRes.rows[0]?.count}`);
+
+    // 2. Atomic UPSERT (Requires UNIQUE constraint on Date, Facility, Line)
+    const query = `
+      INSERT INTO ProductionCounts (Date, Facility, Line, Count, Timestamp)
+      VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')
+      ON CONFLICT (Date, Facility, Line) 
+      DO UPDATE SET 
+        Count = ProductionCounts.Count + $4,
+        Timestamp = NOW() AT TIME ZONE 'UTC'
+      RETURNING Count;
+    `;
+    await client.query(query, [date, facility, line, delta]);
+    
   } catch (err) {
-    console.error('Increment/Decrement Error:', err);
+    console.error('UpdateCount Error:', err);
     throw err;
   } finally {
     client.release();
@@ -294,204 +240,30 @@ wss.on('connection', (ws) => {
       const parsedMessage = JSON.parse(message);
       if (parsedMessage.action === 'setClientDate' && parsedMessage.clientDate) {
         currentDate = parsedMessage.clientDate;
-        console.log(`Updated currentDate to client's date: ${currentDate}`);
         await broadcastUpdate();
       } else if (parsedMessage.action === 'requestCurrentData') {
-        console.log('Client requested current data');
         await broadcastUpdate();
       }
     } catch (err) {
-      console.error('Failed to parse WebSocket message:', err);
+      console.error('WebSocket Error:', err);
     }
   });
 });
 
-async function getCurrentData() {
-  if (!currentDate) {
-    throw new Error('Current date not set');
-  }
-  const client = await pool.connect();
-  try {
-    console.log('Fetching current data from database for date:', currentDate);
-    const res = await client.query(
-      'SELECT facility, line, count FROM ProductionCounts WHERE Date = $1',
-      [currentDate]
-    );
-    console.log('Database query result:', res.rows);
-    const data = {};
-    facilities.forEach(f => {
-      data[f] = {};
-      lines.forEach(l => {
-        const row = res.rows.find(r => r.facility === f && r.line === l);
-        data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
-        console.log(`Count for ${f}, ${l}: ${data[f][l].count}`);
-      });
-    });
-    console.log('Constructed data:', data);
-    return data;
-  } catch (err) {
-    console.error('Error in getCurrentData:', err);
-    throw err;
-  } finally {
-    client.release();
-  }
-}
-
-async function getHourlyRates(date = currentDate) {
-  if (!date) {
-    throw new Error('Date not set');
-  }
-  const cacheKey = `hourlyRates_${date}`;
-  if (cache[cacheKey] && Date.now() - cache[cacheKey].timestamp < CACHE_TTL) {
-    console.log(`Serving cached hourly rates for ${date}`);
-    return cache[cacheKey].data;
-  }
-  const client = await pool.connect();
-  try {
-    console.log(`Fetching hourly rates for date: ${date}`);
-    const rawEvents = await client.query(
-      `SELECT facility, line, delta, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour
-       FROM ProductionEvents
-       WHERE date = $1 AND facility = 'North_Las_Vegas_Certified_Center' AND line = 'VV'`,
-      [date]
-    );
-    console.log(`Raw ProductionEvents for North Las Vegas VV on ${date}:`, rawEvents.rows);
-    const result = await client.query(
-      `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
-       FROM ProductionEvents
-       WHERE date = $1
-       GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')
-       ORDER BY facility, line, hour`,
-      [date]
-    );
-    console.log('Hourly rates query result (raw rows):', result.rows);
-
-    const hourlyRates = {};
-    facilities.forEach(f => {
-      hourlyRates[f] = {};
-      lines.forEach(l => {
-        hourlyRates[f][l] = Array(24).fill(0);
-        const facilityRates = result.rows.filter(row => row.facility === f && row.line === l);
-        facilityRates.forEach(row => {
-          const hour = parseInt(row.hour);
-          const rate = parseInt(row.rate);
-          hourlyRates[f][l][hour] = rate;
-          console.log(`Hourly rate for ${f}, ${l}, UTC hour ${hour}: ${rate}`);
-        });
-      });
-    });
-    console.log('Constructed hourlyRates (UTC):', hourlyRates);
-    cache[cacheKey] = { data: hourlyRates, timestamp: Date.now() };
-    return hourlyRates;
-  } catch (err) {
-    console.error('Error in getHourlyRates:', err);
-    throw err;
-  } finally {
-    client.release();
-  }
-}
-
-async function getTotalDailyProduction() {
-  if (!currentDate) {
-    throw new Error('Current date not set');
-  }
-  const client = await pool.connect();
-  try {
-    const result = await client.query(
-      'SELECT SUM(count) as total FROM ProductionCounts WHERE Date = $1',
-      [currentDate]
-    );
-    const total = result.rows[0]?.total || 0;
-    console.log(`Total daily production for ${currentDate}: ${total}`);
-    return total;
-  } catch (err) {
-    console.error('GetTotalDailyProduction Error:', err);
-    throw err;
-  } finally {
-    client.release();
-  }
-}
-
-async function getPeakProduction() {
-  if (!currentDate) {
-    throw new Error('Current date not set');
-  }
-  const cacheKey = `peakProduction_${currentDate}`;
-  if (cache[cacheKey] && Date.now() - cache[cacheKey].timestamp < CACHE_TTL) {
-    console.log(`Serving cached peak production for ${currentDate}`);
-    return cache[cacheKey].data;
-  }
-  const client = await pool.connect();
-  try {
-    const peakDayResult = await client.query(
-      `SELECT facility, date, SUM(count) as daily_total
-       FROM ProductionCounts
-       GROUP BY facility, date
-       ORDER BY facility, daily_total DESC`
-    );
-    console.log('Peak day query result:', peakDayResult.rows);
-
-    const allDailyTotals = await client.query(
-      `SELECT facility, date, SUM(count) as daily_total
-       FROM ProductionCounts
-       GROUP BY facility, date
-       ORDER BY facility, date`
-    );
-    console.log('All daily totals query result:', allDailyTotals.rows);
-
-    const peakProduction = {};
-    facilities.forEach(f => {
-      const facilityRows = peakDayResult.rows.filter(row => row.facility === f);
-      const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
-
-      const facilityDailyTotals = allDailyTotals.rows
-        .filter(row => row.facility === f)
-        .map(row => ({
-          date: new Date(row.date).toISOString().split('T')[0],
-          daily_total: parseInt(row.daily_total)
-        }))
-        .sort((a, b) => a.date.localeCompare(b.date));
-      console.log(`Daily totals for ${f}:`, facilityDailyTotals);
-
-      let maxWeeklySum = 0;
-      if (facilityDailyTotals.length > 0) {
-        const availableDays = Math.min(facilityDailyTotals.length, 7);
-        for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
-          const weekTotals = facilityDailyTotals.slice(i, i + availableDays);
-          const weekSum = weekTotals.reduce((sum, day) => sum + day.daily_total, 0);
-          maxWeeklySum = Math.max(maxWeeklySum, weekSum);
-        }
-      }
-
-      peakProduction[f] = {
-        peakDay: peakDay,
-        peakWeekly: maxWeeklySum
-      };
-    });
-
-    console.log('Peak production:', peakProduction);
-    cache[cacheKey] = { data: peakProduction, timestamp: Date.now() };
-    return peakProduction;
-  } catch (err) {
-    console.error('GetPeakProduction Error:', err);
-    throw err;
-  } finally {
-    client.release();
-  }
-}
-
 async function broadcastUpdate() {
-  if (!currentDate) {
-    console.error('Cannot broadcast update: currentDate not set');
-    return;
-  }
+  if (!currentDate) return;
+  
   const client = await pool.connect();
   try {
-    const [currentRes, eventsRes, totalsRes, peakDayRes, allDailyRes] = await Promise.all([
+    // OPTIMIZATION: Fetch Aggregates instead of Raw Rows to save CPU/Memory
+    const [currentRes, hourlyRes, totalsRes, peakDayRes, allDailyRes] = await Promise.all([
       client.query('SELECT facility, line, count FROM ProductionCounts WHERE Date = $1', [currentDate]),
+      // Optimized: DB sums the hours
       client.query(
-        `SELECT facility, line, delta, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour
-         FROM ProductionEvents WHERE date = $1`, [currentDate]
+        `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
+         FROM ProductionEvents WHERE date = $1
+         GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`, 
+        [currentDate]
       ),
       client.query('SELECT SUM(count) as total FROM ProductionCounts WHERE Date = $1', [currentDate]),
       client.query(
@@ -520,10 +292,12 @@ async function broadcastUpdate() {
         hourlyRates[f][l] = Array(24).fill(0);
       });
     });
-    eventsRes.rows.forEach(row => {
-      const { facility, line, delta, hour } = row;
+    
+    // Process optimized hourly data
+    hourlyRes.rows.forEach(row => {
+      const { facility, line, hourly_total, hour } = row;
       if (hourlyRates[facility] && hourlyRates[facility][line]) {
-        hourlyRates[facility][line][parseInt(hour)] += parseInt(delta);
+        hourlyRates[facility][line][parseInt(hour)] = parseInt(hourly_total);
       }
     });
 
@@ -574,7 +348,7 @@ async function broadcastUpdate() {
       targetPercentages,
       notification
     };
-    console.log('Broadcasting update:', message);
+    
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(message));
