@@ -1662,272 +1662,66 @@
                     type: 'line',
                     data: {
                         labels: labels,
-                        datasets: [
-                            { 
-                                label: 'Sellersburg FTN', 
-                                facility: 'Sellersburg_Certified_Center',
-                                line: 'FTN',
-                                data: Array(24).fill(0), 
-                                borderColor: '#1f77b4', // Blue
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(31, 119, 180, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(31, 119, 180, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(31, 119, 180, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'circle',
-                                borderDash: []
-                            },
-                            { 
-                                label: 'Sellersburg Cooler', 
-                                facility: 'Sellersburg_Certified_Center',
-                                line: 'Cooler',
-                                data: Array(24).fill(0), 
-                                borderColor: '#d62728', // Red
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(214, 39, 40, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(214, 39, 40, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(214, 39, 40, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'triangle',
-                                borderDash: [5, 5]
-                            },
-                            { 
-                                label: 'Sellersburg Vendor', 
-                                facility: 'Sellersburg_Certified_Center',
-                                line: 'Vendor',
-                                data: Array(24).fill(0), 
-                                borderColor: '#2ca02c', // Green
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(44, 160, 44, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(44, 160, 44, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(44, 160, 44, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'rect',
-                                borderDash: []
-                            },
-                            { 
-                                label: 'Sellersburg A-Repair', 
-                                facility: 'Sellersburg_Certified_Center',
-                                line: 'A-Repair',
-                                data: Array(24).fill(0), 
-                                borderColor: '#9467bd', // Purple
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(148, 103, 189, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(148, 103, 189, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(148, 103, 189, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'star',
-                                borderDash: [10, 5]
-                            },
-                            { 
-                                label: 'Williamsport FTN', 
-                                facility: 'Williamsport_Certified_Center',
-                                line: 'FTN',
-                                data: Array(24).fill(0), 
-                                borderColor: '#ff7f0e', // Orange
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(255, 127, 14, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(255, 127, 14, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(255, 127, 14, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'circle',
-                                borderDash: []
-                            },
-                            { 
-                                label: 'Williamsport Cooler', 
-                                facility: 'Williamsport_Certified_Center',
-                                line: 'Cooler',
-                                data: Array(24).fill(0), 
-                                borderColor: '#1f77b4', // Blue
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(31, 119, 180, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(31, 119, 180, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(31, 119, 180, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'triangle',
-                                borderDash: [5, 5]
-                            },
-                            { 
-                                label: 'Williamsport Vendor', 
-                                facility: 'Williamsport_Certified_Center',
-                                line: 'Vendor',
-                                data: Array(24).fill(0), 
-                                borderColor: '#d62728', // Red
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(214, 39, 40, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(214, 39, 40, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(214, 39, 40, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'rect',
-                                borderDash: []
-                            },
-                            { 
-                                label: 'Williamsport A-Repair', 
-                                facility: 'Williamsport_Certified_Center',
-                                line: 'A-Repair',
-                                data: Array(24).fill(0), 
-                                borderColor: '#2ca02c', // Green
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(44, 160, 44, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(44, 160, 44, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(44, 160, 44, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'star',
-                                borderDash: [10, 5]
-                            },
-                            { 
-                                label: 'North Las Vegas FTN', 
-                                facility: 'North_Las_Vegas_Certified_Center',
-                                line: 'FTN',
-                                data: Array(24).fill(0), 
-                                borderColor: '#2ca02c', // Green
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(44, 160, 44, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(44, 160, 44, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(44, 160, 44, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'circle',
-                                borderDash: []
-                            },
-                            { 
-                                label: 'North Las Vegas Cooler', 
-                                facility: 'North_Las_Vegas_Certified_Center',
-                                line: 'Cooler',
-                                data: Array(24).fill(0), 
-                                borderColor: '#ff7f0e', // Orange
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(255, 127, 14, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(255, 127, 14, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(255, 127, 14, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'triangle',
-                                borderDash: [5, 5]
-                            },
-                            { 
-                                label: 'North Las Vegas Vendor', 
-                                facility: 'North_Las_Vegas_Certified_Center',
-                                line: 'Vendor',
-                                data: Array(24).fill(0), 
-                                borderColor: '#1f77b4', // Blue
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(31, 119, 180, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(31, 119, 180, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(31, 119, 180, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'rect',
-                                borderDash: []
-                            },
-                            { 
-                                label: 'North Las Vegas A-Repair', 
-                                facility: 'North_Las_Vegas_Certified_Center',
-                                line: 'A-Repair',
-                                data: Array(24).fill(0), 
-                                borderColor: '#d62728', // Red
-                                backgroundColor: (ctx) => {
-                                    const chart = ctx.chart;
-                                    const { ctx: canvasCtx, chartArea } = chart;
-                                    if (!chartArea) return 'rgba(214, 39, 40, 0.2)';
-                                    const gradient = canvasCtx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                                    gradient.addColorStop(0, 'rgba(214, 39, 40, 0.1)');
-                                    gradient.addColorStop(1, 'rgba(214, 39, 40, 0.4)');
-                                    return gradient;
-                                }, 
-                                borderWidth: 2, 
-                                fill: true, 
-                                pointRadius: 3, 
-                                pointHoverRadius: 5, 
-                                pointStyle: 'star',
-                                borderDash: [10, 5]
-                            }
-                        ]
+                        // REPLACEMENT: Dynamic Dataset Generation
+                        datasets: (() => {
+                            // Configuration map to preserve your specific colors and point styles per facility
+                            const facilityStyles = {
+                                'Sellersburg_Certified_Center': {
+                                    'FTN':      { color: '#1f77b4', style: 'circle', dash: [] },      // Blue
+                                    'Cooler':   { color: '#d62728', style: 'triangle', dash: [5, 5] },// Red
+                                    'Vendor':   { color: '#2ca02c', style: 'rect', dash: [] },        // Green
+                                    'A-Repair': { color: '#9467bd', style: 'star', dash: [10, 5] }    // Purple
+                                },
+                                'Williamsport_Certified_Center': {
+                                    'FTN':      { color: '#ff7f0e', style: 'circle', dash: [] },      // Orange
+                                    'Cooler':   { color: '#1f77b4', style: 'triangle', dash: [5, 5] },// Blue
+                                    'Vendor':   { color: '#d62728', style: 'rect', dash: [] },        // Red
+                                    'A-Repair': { color: '#2ca02c', style: 'star', dash: [10, 5] }    // Green
+                                },
+                                'North_Las_Vegas_Certified_Center': {
+                                    'FTN':      { color: '#2ca02c', style: 'circle', dash: [] },      // Green
+                                    'Cooler':   { color: '#ff7f0e', style: 'triangle', dash: [5, 5] },// Orange
+                                    'Vendor':   { color: '#1f77b4', style: 'rect', dash: [] },        // Blue
+                                    'A-Repair': { color: '#d62728', style: 'star', dash: [10, 5] }    // Red
+                                }
+                            };
+
+                            const datasets = [];
+                            const facilities = Object.keys(facilityStyles);
+                            
+                            facilities.forEach(facility => {
+                                // Clean name for label (e.g., "Sellersburg")
+                                const facilityName = facility.replace('_Certified_Center', '').replace(/_/g, ' ');
+                                
+                                Object.entries(facilityStyles[facility]).forEach(([line, style]) => {
+                                    datasets.push({
+                                        label: `${facilityName} ${line}`,
+                                        facility: facility,
+                                        line: line,
+                                        data: Array(24).fill(0),
+                                        borderColor: style.color,
+                                        // Create a transparent gradient background automatically
+                                        backgroundColor: (context) => {
+                                            const ctx = context.chart.ctx;
+                                            const area = context.chart.chartArea;
+                                            if (!area) return style.color + '33'; // Fallback hex + 20% opacity
+                                            const gradient = ctx.createLinearGradient(0, area.bottom, 0, area.top);
+                                            gradient.addColorStop(0, style.color + '1A'); // 10% opacity
+                                            gradient.addColorStop(1, style.color + '66'); // 40% opacity
+                                            return gradient;
+                                        },
+                                        borderWidth: 2,
+                                        fill: true,
+                                        pointRadius: 3,
+                                        pointHoverRadius: 5,
+                                        pointStyle: style.style,
+                                        borderDash: style.dash,
+                                        hidden: false // Default to visible
+                                    });
+                                });
+                            });
+                            return datasets;
+                        })(),
                     },
                     options: {
                         responsive: true,
@@ -2879,82 +2673,103 @@
         console.log(`Client current date: ${currentDate}`);
 
         // WebSocket connection
-            const ws = new WebSocket('wss://production-counter.onrender.com');
+        // Automatically uses 'ws' for localhost and 'wss' for https domains
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.hostname === 'localhost' ? 'production-counter.onrender.com' : window.location.host;
+        // Note: If testing locally, we still point to Render DB, but this allows flexibility later
+        let ws = new WebSocket(`${protocol}//${host}`);
+            
+            // Heartbeat to keep connection alive (optional but good for Render.com)
+            let heartbeatInterval;
+        
             ws.onopen = () => {
-                console.log('WebSocket connection established at', new Date().toISOString());
-                document.getElementById('loadingSpinner').style.display = 'none';
-                ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-                loadHistoricalDates();
-                setInterval(() => {
+                    console.log('WebSocket connection established at', new Date().toISOString());
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    
+                    // 1. Send current date immediately
+                    ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
+                    
+                    // 2. Request initial data once
                     ws.send(JSON.stringify({ action: 'requestCurrentData' }));
-                }, 30000);  // Request every 30 seconds
-            };
-            ws.onclose = () => {
-                console.log('WebSocket connection closed at', new Date().toISOString());
-                document.getElementById('loadingSpinner').style.display = 'none';
-                showNotification('WebSocket connection closed. Reconnecting...');
-                setTimeout(() => {
-                    console.log('Attempting to reconnect WebSocket...');
-                    const newWs = new WebSocket('wss://production-counter.onrender.com');
-                    newWs.onopen = ws.onopen;
-                    newWs.onmessage = ws.onmessage;
-                    newWs.onerror = ws.onerror;
-                    newWs.onclose = ws.onclose;
-                    ws = newWs;
-                }, 5000);
-            };
-            ws.onmessage = (event) => {
-                console.log('Received WebSocket message:', event.data);
-                let message;
-                try {
-                    message = JSON.parse(event.data);
-                } catch (err) {
-                    console.error('Failed to parse WebSocket message:', err);
-                    showNotification('Error parsing server data.');
-                    return;
-                }
+                    
+                    loadHistoricalDates();
             
-                const { date, data, hourlyRates, totalProduction, peakProduction, targetPercentages, notification } = message;
-                if (!date || !data || !hourlyRates) {
-                    console.error('Invalid WebSocket message structure:', message);
-                    showNotification('Invalid server data.');
-                    return;
-                }
+                    // REMOVED: setInterval polling. The server now pushes updates automatically.
+                    // We only keep a simple "ping" if you find connections dropping on Render.
+                    if (heartbeatInterval) clearInterval(heartbeatInterval);
+                    heartbeatInterval = setInterval(() => {
+                        if (ws.readyState === WebSocket.OPEN) {
+                            // Optional: Send a dummy keep-alive if needed, but usually not required for active apps
+                             ws.send(JSON.stringify({ action: 'ping' })); 
+                        }
+                    }, 45000);
+                };
             
-                console.log(`Received data for date: ${date}`, {
-                    sellersburgFTN: data['Sellersburg_Certified_Center']?.['FTN']?.count || 'N/A',
-                    northLasVegasCooler: data['North_Las_Vegas_Certified_Center']?.['Cooler']?.count || 'N/A',
-                    targetPercentages: targetPercentages || 'No target percentages received'
-                });
-                updateUI(date, data, hourlyRates, totalProduction, peakProduction, targetPercentages);
-                if (notification) {
-                    showNotification(notification);
-                }
-            };
-           ws.onclose = () => {
-               console.log('WebSocket connection closed');
-               document.getElementById('loadingSpinner').style.display = 'none';
-               showNotification('WebSocket connection closed. Reconnecting...');
-               setTimeout(() => {
-                   console.log('Attempting to reconnect WebSocket...');
-                   const newWs = new WebSocket('wss://production-counter.onrender.com');
-                   newWs.onopen = () => {
-                       console.log('WebSocket reconnected');
-                       document.getElementById('loadingSpinner').style.display = 'none';
-                       newWs.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-                       loadHistoricalDates();
-                   };
-                   newWs.onmessage = ws.onmessage;
-                   newWs.onerror = ws.onerror;
-                   newWs.onclose = ws.onclose;
-                   ws = newWs;
-               }, 5000);
-           };
-           ws.onerror = (error) => {
-               console.error('WebSocket error:', error);
-               document.getElementById('loadingSpinner').style.display = 'none';
-               showNotification('WebSocket connection error. Attempting to reconnect...');
-           };
+                ws.onmessage = (event) => {
+                    // Ignore pong messages if you implement ping
+                    try {
+                        const msg = JSON.parse(event.data);
+                        if (msg.type === 'pong') return;
+                    } catch(e) {}
+            
+                    console.log('Received WebSocket message:', event.data);
+                    let message;
+                    try {
+                        message = JSON.parse(event.data);
+                    } catch (err) {
+                        console.error('Failed to parse WebSocket message:', err);
+                        return;
+                    }
+                
+                    const { date, data, hourlyRates, totalProduction, peakProduction, targetPercentages, notification } = message;
+                    
+                    // Handle "Milestone" notifications from server
+                    if (notification) {
+                        showNotification(notification);
+                    }
+            
+                    if (!date || !data || !hourlyRates) {
+                        return;
+                    }
+                
+                    updateUI(date, data, hourlyRates, totalProduction, peakProduction, targetPercentages);
+                };
+            
+                // Consolidated Reconnection Logic
+                const handleClose = () => {
+                    console.log('WebSocket connection closed');
+                    document.getElementById('loadingSpinner').style.display = 'none';
+                    showNotification('Connection lost. Reconnecting...');
+                    
+                    if (heartbeatInterval) clearInterval(heartbeatInterval);
+            
+                    setTimeout(() => {
+                        console.log('Attempting to reconnect...');
+                        // Re-initialize the global 'ws' variable
+                        ws = new WebSocket('wss://production-counter.onrender.com');
+                        // Re-attach listeners
+                        ws.onopen = this.onopen; 
+                        ws.onmessage = this.onmessage; 
+                        ws.onclose = handleClose; 
+                        ws.onerror = (err) => console.error('WS Error:', err);
+                        
+                        // Re-attach the onopen logic we defined above
+                        ws.onopen = () => {
+                            console.log('Reconnected!');
+                            document.getElementById('loadingSpinner').style.display = 'none';
+                            ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
+                            ws.send(JSON.stringify({ action: 'requestCurrentData' }));
+                            loadHistoricalDates();
+                        };
+                    }, 5000);
+                };
+            
+                ws.onclose = handleClose;
+                
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    // Do not hide spinner here, wait for close/reconnect
+                };
     </script>
 </body>
 </html>
