@@ -9,15 +9,17 @@ const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwf
 
 const pool = new Pool({
   connectionString: connectionString,
-  ssl: { rejectUnauthorized: false }, // Required for Supabase
-  max: 10,
-  idleTimeoutMillis: 1000,
+  ssl: { rejectUnauthorized: false }, 
+  max: 10, // Supabase free tier allows ~60 connections. 10 is safe for the pooler.
+  idleTimeoutMillis: 30000, // INCREASE THIS: 30 seconds (was 1 second)
   connectionTimeoutMillis: 5000
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const cache = {};  // In-memory cache object
-const CACHE_TTL = 300000;  // 5 minutes in ms - match Neon's suspend time
+// REDUCED: 30 seconds cache (was 5 minutes)
+const CACHE_TTL = 30000;  
+
 function debounce(func, wait) {
   let timeout;
   return function(...args) {
@@ -25,7 +27,8 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func(...args), wait);
   };
 }
-const debouncedBroadcast = debounce(broadcastUpdate, 5000);  // 5-second debounce
+// REDUCED: 1-second delay (was 5 seconds) so the UI updates instantly
+const debouncedBroadcast = debounce(broadcastUpdate, 1000);
 const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
 const dailyTargets = {
   'Sellersburg_Certified_Center': 120,
