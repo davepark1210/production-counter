@@ -10,9 +10,16 @@ const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, 
   max: 10,
-  // OPTIMIZATION: Keep idle connections for 30s to reduce SSL handshake overhead
-  idleTimeoutMillis: 30000, 
-  connectionTimeoutMillis: 5000
+  idleTimeoutMillis: 30000,  // Keep this at 30s
+  connectionTimeoutMillis: 10000 // Bump this to 10s for extra safety
+});
+
+// CRITICAL FIX: Prevent server crashes on idle connection errors
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client', err);
+  // This listener prevents the "Connection terminated unexpectedly" error 
+  // from crashing the entire Node.js process.
+  process.exit(-1);
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
