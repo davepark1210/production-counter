@@ -10,21 +10,25 @@ const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, 
   max: 10,
-  idleTimeoutMillis: 30000,  // Keep this at 30s
-  connectionTimeoutMillis: 10000 // Bump this to 10s for extra safety
+  // REDUCED: Drop idle connections after 5s so we don't hold onto dead ones
+  idleTimeoutMillis: 5000,  
+  // INCREASED: Give the database slightly more time to accept a new connection
+  connectionTimeoutMillis: 20000, 
+  // ADDED: TCP Keep-Alive to prevent Load Balancers from killing the link
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000 
 });
 
-// CRITICAL FIX: Prevent server crashes on idle connection errors
+// CRITICAL FIX: Do NOT crash the process on idle client errors. 
+// Just log it; the pool will automatically discard the bad connection and create a new one next time.
 pool.on('error', (err, client) => {
   console.error('Unexpected error on idle client', err);
-  // This listener prevents the "Connection terminated unexpectedly" error 
-  // from crashing the entire Node.js process.
-  process.exit(-1);
+  // process.exit(-1); // <-- REMOVED: This was causing your server to restart unnecessarily
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
+// ... rest of your code remains the same ...
 const cache = {};  
-// OPTIMIZATION: Reduce cache to 30s for "live" feel
 const CACHE_TTL = 30000;  
 
 function debounce(func, wait) {
@@ -34,7 +38,6 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func(...args), wait);
   };
 }
-// OPTIMIZATION: 1-second debounce for instant UI updates
 const debouncedBroadcast = debounce(broadcastUpdate, 1000);  
 
 const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
@@ -61,8 +64,11 @@ app.get('/getCount', async (req, res) => {
   if (!date) {
     return res.status(400).json({ error: 'Date is required' });
   }
-  const client = await pool.connect();
+  
+  // Use a try/catch block for connection acquisition to handle timeout gracefully
+  let client;
   try {
+    client = await pool.connect();
     const result = await client.query(
       'SELECT count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
       [date, facility, line]
@@ -73,7 +79,7 @@ app.get('/getCount', async (req, res) => {
     console.error('GetCount Error:', err);
     res.status(500).json({ error: 'Server error' });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
@@ -82,8 +88,9 @@ app.get('/getHourlyRates', async (req, res) => {
   const { date = currentDate } = req.query;
   if (!date) return res.status(400).json({ error: 'Date is required' });
 
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     const result = await client.query(
       `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
        FROM ProductionEvents
@@ -111,13 +118,14 @@ app.get('/getHourlyRates', async (req, res) => {
     console.error('GetHourlyRates Error:', err);
     res.status(500).json({ error: 'Server error' });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
 app.get('/getHistoricalDates', async (req, res) => {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     const result = await client.query(
       'SELECT DISTINCT date FROM ProductionCounts ORDER BY date DESC'
     );
@@ -127,7 +135,7 @@ app.get('/getHistoricalDates', async (req, res) => {
     console.error('GetHistoricalDates Error:', err);
     res.status(500).json({ error: 'Server error' });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
@@ -135,8 +143,9 @@ app.get('/getHistoricalData', async (req, res) => {
   const { date } = req.query;
   if (!date) return res.status(400).json({ error: 'Date parameter is required' });
 
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     const resCounts = await client.query(
       'SELECT facility, line, count FROM ProductionCounts WHERE Date = $1',
       [date]
@@ -154,7 +163,7 @@ app.get('/getHistoricalData', async (req, res) => {
     console.error('GetHistoricalData Error:', err);
     res.status(500).json({ error: 'Server error' });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
@@ -190,8 +199,9 @@ app.post('/decrement', async (req, res) => {
 });
 
 app.post('/resetAllData', async (req, res) => {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     await client.query('TRUNCATE TABLE ProductionCounts, ProductionEvents');
     lastMilestone = 0;
     broadcastUpdate();
@@ -200,14 +210,15 @@ app.post('/resetAllData', async (req, res) => {
     console.error('ResetAllData Error:', err);
     res.status(500).json({ error: 'Server error' });
   } finally {
-    client.release();
+    if (client) client.release();
   }
 });
 
 // OPTIMIZATION: Atomic Upsert to prevent race conditions
 async function updateCount(facility, line, delta, date) {
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     // 1. Log the event
     await client.query(
       `INSERT INTO ProductionEvents (date, facility, line, delta, timestamp)
@@ -231,7 +242,7 @@ async function updateCount(facility, line, delta, date) {
     console.error('UpdateCount Error:', err);
     throw err;
   } finally {
-    client.release();
+    if (client) client.release();
   }
 }
 
@@ -260,8 +271,9 @@ wss.on('connection', (ws) => {
 async function broadcastUpdate() {
   if (!currentDate) return;
   
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
     // OPTIMIZATION: Fetch Aggregates instead of Raw Rows to save CPU/Memory
     const [currentRes, hourlyRes, totalsRes, peakDayRes, allDailyRes] = await Promise.all([
       client.query('SELECT facility, line, count FROM ProductionCounts WHERE Date = $1', [currentDate]),
@@ -364,6 +376,6 @@ async function broadcastUpdate() {
   } catch (err) {
     console.error('Broadcast Update Error:', err);
   } finally {
-    client.release();
+    if (client) client.release();
   }
 }
