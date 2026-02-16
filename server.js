@@ -3,16 +3,22 @@ const WebSocket = require('ws');
 const { Pool } = require('pg');
 const app = express();
 
-// PostgreSQL configuration (Supabase Pooler)
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwfilgkxzvrcxurkpng:ENsy2GrmOFokLBh2@aws-1-us-east-2.pooler.supabase.com:6543/postgres';
+// --- 1. STRICT ENVIRONMENT VARIABLE CHECK ---
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  console.error('CRITICAL ERROR: DATABASE_URL environment variable is missing.');
+  console.error('Please set this variable in your Render dashboard before deploying.');
+  process.exit(1); // Fail fast to prevent silent connection timeouts
+}
 
 // MAXIMUM STABILITY CONFIGURATION
 const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, 
   max: 20, 
-  idleTimeoutMillis: 10000, // CHANGED: Let the pool close idle connections before Supabase does (10 seconds)
-  connectionTimeoutMillis: 10000, // CHANGED: Fail fast if the pool is exhausted (10 seconds)
+  idleTimeoutMillis: 10000, 
+  connectionTimeoutMillis: 10000, 
   statement_timeout: 30000,
   keepAlive: true
 });
@@ -31,12 +37,12 @@ const dailyTargets = {
 
 let lastMilestone = 0;
 
-// --- CACHING LAYER TO PROTECT DATABASE FROM HARDWARE SPAM ---
+// --- CACHING LAYER ---
 const routeCache = {
   counts: {},
   historicalDates: { dates: null, timestamp: 0 }
 };
-const CACHE_TTL_MS = 5000; // 5 seconds cache for ESP32 polling
+const CACHE_TTL_MS = 5000; 
 
 function debounce(func, wait) {
   let timeout;
@@ -46,13 +52,13 @@ function debounce(func, wait) {
   };
 }
 
-// --- CONCURRENCY LOCK TO PREVENT WEBSOCKET POOL EXHAUSTION ---
+// --- CONCURRENCY LOCK ---
 let isBroadcasting = false;
 let pendingBroadcast = false;
 
 async function triggerBroadcast() {
   if (isBroadcasting) {
-    pendingBroadcast = true; // Wait in line if a broadcast is already running
+    pendingBroadcast = true; 
     return;
   }
   isBroadcasting = true;
@@ -62,14 +68,12 @@ async function triggerBroadcast() {
     await executeBroadcast();
   } finally {
     isBroadcasting = false;
-    // If hardware sent data while we were busy, safely run one final time
     if (pendingBroadcast) {
       setTimeout(triggerBroadcast, 100);
     }
   }
 }
 
-// Debounce limits triggers, Concurrency Lock limits execution overlaps
 const debouncedBroadcast = debounce(triggerBroadcast, 300);  
 
 app.use(express.static('public'));
@@ -78,20 +82,16 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', uptime: process.uptime() });
 });
 
-// HTTP endpoint to get the current count (CACHED)
 app.get('/getCount', async (req, res) => {
   const { facility, line, date = new Date().toISOString().split('T')[0] } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) {
     return res.status(400).json({ error: 'Invalid facility or line' });
   }
-  if (!date) {
-    return res.status(400).json({ error: 'Date is required' });
-  }
+  if (!date) return res.status(400).json({ error: 'Date is required' });
   
   const cacheKey = `${facility}_${line}_${date}`;
   const now = Date.now();
   
-  // Instantly return cached response if within 5 seconds to prevent DB saturation
   if (routeCache.counts[cacheKey] && (now - routeCache.counts[cacheKey].timestamp < CACHE_TTL_MS)) {
     return res.json({ count: routeCache.counts[cacheKey].value });
   }
@@ -103,7 +103,6 @@ app.get('/getCount', async (req, res) => {
     );
     const count = result.rows.length > 0 ? result.rows[0].count : 0;
     
-    // Update memory cache
     routeCache.counts[cacheKey] = { value: count, timestamp: now };
     res.json({ count });
   } catch (err) {
@@ -112,7 +111,6 @@ app.get('/getCount', async (req, res) => {
   }
 });
 
-// HTTP endpoint to get hourly production rates
 app.get('/getHourlyRates', async (req, res) => {
   const { date = new Date().toISOString().split('T')[0] } = req.query;
   if (!date) return res.status(400).json({ error: 'Date is required' });
@@ -135,8 +133,7 @@ app.get('/getHourlyRates', async (req, res) => {
         const facilityRates = result.rows.filter(row => row.facility === f && row.line === l);
         facilityRates.forEach(row => {
           const hour = parseInt(row.hour);
-          const rate = parseInt(row.rate);
-          hourlyRates[f][l][hour] = rate;
+          hourlyRates[f][l][hour] = parseInt(row.rate);
         });
       });
     });
@@ -147,19 +144,18 @@ app.get('/getHourlyRates', async (req, res) => {
   }
 });
 
-// Get historical dates (CACHED)
 app.get('/getHistoricalDates', async (req, res) => {
   const now = Date.now();
-  // Cache historical dates for 60 seconds so mass page reloads don't hurt the DB
   if (routeCache.historicalDates.dates && (now - routeCache.historicalDates.timestamp < 60000)) {
     return res.json({ dates: routeCache.historicalDates.dates });
   }
 
   try {
-    const result = await pool.query(
-      'SELECT DISTINCT date FROM productioncounts ORDER BY date DESC'
-    );
-    const dates = result.rows.map(row => new Date(row.date).toISOString().split('T')[0]);
+    const result = await pool.query('SELECT DISTINCT date FROM productioncounts ORDER BY date DESC');
+    const dates = result.rows.map(row => {
+       const d = new Date(row.date);
+       return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    });
     
     routeCache.historicalDates = { dates, timestamp: now };
     res.json({ dates });
@@ -174,10 +170,7 @@ app.get('/getHistoricalData', async (req, res) => {
   if (!date) return res.status(400).json({ error: 'Date parameter is required' });
 
   try {
-    const resCounts = await pool.query(
-      'SELECT facility, line, count FROM productioncounts WHERE date = $1',
-      [date]
-    );
+    const resCounts = await pool.query('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]);
     const data = {};
     facilities.forEach(f => {
       data[f] = {};
@@ -193,7 +186,6 @@ app.get('/getHistoricalData', async (req, res) => {
   }
 });
 
-// HTTP endpoints for ESP32
 app.post('/increment', async (req, res) => {
   const { facility, line, date } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
@@ -202,7 +194,6 @@ app.post('/increment', async (req, res) => {
   try {
     await updateCount(facility, line, 1, date);
     
-    // Invalidate the cache for this specific count so hardware updates instantly
     const cacheKey = `${facility}_${line}_${date}`;
     if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
     
@@ -222,7 +213,6 @@ app.post('/decrement', async (req, res) => {
   try {
     await updateCount(facility, line, -1, date);
     
-    // Invalidate the cache for this specific count
     const cacheKey = `${facility}_${line}_${date}`;
     if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
     
@@ -238,7 +228,6 @@ app.post('/resetAllData', async (req, res) => {
   try {
     await pool.query('TRUNCATE TABLE productioncounts, productionevents');
     lastMilestone = 0;
-    // Wipe memory cache
     routeCache.counts = {};
     routeCache.historicalDates = { dates: null, timestamp: 0 };
     triggerBroadcast();
@@ -274,7 +263,6 @@ async function updateCount(facility, line, delta, date) {
     
     await client.query('COMMIT');
   } catch (err) {
-    // ADDED SAFETY: Catch errors during rollback in case the connection is already fully dead
     if (client) {
       try { await client.query('ROLLBACK'); } catch (rollbackErr) { console.error('Rollback Error:', rollbackErr.message); }
     }
@@ -310,6 +298,14 @@ wss.on('connection', (ws) => {
   });
 });
 
+// Helper to reliably format Postgres date responses back to YYYY-MM-DD strings
+const parseDbDate = (dbDate) => {
+  if (typeof dbDate === 'string') return dbDate.split('T')[0];
+  const d = new Date(dbDate);
+  return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+};
+
+// --- 2. BATCHED BROADCAST QUERY (NO N+1 LOOPS) ---
 async function executeBroadcast() {
   const activeDates = new Set();
   wss.clients.forEach(client => {
@@ -319,11 +315,13 @@ async function executeBroadcast() {
   });
 
   if (activeDates.size === 0) return;
+  const datesArray = Array.from(activeDates);
   
   let client;
   try {
     client = await pool.connect();
 
+    // Fetch Global / Peak Stats (Independent of active dates)
     const peakDayRes = await client.query(
       `SELECT facility, date, SUM(count) as daily_total
        FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
@@ -341,7 +339,7 @@ async function executeBroadcast() {
 
       const facilityDailyTotals = allDailyRes.rows
         .filter(row => row.facility === f)
-        .map(row => ({ date: new Date(row.date).toISOString().split('T')[0], daily_total: parseInt(row.daily_total) }))
+        .map(row => ({ date: parseDbDate(row.date), daily_total: parseInt(row.daily_total) }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
       let maxWeeklySum = 0;
@@ -355,23 +353,31 @@ async function executeBroadcast() {
       peakProduction[f] = { peakDay, peakWeekly: maxWeeklySum };
     });
 
-    for (const date of activeDates) {
-      const currentRes = await client.query('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]);
-      
-      const hourlyRes = await client.query(
-        `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
-         FROM productionevents WHERE date = $1
-         GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`, 
-        [date]
-      );
-      
-      const totalsRes = await client.query('SELECT SUM(count) as total FROM productioncounts WHERE date = $1', [date]);
+    // Batched Queries: Fetch everything for ALL active dates in just 3 queries
+    const currentRes = await client.query(
+      'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])',
+      [datesArray]
+    );
+    
+    const hourlyRes = await client.query(
+      `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
+       FROM productionevents WHERE date = ANY($1::date[])
+       GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`, 
+      [datesArray]
+    );
+    
+    const totalsRes = await client.query(
+      'SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', 
+      [datesArray]
+    );
 
+    // Filter and structure data for each specific active date
+    for (const date of datesArray) {
       const data = {};
       facilities.forEach(f => {
         data[f] = {};
         lines.forEach(l => {
-          const row = currentRes.rows.find(r => r.facility === f && r.line === l);
+          const row = currentRes.rows.find(r => r.facility === f && r.line === l && parseDbDate(r.date) === date);
           data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
         });
       });
@@ -385,13 +391,16 @@ async function executeBroadcast() {
       });
       
       hourlyRes.rows.forEach(row => {
-        const { facility, line, hourly_total, hour } = row;
-        if (hourlyRates[facility] && hourlyRates[facility][line]) {
-          hourlyRates[facility][line][parseInt(hour)] = parseInt(hourly_total);
+        if (parseDbDate(row.date) === date) {
+          const { facility, line, hourly_total, hour } = row;
+          if (hourlyRates[facility] && hourlyRates[facility][line]) {
+            hourlyRates[facility][line][parseInt(hour)] = parseInt(hourly_total);
+          }
         }
       });
 
-      const totalProduction = totalsRes.rows[0]?.total || 0;
+      const totalRow = totalsRes.rows.find(r => parseDbDate(r.date) === date);
+      const totalProduction = totalRow ? parseInt(totalRow.total) : 0;
 
       const targetPercentages = {};
       for (const facility of facilities) {
