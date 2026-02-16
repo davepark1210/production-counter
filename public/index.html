@@ -2235,40 +2235,52 @@
             updateFacilityGrid();
         }
 
-        // Load historical dates
-        async function loadHistoricalDates() {
-               try {
-                   console.log('Fetching historical dates...');
-                    const response = await fetch('/getHistoricalDates');
-                    const data = await response.json();
-                    
-                    // Check if the response failed or the dates array is missing
-                    if (!response.ok || !data.dates) {
-                        throw new Error(`Server error or missing dates: ${data.error || response.statusText}`);
+        // Load historical dates with automatic retries
+                async function loadHistoricalDates(retries = 3) {
+                    for (let i = 0; i < retries; i++) {
+                        try {
+                            console.log(`Fetching historical dates... Attempt ${i + 1}`);
+                            const response = await fetch('/getHistoricalDates');
+                            const data = await response.json();
+                            
+                            // Check if the response failed or the dates array is missing
+                            if (!response.ok || !data.dates) {
+                                throw new Error(`Server error or missing dates: ${data.error || response.statusText}`);
+                            }
+                            
+                            const { dates } = data;
+                            console.log('Received historical dates:', dates);
+                            const dateSelect = document.getElementById('dateSelect');
+                            const today = new Date().toISOString().split('T')[0];
+                            const filteredDates = dates.filter(date => date !== today);
+                            
+                            dateSelect.innerHTML = `<option value="">Current Day (${today})</option>`;
+                            filteredDates.forEach(date => {
+                                const option = document.createElement('option');
+                                option.value = date;
+                                option.textContent = date;
+                                dateSelect.appendChild(option);
+                            });
+                            
+                            if (filteredDates.includes('2025-05-04')) {
+                                console.log('Confirmed 5/4/2025 is in dropdown options.');
+                            } else {
+                                console.warn('5/4/2025 not found in historical dates.');
+                            }
+                            
+                            return; // Success, exit function to stop retrying
+                            
+                        } catch (err) {
+                            console.error(`Failed to load historical dates (Attempt ${i + 1}):`, err);
+                            if (i === retries - 1) {
+                                showNotification('Failed to load historical dates. Refresh page to try again.');
+                            } else {
+                                // Wait 1.5 seconds before retrying if there's a timeout blip
+                                await new Promise(res => setTimeout(res, 1500));
+                            }
+                        }
                     }
-                    
-                    const { dates } = data;
-                    console.log('Received historical dates:', dates);
-                    const dateSelect = document.getElementById('dateSelect');
-                    const today = new Date().toISOString().split('T')[0];
-                    const filteredDates = dates.filter(date => date !== today);
-                   dateSelect.innerHTML = `<option value="">Current Day (${today})</option>`;
-                   filteredDates.forEach(date => {
-                       const option = document.createElement('option');
-                       option.value = date;
-                       option.textContent = date;
-                       dateSelect.appendChild(option);
-                   });
-                   if (filteredDates.includes('2025-05-04')) {
-                       console.log('Confirmed 5/4/2025 is in dropdown options.');
-                   } else {
-                       console.warn('5/4/2025 not found in historical dates.');
-                   }
-               } catch (err) {
-                   console.error('Failed to load historical dates:', err);
-                   showNotification('Failed to load historical dates.');
-               }
-           }
+                }
 
         // Function to animate counting up
         function animateCountUp(element, start, end, duration) {
