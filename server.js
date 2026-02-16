@@ -6,24 +6,20 @@ const app = express();
 // PostgreSQL configuration (Supabase Pooler)
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwfilgkxzvrcxurkpng:ENsy2GrmOFokLBh2@aws-1-us-east-2.pooler.supabase.com:6543/postgres';
 
-// Optimized for Supabase PgBouncer (Port 6543) with Keep-Alive
+// MAXIMUM STABILITY CONFIGURATION
 const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, 
-  max: 15, 
+  max: 40, // Increased to 40 for hardware polling leeway
   idleTimeoutMillis: 10000, 
   connectionTimeoutMillis: 15000, 
   statement_timeout: 10000,
-  
-  // CRITICAL FIX: Keep network sockets alive to prevent Supabase 
-  // from silently severing connections and causing "Connection terminated" errors
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000 
 });
 
 pool.on('error', (err, client) => {
   console.error('Unexpected error on idle client:', err.message);
-  // pg-pool will automatically remove this dead client and safely create a new one
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
@@ -36,6 +32,13 @@ const dailyTargets = {
 
 let lastMilestone = 0;
 
+// --- CACHING LAYER TO PROTECT DATABASE FROM HARDWARE SPAM ---
+const routeCache = {
+  counts: {},
+  historicalDates: { dates: null, timestamp: 0 }
+};
+const CACHE_TTL_MS = 5000; // 5 seconds cache for ESP32 polling
+
 function debounce(func, wait) {
   let timeout;
   return function(...args) {
@@ -44,8 +47,31 @@ function debounce(func, wait) {
   };
 }
 
-// OPTIMIZATION: 300ms debounce for near-instant UI updates without database flooding
-const debouncedBroadcast = debounce(broadcastUpdate, 300);  
+// --- CONCURRENCY LOCK TO PREVENT WEBSOCKET POOL EXHAUSTION ---
+let isBroadcasting = false;
+let pendingBroadcast = false;
+
+async function triggerBroadcast() {
+  if (isBroadcasting) {
+    pendingBroadcast = true; // Wait in line if a broadcast is already running
+    return;
+  }
+  isBroadcasting = true;
+  pendingBroadcast = false;
+
+  try {
+    await executeBroadcast();
+  } finally {
+    isBroadcasting = false;
+    // If hardware sent data while we were busy, safely run one final time
+    if (pendingBroadcast) {
+      setTimeout(triggerBroadcast, 100);
+    }
+  }
+}
+
+// Debounce limits triggers, Concurrency Lock limits execution overlaps
+const debouncedBroadcast = debounce(triggerBroadcast, 300);  
 
 app.use(express.static('public'));
 
@@ -53,7 +79,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', uptime: process.uptime() });
 });
 
-// HTTP endpoint to get the current count
+// HTTP endpoint to get the current count (CACHED)
 app.get('/getCount', async (req, res) => {
   const { facility, line, date = new Date().toISOString().split('T')[0] } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) {
@@ -62,15 +88,27 @@ app.get('/getCount', async (req, res) => {
   if (!date) {
     return res.status(400).json({ error: 'Date is required' });
   }
+  
+  const cacheKey = `${facility}_${line}_${date}`;
+  const now = Date.now();
+  
+  // Instantly return cached response if within 5 seconds to prevent DB saturation
+  if (routeCache.counts[cacheKey] && (now - routeCache.counts[cacheKey].timestamp < CACHE_TTL_MS)) {
+    return res.json({ count: routeCache.counts[cacheKey].value });
+  }
+
   try {
     const result = await pool.query(
       'SELECT count FROM productioncounts WHERE date = $1 AND facility = $2 AND line = $3',
       [date, facility, line]
     );
     const count = result.rows.length > 0 ? result.rows[0].count : 0;
+    
+    // Update memory cache
+    routeCache.counts[cacheKey] = { value: count, timestamp: now };
     res.json({ count });
   } catch (err) {
-    console.error('GetCount Error:', err.message, err.stack);
+    console.error('GetCount Error:', err.message);
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
@@ -105,20 +143,29 @@ app.get('/getHourlyRates', async (req, res) => {
     });
     res.json({ hourlyRates });
   } catch (err) {
-    console.error('GetHourlyRates Error:', err.message, err.stack);
+    console.error('GetHourlyRates Error:', err.message);
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 
+// Get historical dates (CACHED)
 app.get('/getHistoricalDates', async (req, res) => {
+  const now = Date.now();
+  // Cache historical dates for 60 seconds so mass page reloads don't hurt the DB
+  if (routeCache.historicalDates.dates && (now - routeCache.historicalDates.timestamp < 60000)) {
+    return res.json({ dates: routeCache.historicalDates.dates });
+  }
+
   try {
     const result = await pool.query(
       'SELECT DISTINCT date FROM productioncounts ORDER BY date DESC'
     );
     const dates = result.rows.map(row => new Date(row.date).toISOString().split('T')[0]);
+    
+    routeCache.historicalDates = { dates, timestamp: now };
     res.json({ dates });
   } catch (err) {
-    console.error('GetHistoricalDates Error:', err.message, err.stack);
+    console.error('GetHistoricalDates Error:', err.message);
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
@@ -142,7 +189,7 @@ app.get('/getHistoricalData', async (req, res) => {
     });
     res.json({ data });
   } catch (err) {
-    console.error('GetHistoricalData Error:', err.message, err.stack);
+    console.error('GetHistoricalData Error:', err.message);
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
@@ -155,10 +202,15 @@ app.post('/increment', async (req, res) => {
 
   try {
     await updateCount(facility, line, 1, date);
+    
+    // Invalidate the cache for this specific count so hardware updates instantly
+    const cacheKey = `${facility}_${line}_${date}`;
+    if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
+    
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
-    console.error('Increment Error:', err.message, err.stack);
+    console.error('Increment Error:', err.message);
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
@@ -170,10 +222,15 @@ app.post('/decrement', async (req, res) => {
 
   try {
     await updateCount(facility, line, -1, date);
+    
+    // Invalidate the cache for this specific count
+    const cacheKey = `${facility}_${line}_${date}`;
+    if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
+    
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
-    console.error('Decrement Error:', err.message, err.stack);
+    console.error('Decrement Error:', err.message);
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
@@ -182,10 +239,13 @@ app.post('/resetAllData', async (req, res) => {
   try {
     await pool.query('TRUNCATE TABLE productioncounts, productionevents');
     lastMilestone = 0;
-    broadcastUpdate();
+    // Wipe memory cache
+    routeCache.counts = {};
+    routeCache.historicalDates = { dates: null, timestamp: 0 };
+    triggerBroadcast();
     res.sendStatus(200);
   } catch (err) {
-    console.error('ResetAllData Error:', err.message, err.stack);
+    console.error('ResetAllData Error:', err.message);
     res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
@@ -194,18 +254,14 @@ async function updateCount(facility, line, delta, date) {
   let client;
   try {
     client = await pool.connect();
-    
-    // Start a transaction block to safely hold the PgBouncer connection
     await client.query('BEGIN');
     
-    // 1. Log the event
     await client.query(
       `INSERT INTO productionevents (date, facility, line, delta, timestamp)
        VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
       [date, facility, line, delta]
     );
 
-    // 2. Atomic UPSERT (Requires UNIQUE constraint on date, facility, line)
     const query = `
       INSERT INTO productioncounts (date, facility, line, count, timestamp)
       VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')
@@ -220,7 +276,7 @@ async function updateCount(facility, line, delta, date) {
     await client.query('COMMIT');
   } catch (err) {
     if (client) await client.query('ROLLBACK');
-    console.error('UpdateCount Error:', err.message, err.stack);
+    console.error('UpdateCount Error:', err.message);
     throw err;
   } finally {
     if (client) client.release();
@@ -239,22 +295,19 @@ wss.on('connection', (ws) => {
       const parsedMessage = JSON.parse(message);
       
       if (parsedMessage.action === 'setClientDate' && parsedMessage.clientDate) {
-        // Save date state individually per client so multiple users can view different dates
         ws.currentDate = parsedMessage.clientDate;
       } else if (parsedMessage.action === 'requestCurrentData') {
-        // Debounce this to prevent pool exhaustion on mass page loads
         debouncedBroadcast();
       } else if (parsedMessage.action === 'ping') {
         ws.send(JSON.stringify({ type: 'pong' }));
       }
     } catch (err) {
-      console.error('WebSocket Error:', err.message, err.stack);
+      console.error('WebSocket Error:', err.message);
     }
   });
 });
 
-async function broadcastUpdate() {
-  // Identify all unique dates currently being requested by connected active clients
+async function executeBroadcast() {
   const activeDates = new Set();
   wss.clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN && client.currentDate) {
@@ -268,7 +321,6 @@ async function broadcastUpdate() {
   try {
     client = await pool.connect();
 
-    // Await generic peak/all-daily data sequentially to prevent protocol hanging
     const peakDayRes = await client.query(
       `SELECT facility, date, SUM(count) as daily_total
        FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
@@ -279,7 +331,6 @@ async function broadcastUpdate() {
        FROM productioncounts GROUP BY facility, date ORDER BY facility, date`
     );
 
-    // Calculate peakProduction mapping once per broadcast
     const peakProduction = {};
     facilities.forEach(f => {
       const facilityRows = peakDayRes.rows.filter(row => row.facility === f);
@@ -301,10 +352,7 @@ async function broadcastUpdate() {
       peakProduction[f] = { peakDay, peakWeekly: maxWeeklySum };
     });
 
-    // 2. Iterate over each unique active date requested by clients
     for (const date of activeDates) {
-      
-      // Await specific date queries sequentially
       const currentRes = await client.query('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]);
       
       const hourlyRes = await client.query(
@@ -350,7 +398,6 @@ async function broadcastUpdate() {
         targetPercentages[facility] = percentage;
       }
 
-      // Check milestones only for the current day to avoid historical spam
       const todayStr = new Date().toISOString().split('T')[0];
       let notification = null;
       if (date === todayStr) {
@@ -371,7 +418,6 @@ async function broadcastUpdate() {
         notification
       });
       
-      // Target only clients whose specific date matches the data we just generated
       wss.clients.forEach((c) => {
         if (c.readyState === WebSocket.OPEN && c.currentDate === date) {
           c.send(messageStr);
@@ -379,7 +425,7 @@ async function broadcastUpdate() {
       });
     }
   } catch (err) {
-    console.error('Broadcast Update Error:', err.message, err.stack);
+    console.error('Broadcast Update Error:', err.message);
   } finally {
     if (client) {
       client.release();
