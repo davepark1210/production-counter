@@ -6,14 +6,20 @@ const app = express();
 // PostgreSQL configuration (Supabase Pooler)
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwfilgkxzvrcxurkpng:ENsy2GrmOFokLBh2@aws-1-us-east-2.pooler.supabase.com:6543/postgres';
 
-// FIX 3: Relaxed pool constraints to prevent connection exhaustion
+// Optimized for Supabase PgBouncer (Port 6543)
 const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, 
-  max: 20, // Increased max connections
-  idleTimeoutMillis: 30000, 
-  connectionTimeoutMillis: 15000, // Increased timeout to 15 seconds
+  max: 15, // Reduced from 20 to respect Supabase free tier PgBouncer limits
+  idleTimeoutMillis: 10000, // Reduced to 10s so Node drops idle connections BEFORE Supabase kills them
+  connectionTimeoutMillis: 15000, 
   statement_timeout: 10000 // Force Postgres to drop hanging queries after 10s
+});
+
+// CRITICAL: Catch silent idle connection drops from Supabase to prevent app crashes
+pool.on('error', (err, client) => {
+  console.error('Unexpected error on idle client:', err.message);
+  // pg-pool will automatically remove this dead client and safely create a new one
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
@@ -33,8 +39,9 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func(...args), wait);
   };
 }
-// OPTIMIZATION: 1-second debounce for instant UI updates
-const debouncedBroadcast = debounce(broadcastUpdate, 1000);  
+
+// OPTIMIZATION: 300ms debounce for near-instant UI updates without database flooding
+const debouncedBroadcast = debounce(broadcastUpdate, 300);  
 
 app.use(express.static('public'));
 
@@ -52,7 +59,6 @@ app.get('/getCount', async (req, res) => {
     return res.status(400).json({ error: 'Date is required' });
   }
   try {
-    // FIX 4: Use pool.query() directly to prevent connection leaks on single queries
     const result = await pool.query(
       'SELECT count FROM productioncounts WHERE date = $1 AND facility = $2 AND line = $3',
       [date, facility, line]
@@ -105,7 +111,6 @@ app.get('/getHistoricalDates', async (req, res) => {
     const result = await pool.query(
       'SELECT DISTINCT date FROM productioncounts ORDER BY date DESC'
     );
-    // FIX 1: Wrap row.date in new Date() to prevent .toISOString TypeError
     const dates = result.rows.map(row => new Date(row.date).toISOString().split('T')[0]);
     res.json({ dates });
   } catch (err) {
@@ -184,8 +189,11 @@ app.post('/resetAllData', async (req, res) => {
 async function updateCount(facility, line, delta, date) {
   let client;
   try {
-    // Keep manual client checkout here for safe sequential queries
     client = await pool.connect();
+    
+    // Start a transaction block to safely hold the PgBouncer connection
+    await client.query('BEGIN');
+    
     // 1. Log the event
     await client.query(
       `INSERT INTO productionevents (date, facility, line, delta, timestamp)
@@ -205,7 +213,9 @@ async function updateCount(facility, line, delta, date) {
     `;
     await client.query(query, [date, facility, line, delta]);
     
+    await client.query('COMMIT');
   } catch (err) {
+    if (client) await client.query('ROLLBACK');
     console.error('UpdateCount Error:', err.message, err.stack);
     throw err;
   } finally {
@@ -225,11 +235,11 @@ wss.on('connection', (ws) => {
       const parsedMessage = JSON.parse(message);
       
       if (parsedMessage.action === 'setClientDate' && parsedMessage.clientDate) {
-        // FIX 5: Save date state individually per client so multiple users can view different dates
+        // Save date state individually per client so multiple users can view different dates
         ws.currentDate = parsedMessage.clientDate;
-        // FIX 2: Removed `await broadcastUpdate()` from here to prevent the "Self-DDoS" double-fire bug
       } else if (parsedMessage.action === 'requestCurrentData') {
-        await broadcastUpdate();
+        // Debounce this to prevent pool exhaustion on mass page loads
+        debouncedBroadcast();
       } else if (parsedMessage.action === 'ping') {
         ws.send(JSON.stringify({ type: 'pong' }));
       }
@@ -254,7 +264,7 @@ async function broadcastUpdate() {
   try {
     client = await pool.connect();
 
-    // FIX 1: Await generic peak/all-daily data sequentially to prevent protocol hanging
+    // Await generic peak/all-daily data sequentially to prevent protocol hanging
     const peakDayRes = await client.query(
       `SELECT facility, date, SUM(count) as daily_total
        FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
@@ -290,7 +300,7 @@ async function broadcastUpdate() {
     // 2. Iterate over each unique active date requested by clients
     for (const date of activeDates) {
       
-      // FIX 2: Await specific date queries sequentially
+      // Await specific date queries sequentially
       const currentRes = await client.query('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]);
       
       const hourlyRes = await client.query(
@@ -368,8 +378,6 @@ async function broadcastUpdate() {
     console.error('Broadcast Update Error:', err.message, err.stack);
   } finally {
     if (client) {
-      // Because we removed the hanging Promises, this line will now successfully run
-      // and safely return the connection back to the pool!
       client.release();
     }
   }
