@@ -2689,24 +2689,17 @@
             // Heartbeat to keep connection alive (optional but good for Render.com)
             let heartbeatInterval;
         
-            ws.onopen = () => {
+                ws.onopen = () => {
                     console.log('WebSocket connection established at', new Date().toISOString());
                     document.getElementById('loadingSpinner').style.display = 'none';
                     
-                    // 1. Send current date immediately
-                    ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-                    
-                    // 2. Request initial data once
-                    ws.send(JSON.stringify({ action: 'requestCurrentData' }));
-                    
-                    loadHistoricalDates();
-            
-                    // REMOVED: setInterval polling. The server now pushes updates automatically.
-                    // We only keep a simple "ping" if you find connections dropping on Render.
+                    // NOTE: All data fetching (requestCurrentData, loadHistoricalDates) has been 
+                    // removed from here. It is now safely handled by initializeRankings() 
+                    // to prevent double-firing and maxing out the database pool!
+                
                     if (heartbeatInterval) clearInterval(heartbeatInterval);
                     heartbeatInterval = setInterval(() => {
                         if (ws.readyState === WebSocket.OPEN) {
-                            // Optional: Send a dummy keep-alive if needed, but usually not required for active apps
                              ws.send(JSON.stringify({ action: 'ping' })); 
                         }
                     }, 45000);
