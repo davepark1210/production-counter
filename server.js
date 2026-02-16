@@ -10,12 +10,11 @@ const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwf
 const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, 
-  max: 20, // Reduced to 20 to avoid potential pool exhaustion or Supabase limits
-  idleTimeoutMillis: 0, 
-  connectionTimeoutMillis: 60000, 
+  max: 20, 
+  idleTimeoutMillis: 10000, // CHANGED: Let the pool close idle connections before Supabase does (10 seconds)
+  connectionTimeoutMillis: 10000, // CHANGED: Fail fast if the pool is exhausted (10 seconds)
   statement_timeout: 30000,
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 0 
+  keepAlive: true
 });
 
 pool.on('error', (err, client) => {
@@ -275,7 +274,10 @@ async function updateCount(facility, line, delta, date) {
     
     await client.query('COMMIT');
   } catch (err) {
-    if (client) await client.query('ROLLBACK');
+    // ADDED SAFETY: Catch errors during rollback in case the connection is already fully dead
+    if (client) {
+      try { await client.query('ROLLBACK'); } catch (rollbackErr) { console.error('Rollback Error:', rollbackErr.message); }
+    }
     console.error('UpdateCount Error:', err.message);
     throw err;
   } finally {
