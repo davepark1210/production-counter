@@ -2237,34 +2237,31 @@
 
         // Load historical dates
         async function loadHistoricalDates() {
-                  console.log('Fetching historical dates...');
-                  fetch('/getHistoricalDates')
-                    .then(response => {
-                      if (!response.ok) {
-                        throw new Error(`HTTP error: ${response.status}`);
-                      }
-                      return response.json();
-                    })
-                    .then(data => {
-                      if (data.error) {
-                        throw new Error(data.error);
-                      }
-                      console.log('Received historical dates:', data.dates);
-                      const dateSelect = document.getElementById('historicalDateSelect');
-                      dateSelect.innerHTML = '';
-                      const dates = (data.dates || []).filter(d => d !== currentDate);
-                      dates.forEach(date => {
-                        const option = document.createElement('option');
-                        option.value = date;
-                        option.textContent = date;
-                        dateSelect.appendChild(option);
-                      });
-                    })
-                    .catch(err => {
-                      console.error('Failed to load historical dates:', err);
-                      showNotification('Failed to load historical dates: ' + err.message);
-                    });
-                }
+               try {
+                   console.log('Fetching historical dates...');
+                   const response = await fetch('/getHistoricalDates');
+                   const { dates } = await response.json();
+                   console.log('Received historical dates:', dates);
+                   const dateSelect = document.getElementById('dateSelect');
+                   const today = new Date().toISOString().split('T')[0];
+                   const filteredDates = dates.filter(date => date !== today);
+                   dateSelect.innerHTML = `<option value="">Current Day (${today})</option>`;
+                   filteredDates.forEach(date => {
+                       const option = document.createElement('option');
+                       option.value = date;
+                       option.textContent = date;
+                       dateSelect.appendChild(option);
+                   });
+                   if (filteredDates.includes('2025-05-04')) {
+                       console.log('Confirmed 5/4/2025 is in dropdown options.');
+                   } else {
+                       console.warn('5/4/2025 not found in historical dates.');
+                   }
+               } catch (err) {
+                   console.error('Failed to load historical dates:', err);
+                   showNotification('Failed to load historical dates.');
+               }
+           }
 
         // Function to animate counting up
         function animateCountUp(element, start, end, duration) {
