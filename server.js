@@ -16,15 +16,28 @@ if (!connectionString) {
 const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, 
-  max: 20, 
-  idleTimeoutMillis: 30000,         // Increased to 30 seconds
-  connectionTimeoutMillis: 30000,   // Increased to 30 seconds to prevent handshake timeouts
-  statement_timeout: 30000,
+  max: 10, // Reduced to 10 to avoid exhausting Supabase free tier limits
+  idleTimeoutMillis: 0, // Disable idle timeout to reuse connections longer
+  connectionTimeoutMillis: 60000, // Increased to 60 seconds to handle latency/cold starts
+  statement_timeout: 60000, // Increased to 60 seconds for query execution
   keepAlive: true
 });
 
 pool.on('error', (err, client) => {
   console.error('Unexpected error on idle client:', err.message);
+});
+
+// Additional pool event logging for debugging
+pool.on('connect', (client) => {
+  console.log('New client connected to pool');
+});
+
+pool.on('acquire', (client) => {
+  console.log('Client acquired from pool');
+});
+
+pool.on('remove', (client) => {
+  console.log('Client removed from pool');
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
