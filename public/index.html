@@ -2239,12 +2239,19 @@
         async function loadHistoricalDates() {
                try {
                    console.log('Fetching historical dates...');
-                   const response = await fetch('/getHistoricalDates');
-                   const { dates } = await response.json();
-                   console.log('Received historical dates:', dates);
-                   const dateSelect = document.getElementById('dateSelect');
-                   const today = new Date().toISOString().split('T')[0];
-                   const filteredDates = dates.filter(date => date !== today);
+                    const response = await fetch('/getHistoricalDates');
+                    const data = await response.json();
+                    
+                    // Check if the response failed or the dates array is missing
+                    if (!response.ok || !data.dates) {
+                        throw new Error(`Server error or missing dates: ${data.error || response.statusText}`);
+                    }
+                    
+                    const { dates } = data;
+                    console.log('Received historical dates:', dates);
+                    const dateSelect = document.getElementById('dateSelect');
+                    const today = new Date().toISOString().split('T')[0];
+                    const filteredDates = dates.filter(date => date !== today);
                    dateSelect.innerHTML = `<option value="">Current Day (${today})</option>`;
                    filteredDates.forEach(date => {
                        const option = document.createElement('option');
