@@ -10,12 +10,12 @@ const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwf
 const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, 
-  max: 40, // Increased to 40 for hardware polling leeway
-  idleTimeoutMillis: 10000, 
-  connectionTimeoutMillis: 15000, 
-  statement_timeout: 10000,
+  max: 20, // Reduced to 20 to avoid potential pool exhaustion or Supabase limits
+  idleTimeoutMillis: 0, 
+  connectionTimeoutMillis: 60000, 
+  statement_timeout: 30000,
   keepAlive: true,
-  keepAliveInitialDelayMillis: 10000 
+  keepAliveInitialDelayMillis: 0 
 });
 
 pool.on('error', (err, client) => {
@@ -284,8 +284,9 @@ async function updateCount(facility, line, delta, date) {
 }
 
 // WebSocket server
-const server = app.listen(10000, () => {
-  console.log(`Server running at https://production-counter.onrender.com`);
+const PORT = process.env.PORT || 10000;
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
 const wss = new WebSocket.Server({ server });
 
