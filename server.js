@@ -117,7 +117,7 @@ app.get('/getHistoricalDates', async (req, res) => {
     const result = await client.query(
       'SELECT DISTINCT date FROM productioncounts ORDER BY date DESC'
     );
-    const dates = result.rows.map(row => row.date.toISOString().split('T')[0]);
+    const dates = result.rows.map(row => new Date(row.date).toISOString().split('T')[0]);
     res.json({ dates });
   } catch (err) {
     console.error('GetHistoricalDates Error:', err.message, err.stack);
