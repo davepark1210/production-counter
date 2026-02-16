@@ -254,17 +254,16 @@ async function broadcastUpdate() {
   try {
     client = await pool.connect();
 
-    // 1. Fetch generic peak/all-daily data ONCE (it is date-independent)
-    const [peakDayRes, allDailyRes] = await Promise.all([
-      client.query(
-        `SELECT facility, date, SUM(count) as daily_total
-         FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
-      ),
-      client.query(
-        `SELECT facility, date, SUM(count) as daily_total
-         FROM productioncounts GROUP BY facility, date ORDER BY facility, date`
-      )
-    ]);
+    // FIX 1: Await generic peak/all-daily data sequentially to prevent protocol hanging
+    const peakDayRes = await client.query(
+      `SELECT facility, date, SUM(count) as daily_total
+       FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
+    );
+    
+    const allDailyRes = await client.query(
+      `SELECT facility, date, SUM(count) as daily_total
+       FROM productioncounts GROUP BY facility, date ORDER BY facility, date`
+    );
 
     // Calculate peakProduction mapping once per broadcast
     const peakProduction = {};
@@ -290,16 +289,18 @@ async function broadcastUpdate() {
 
     // 2. Iterate over each unique active date requested by clients
     for (const date of activeDates) {
-      const [currentRes, hourlyRes, totalsRes] = await Promise.all([
-        client.query('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]),
-        client.query(
-          `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
-           FROM productionevents WHERE date = $1
-           GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`, 
-          [date]
-        ),
-        client.query('SELECT SUM(count) as total FROM productioncounts WHERE date = $1', [date])
-      ]);
+      
+      // FIX 2: Await specific date queries sequentially
+      const currentRes = await client.query('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]);
+      
+      const hourlyRes = await client.query(
+        `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
+         FROM productionevents WHERE date = $1
+         GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`, 
+        [date]
+      );
+      
+      const totalsRes = await client.query('SELECT SUM(count) as total FROM productioncounts WHERE date = $1', [date]);
 
       const data = {};
       facilities.forEach(f => {
@@ -347,7 +348,7 @@ async function broadcastUpdate() {
       }
 
       const messageStr = JSON.stringify({
-        date: date, // ensure payload explicitly defines the date
+        date: date,
         data,
         hourlyRates,
         totalProduction,
@@ -366,6 +367,10 @@ async function broadcastUpdate() {
   } catch (err) {
     console.error('Broadcast Update Error:', err.message, err.stack);
   } finally {
-    if (client) client.release();
+    if (client) {
+      // Because we removed the hanging Promises, this line will now successfully run
+      // and safely return the connection back to the pool!
+      client.release();
+    }
   }
 }
