@@ -6,17 +6,21 @@ const app = express();
 // PostgreSQL configuration (Supabase Pooler)
 const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwfilgkxzvrcxurkpng:ENsy2GrmOFokLBh2@aws-1-us-east-2.pooler.supabase.com:6543/postgres';
 
-// Optimized for Supabase PgBouncer (Port 6543)
+// Optimized for Supabase PgBouncer (Port 6543) with Keep-Alive
 const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, 
-  max: 15, // Reduced from 20 to respect Supabase free tier PgBouncer limits
-  idleTimeoutMillis: 10000, // Reduced to 10s so Node drops idle connections BEFORE Supabase kills them
+  max: 15, 
+  idleTimeoutMillis: 10000, 
   connectionTimeoutMillis: 15000, 
-  statement_timeout: 10000 // Force Postgres to drop hanging queries after 10s
+  statement_timeout: 10000,
+  
+  // CRITICAL FIX: Keep network sockets alive to prevent Supabase 
+  // from silently severing connections and causing "Connection terminated" errors
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000 
 });
 
-// CRITICAL: Catch silent idle connection drops from Supabase to prevent app crashes
 pool.on('error', (err, client) => {
   console.error('Unexpected error on idle client:', err.message);
   // pg-pool will automatically remove this dead client and safely create a new one
