@@ -3,32 +3,21 @@ const WebSocket = require('ws');
 const { Pool } = require('pg');
 const app = express();
 
-// PostgreSQL configuration (Supabase Pooler)
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwfilgkxzvrcxurkpng:ENsy2GrmOFokLBh2@aws-1-us-east-2.pooler.supabase.com:5432/postgres';
+// PostgreSQL configuration (Supabase Pooler) - Corrected host and port based on your credentials
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwfilgkxzvrcxurkpng:ENsy2GrmOFokLBh2@aws-1-us-east-2.pooler.supabase.com:6543/postgres';
 
 const pool = new Pool({
   connectionString: connectionString,
   ssl: { rejectUnauthorized: false }, 
   max: 10,
-  // REDUCED: Drop idle connections after 5s so we don't hold onto dead ones
-  idleTimeoutMillis: 5000,  
-  // INCREASED: Give the database slightly more time to accept a new connection
-  connectionTimeoutMillis: 20000, 
-  // ADDED: TCP Keep-Alive to prevent Load Balancers from killing the link
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 10000 
-});
-
-// CRITICAL FIX: Do NOT crash the process on idle client errors. 
-// Just log it; the pool will automatically discard the bad connection and create a new one next time.
-pool.on('error', (err, client) => {
-  console.error('Unexpected error on idle client', err);
-  // process.exit(-1); // <-- REMOVED: This was causing your server to restart unnecessarily
+  // OPTIMIZATION: Keep idle connections for 30s to reduce SSL handshake overhead
+  idleTimeoutMillis: 30000, 
+  connectionTimeoutMillis: 5000
 });
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
-// ... rest of your code remains the same ...
 const cache = {};  
+// OPTIMIZATION: Reduce cache to 30s for "live" feel
 const CACHE_TTL = 30000;  
 
 function debounce(func, wait) {
@@ -38,6 +27,7 @@ function debounce(func, wait) {
     timeout = setTimeout(() => func(...args), wait);
   };
 }
+// OPTIMIZATION: 1-second debounce for instant UI updates
 const debouncedBroadcast = debounce(broadcastUpdate, 1000);  
 
 const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
@@ -64,20 +54,18 @@ app.get('/getCount', async (req, res) => {
   if (!date) {
     return res.status(400).json({ error: 'Date is required' });
   }
-  
-  // Use a try/catch block for connection acquisition to handle timeout gracefully
   let client;
   try {
     client = await pool.connect();
     const result = await client.query(
-      'SELECT count FROM ProductionCounts WHERE Date = $1 AND Facility = $2 AND Line = $3',
+      'SELECT count FROM productioncounts WHERE date = $1 AND facility = $2 AND line = $3',
       [date, facility, line]
     );
     const count = result.rows.length > 0 ? result.rows[0].count : 0;
     res.json({ count });
   } catch (err) {
-    console.error('GetCount Error:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('GetCount Error:', err.message, err.stack);
+    res.status(500).json({ error: 'Server error: ' + err.message });
   } finally {
     if (client) client.release();
   }
@@ -93,7 +81,7 @@ app.get('/getHourlyRates', async (req, res) => {
     client = await pool.connect();
     const result = await client.query(
       `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
-       FROM ProductionEvents
+       FROM productionevents
        WHERE date = $1
        GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')
        ORDER BY facility, line, hour`,
@@ -115,8 +103,8 @@ app.get('/getHourlyRates', async (req, res) => {
     });
     res.json({ hourlyRates });
   } catch (err) {
-    console.error('GetHourlyRates Error:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('GetHourlyRates Error:', err.message, err.stack);
+    res.status(500).json({ error: 'Server error: ' + err.message });
   } finally {
     if (client) client.release();
   }
@@ -127,13 +115,13 @@ app.get('/getHistoricalDates', async (req, res) => {
   try {
     client = await pool.connect();
     const result = await client.query(
-      'SELECT DISTINCT date FROM ProductionCounts ORDER BY date DESC'
+      'SELECT DISTINCT date FROM productioncounts ORDER BY date DESC'
     );
     const dates = result.rows.map(row => row.date.toISOString().split('T')[0]);
     res.json({ dates });
   } catch (err) {
-    console.error('GetHistoricalDates Error:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('GetHistoricalDates Error:', err.message, err.stack);
+    res.status(500).json({ error: 'Server error: ' + err.message });
   } finally {
     if (client) client.release();
   }
@@ -147,7 +135,7 @@ app.get('/getHistoricalData', async (req, res) => {
   try {
     client = await pool.connect();
     const resCounts = await client.query(
-      'SELECT facility, line, count FROM ProductionCounts WHERE Date = $1',
+      'SELECT facility, line, count FROM productioncounts WHERE date = $1',
       [date]
     );
     const data = {};
@@ -160,8 +148,8 @@ app.get('/getHistoricalData', async (req, res) => {
     });
     res.json({ data });
   } catch (err) {
-    console.error('GetHistoricalData Error:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('GetHistoricalData Error:', err.message, err.stack);
+    res.status(500).json({ error: 'Server error: ' + err.message });
   } finally {
     if (client) client.release();
   }
@@ -178,8 +166,8 @@ app.post('/increment', async (req, res) => {
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
-    console.error('Increment Error:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Increment Error:', err.message, err.stack);
+    res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 
@@ -193,8 +181,8 @@ app.post('/decrement', async (req, res) => {
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
-    console.error('Decrement Error:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Decrement Error:', err.message, err.stack);
+    res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 
@@ -202,13 +190,13 @@ app.post('/resetAllData', async (req, res) => {
   let client;
   try {
     client = await pool.connect();
-    await client.query('TRUNCATE TABLE ProductionCounts, ProductionEvents');
+    await client.query('TRUNCATE TABLE productioncounts, productionevents');
     lastMilestone = 0;
     broadcastUpdate();
     res.sendStatus(200);
   } catch (err) {
-    console.error('ResetAllData Error:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('ResetAllData Error:', err.message, err.stack);
+    res.status(500).json({ error: 'Server error: ' + err.message });
   } finally {
     if (client) client.release();
   }
@@ -221,25 +209,25 @@ async function updateCount(facility, line, delta, date) {
     client = await pool.connect();
     // 1. Log the event
     await client.query(
-      `INSERT INTO ProductionEvents (date, facility, line, delta, timestamp)
+      `INSERT INTO productionevents (date, facility, line, delta, timestamp)
        VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
       [date, facility, line, delta]
     );
 
-    // 2. Atomic UPSERT (Requires UNIQUE constraint on Date, Facility, Line)
+    // 2. Atomic UPSERT (Requires UNIQUE constraint on date, facility, line)
     const query = `
-      INSERT INTO ProductionCounts (Date, Facility, Line, Count, Timestamp)
+      INSERT INTO productioncounts (date, facility, line, count, timestamp)
       VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')
-      ON CONFLICT (Date, Facility, Line) 
+      ON CONFLICT (date, facility, line) 
       DO UPDATE SET 
-        Count = ProductionCounts.Count + $4,
-        Timestamp = NOW() AT TIME ZONE 'UTC'
-      RETURNING Count;
+        count = productioncounts.count + $4,
+        timestamp = NOW() AT TIME ZONE 'UTC'
+      RETURNING count;
     `;
     await client.query(query, [date, facility, line, delta]);
     
   } catch (err) {
-    console.error('UpdateCount Error:', err);
+    console.error('UpdateCount Error:', err.message, err.stack);
     throw err;
   } finally {
     if (client) client.release();
@@ -263,7 +251,7 @@ wss.on('connection', (ws) => {
         await broadcastUpdate();
       }
     } catch (err) {
-      console.error('WebSocket Error:', err);
+      console.error('WebSocket Error:', err.message, err.stack);
     }
   });
 });
@@ -276,22 +264,22 @@ async function broadcastUpdate() {
     client = await pool.connect();
     // OPTIMIZATION: Fetch Aggregates instead of Raw Rows to save CPU/Memory
     const [currentRes, hourlyRes, totalsRes, peakDayRes, allDailyRes] = await Promise.all([
-      client.query('SELECT facility, line, count FROM ProductionCounts WHERE Date = $1', [currentDate]),
+      client.query('SELECT facility, line, count FROM productioncounts WHERE date = $1', [currentDate]),
       // Optimized: DB sums the hours
       client.query(
         `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
-         FROM ProductionEvents WHERE date = $1
+         FROM productionevents WHERE date = $1
          GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`, 
         [currentDate]
       ),
-      client.query('SELECT SUM(count) as total FROM ProductionCounts WHERE Date = $1', [currentDate]),
+      client.query('SELECT SUM(count) as total FROM productioncounts WHERE date = $1', [currentDate]),
       client.query(
         `SELECT facility, date, SUM(count) as daily_total
-         FROM ProductionCounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
+         FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
       ),
       client.query(
         `SELECT facility, date, SUM(count) as daily_total
-         FROM ProductionCounts GROUP BY facility, date ORDER BY facility, date`
+         FROM productioncounts GROUP BY facility, date ORDER BY facility, date`
       )
     ]);
 
@@ -374,7 +362,7 @@ async function broadcastUpdate() {
       }
     });
   } catch (err) {
-    console.error('Broadcast Update Error:', err);
+    console.error('Broadcast Update Error:', err.message, err.stack);
   } finally {
     if (client) client.release();
   }
