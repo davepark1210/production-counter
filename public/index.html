@@ -2757,15 +2757,11 @@
             
                     setTimeout(() => {
                         console.log('Attempting to reconnect...');
-                        // Re-initialize the global 'ws' variable
                         ws = new WebSocket('wss://production-counter.onrender.com');
-                        // Re-attach listeners
-                        ws.onopen = this.onopen; 
-                        ws.onmessage = this.onmessage; 
+                        
                         ws.onclose = handleClose; 
                         ws.onerror = (err) => console.error('WS Error:', err);
                         
-                        // Re-attach the onopen logic we defined above
                         ws.onopen = () => {
                             console.log('Reconnected!');
                             document.getElementById('loadingSpinner').style.display = 'none';
