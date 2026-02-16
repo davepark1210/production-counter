@@ -4,7 +4,7 @@ const { Pool } = require('pg');
 const app = express();
 
 // PostgreSQL configuration (Supabase Pooler)
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.jwyzqdibdmikcowzwzri:p8HVEgzsJdSmrS4Y@aws-0-us-west-2.pooler.supabase.com:6543/postgres';
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres.kwwfilgkxzvrcxurkpng:ENsy2GrmOFokLBh2@aws-1-us-east-2.pooler.supabase.com:6543/postgres';
 
 // MAXIMUM STABILITY CONFIGURATION
 const pool = new Pool({
