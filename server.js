@@ -17,8 +17,8 @@ const pool = new Pool({
   max: 20,                            
   idleTimeoutMillis: 30000,           
   connectionTimeoutMillis: 60000,     
-  statement_timeout: 10000,           
-  query_timeout: 10000,               
+  statement_timeout: 60000,           // 🚀 BUMPED TO 60s: Gives Supabase time to do the math
+  // query_timeout: REMOVED COMPLETELY! This was the assassin killing your queries!
   keepAlive: true,                    
   keepAliveInitialDelayMillis: 2000   
 });
