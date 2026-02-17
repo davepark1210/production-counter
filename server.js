@@ -175,27 +175,6 @@ app.get('/getHourlyRates', async (req, res) => {
   }
 });
 
-app.get('/getHistoricalDates', async (req, res) => {
-  const now = Date.now();
-  if (routeCache.historicalDates.dates && (now - routeCache.historicalDates.timestamp < 60000)) {
-    return res.json({ dates: routeCache.historicalDates.dates });
-  }
-
-  try {
-    const result = await queryWithRetry('SELECT DISTINCT date FROM productioncounts ORDER BY date DESC');
-    const dates = result.rows.map(row => {
-       const d = new Date(row.date);
-       return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    });
-    
-    routeCache.historicalDates = { dates, timestamp: now };
-    res.json({ dates });
-  } catch (err) {
-    console.error('GetHistoricalDates Error:', err.message);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 app.get('/getHistoricalData', async (req, res) => {
   const { date } = req.query;
   if (!date) return res.status(400).json({ error: 'Date parameter is required' });
