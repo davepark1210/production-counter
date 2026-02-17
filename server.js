@@ -14,9 +14,9 @@ if (!connectionString) {
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 10,                            
+  max: 15,                            // Increased slightly for transaction pooler
   idleTimeoutMillis: 5000,            
-  connectionTimeoutMillis: 20000,     
+  connectionTimeoutMillis: 30000,     // 30s: Crucial for Supabase cold-starts
   statement_timeout: 15000,           
   keepAlive: true,                    
   keepAliveInitialDelayMillis: 2000   
@@ -29,7 +29,7 @@ pool.on('error', (err, client) => {
 pool.on('connect', () => console.log('Pool acquired a new DB connection'));
 pool.on('remove', () => console.log('Pool released a DB connection'));
 
-// === RETRY WRAPPER ===
+// === RETRY WRAPPER WITH JITTER ===
 async function queryWithRetry(sql, params = [], retries = 5) {
   let delay = 1000;
   for (let i = 1; i <= retries; i++) {
@@ -39,9 +39,11 @@ async function queryWithRetry(sql, params = [], retries = 5) {
     } catch (err) {
       console.error(`DB query attempt ${i} failed:`, err.message);
       if (i === retries) throw err;
-      if (err.message.includes('timeout') || err.message.includes('terminated') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH') {
-        console.warn(`Network hiccup. Retrying in ${delay}ms...`);
-        await new Promise(r => setTimeout(r, delay));
+      if (err.message.includes('timeout') || err.message.includes('terminated') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH' || err.code === 'ECONNRESET') {
+        // Add jitter to prevent concurrent queries from retrying at the exact same millisecond
+        const jitter = Math.floor(Math.random() * 500);
+        console.warn(`Network hiccup. Retrying in ${delay + jitter}ms...`);
+        await new Promise(r => setTimeout(r, delay + jitter));
         delay *= 2; 
       } else {
         throw err; 
@@ -326,36 +328,51 @@ async function updateCount(facility, line, delta, date) {
   }
 }
 
-// Quickly checks if the current increment broke the historical record in the new table
+// OPTIMIZED: Condenses 3 sequential queries down to 1 using a CTE.
 async function checkAndUpdatePeaks(facility, date) {
   try {
-    const peakRes = await queryWithRetry('SELECT peak_day, peak_weekly FROM peakproduction WHERE facility = $1', [facility]);
-    let currentPeakDay = peakRes.rows[0] ? parseInt(peakRes.rows[0].peak_day) : 0;
-    let currentPeakWeekly = peakRes.rows[0] ? parseInt(peakRes.rows[0].peak_weekly) : 0;
+    const singleQuery = `
+      WITH day_calc AS (
+        SELECT COALESCE(SUM(count), 0) as total 
+        FROM productioncounts WHERE facility = $1 AND date = $2
+      ),
+      week_calc AS (
+        SELECT COALESCE(SUM(count), 0) as total 
+        FROM productioncounts WHERE facility = $1 AND date BETWEEN $2::date - 6 AND $2::date
+      )
+      SELECT 
+        (SELECT total FROM day_calc) as day_total,
+        (SELECT total FROM week_calc) as week_total,
+        peak_day, peak_weekly
+      FROM peakproduction WHERE facility = $1;
+    `;
+    
+    const result = await queryWithRetry(singleQuery, [facility, date]);
+    if (!result.rows.length) return;
 
-    const dayRes = await queryWithRetry('SELECT SUM(count) as total FROM productioncounts WHERE facility = $1 AND date = $2', [facility, date]);
-    const dayTotal = parseInt(dayRes.rows[0]?.total || 0);
-
-    const weekRes = await queryWithRetry(`
-      SELECT SUM(count) as total FROM productioncounts 
-      WHERE facility = $1 AND date BETWEEN $2::date - 6 AND $2::date
-    `, [facility, date]);
-    const weekTotal = parseInt(weekRes.rows[0]?.total || 0);
+    const row = result.rows[0];
+    const currentPeakDay = parseInt(row.peak_day) || 0;
+    const currentPeakWeekly = parseInt(row.peak_weekly) || 0;
+    const dayTotal = parseInt(row.day_total) || 0;
+    const weekTotal = parseInt(row.week_total) || 0;
 
     let updated = false;
+    let newPeakDay = currentPeakDay;
+    let newPeakWeekly = currentPeakWeekly;
+
     if (dayTotal > currentPeakDay) {
-      currentPeakDay = dayTotal;
+      newPeakDay = dayTotal;
       updated = true;
     }
     if (weekTotal > currentPeakWeekly) {
-      currentPeakWeekly = weekTotal;
+      newPeakWeekly = weekTotal;
       updated = true;
     }
 
     if (updated) {
       await queryWithRetry(
         'UPDATE peakproduction SET peak_day = $1, peak_weekly = $2 WHERE facility = $3',
-        [currentPeakDay, currentPeakWeekly, facility]
+        [newPeakDay, newPeakWeekly, facility]
       );
     }
   } catch (err) {
@@ -440,7 +457,19 @@ async function executeBroadcast() {
   const datesArray = Array.from(activeDates);
 
   try {
-    const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction');
+    // OPTIMIZED: Run all 4 read queries concurrently instead of waiting for each to finish
+    const [peakRes, currentRes, hourlyRes, totalsRes] = await Promise.all([
+      queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction'),
+      queryWithRetry('SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', [datesArray]),
+      queryWithRetry(
+        `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
+         FROM productionevents WHERE date = ANY($1::date[])
+         GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`,
+        [datesArray]
+      ),
+      queryWithRetry('SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', [datesArray])
+    ]);
+
     const peakProduction = {};
     
     facilities.forEach(f => {
@@ -453,23 +482,6 @@ async function executeBroadcast() {
         peakWeekly: parseInt(r.peak_weekly) || 0
       };
     });
-
-    const currentRes = await queryWithRetry(
-      'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])',
-      [datesArray]
-    );
-
-    const hourlyRes = await queryWithRetry(
-      `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
-       FROM productionevents WHERE date = ANY($1::date[])
-       GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`,
-      [datesArray]
-    );
-
-    const totalsRes = await queryWithRetry(
-      'SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date',
-      [datesArray]
-    );
 
     for (const date of datesArray) {
       const data = {};
