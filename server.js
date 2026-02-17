@@ -10,21 +10,20 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === ULTRA-STABLE CONNECTION POOL ===
+// === OPTIMIZED CONNECTION POOL ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 10,                            // Increased to handle bursts of increments safely
-  idleTimeoutMillis: 5000,            // FIX: Drop idle clients after 5s before Supabase severs them
-  connectionTimeoutMillis: 20000,     // Allow up to 20s to establish a new connection if waking up
+  max: 5,                             
+  idleTimeoutMillis: 30000,           
+  connectionTimeoutMillis: 10000,     
   statement_timeout: 15000,           
   keepAlive: true,                    
-  keepAliveInitialDelayMillis: 2000   // Send TCP pings much more aggressively
+  keepAliveInitialDelayMillis: 10000  
 });
 
 pool.on('error', (err, client) => {
-  // Catch background drops so they don't crash the Node process
-  console.warn('Idle DB client error (expected on free tiers):', err.message);
+  console.error('Unexpected pool error on idle client:', err.message);
 });
 
 pool.on('connect', () => console.log('Pool acquired a new DB connection'));
@@ -40,8 +39,8 @@ async function queryWithRetry(sql, params = [], retries = 5) {
     } catch (err) {
       console.error(`DB query attempt ${i} failed:`, err.message);
       if (i === retries) throw err;
-      if (err.message.includes('timeout') || err.message.includes('terminated') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH') {
-        console.warn(`Network hiccup. Retrying in ${delay}ms...`);
+      if (err.message.includes('timeout') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH') {
+        console.warn(`Retrying in ${delay}ms...`);
         await new Promise(r => setTimeout(r, delay));
         delay *= 2; 
       } else {
@@ -51,28 +50,6 @@ async function queryWithRetry(sql, params = [], retries = 5) {
   }
 }
 
-// === AUTO DATA CLEANUP (30-DAY RETENTION) ===
-async function cleanupOldData() {
-  try {
-    console.log('Running automated database cleanup for data older than 30 days...');
-    
-    // Prune events
-    const eventRes = await queryWithRetry(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days' RETURNING id`);
-    
-    // Prune counts
-    const countRes = await queryWithRetry(`DELETE FROM productioncounts WHERE date < NOW() - INTERVAL '30 days' RETURNING facility`);
-    
-    console.log(`Cleanup complete: Removed ${eventRes.rowCount || 0} old events and ${countRes.rowCount || 0} old counts.`);
-  } catch (err) {
-    console.error('Scheduled Data Cleanup Error:', err.message);
-  }
-}
-
-// Run cleanup once shortly after server startup, then every 12 hours
-setTimeout(cleanupOldData, 60000); 
-setInterval(cleanupOldData, 12 * 60 * 60 * 1000);
-
-// === CONSTANTS & CACHING ===
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
 const dailyTargets = {
@@ -83,6 +60,7 @@ const dailyTargets = {
 
 let lastMilestone = 0;
 
+// === CACHING ===
 const routeCache = {
   counts: {},
   historicalDates: { dates: null, timestamp: 0 }
@@ -118,6 +96,7 @@ async function triggerBroadcast() {
 const debouncedBroadcast = debounce(triggerBroadcast, 400);
 
 app.use(express.static('public'));
+
 app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime() }));
 
 // === ENDPOINTS ===
@@ -231,6 +210,7 @@ app.post('/increment', async (req, res) => {
     const cacheKey = `${facility}_${line}_${date}`;
     if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
     
+    // FAST CHECK: Update the peak table if we broke a record
     await checkAndUpdatePeaks(facility, date);
     
     debouncedBroadcast();
@@ -252,6 +232,7 @@ app.post('/decrement', async (req, res) => {
     const cacheKey = `${facility}_${line}_${date}`;
     if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
     
+    // HEAVY RECALCULATION: Only runs on decrement in case a fake peak was invalidated
     await recalculateAllPeaks();
     
     debouncedBroadcast();
@@ -281,7 +262,6 @@ app.post('/resetAllData', async (req, res) => {
 
 async function updateCount(facility, line, delta, date) {
   let client;
-  let hasError = false;
   try {
     client = await pool.connect();
     await client.query('BEGIN');
@@ -303,36 +283,34 @@ async function updateCount(facility, line, delta, date) {
     await client.query(query, [date, facility, line, delta]);
     await client.query('COMMIT');
   } catch (err) {
-    hasError = true;
-    if (client) {
-        try { await client.query('ROLLBACK'); } catch (rbErr) { console.warn('Rollback failed:', rbErr.message); }
-    }
+    if (client) await client.query('ROLLBACK');
     console.error('UpdateCount Error:', err.message);
     throw err;
   } finally {
-    if (client) {
-        // FIX: If there was a fatal network error, pass 'true' to permanently destroy the corrupted connection
-        client.release(hasError);
-    }
+    if (client) client.release();
   }
 }
 
 // Quickly checks if the current increment broke the historical record in the new table
 async function checkAndUpdatePeaks(facility, date) {
   try {
+    // 1. Get current peaks from the dedicated table
     const peakRes = await queryWithRetry('SELECT peak_day, peak_weekly FROM peakproduction WHERE facility = $1', [facility]);
     let currentPeakDay = peakRes.rows[0] ? parseInt(peakRes.rows[0].peak_day) : 0;
     let currentPeakWeekly = peakRes.rows[0] ? parseInt(peakRes.rows[0].peak_weekly) : 0;
 
+    // 2. Calculate today's total
     const dayRes = await queryWithRetry('SELECT SUM(count) as total FROM productioncounts WHERE facility = $1 AND date = $2', [facility, date]);
     const dayTotal = parseInt(dayRes.rows[0]?.total || 0);
 
+    // 3. Calculate rolling 7-day total ending on this date
     const weekRes = await queryWithRetry(`
       SELECT SUM(count) as total FROM productioncounts 
       WHERE facility = $1 AND date BETWEEN $2::date - 6 AND $2::date
     `, [facility, date]);
     const weekTotal = parseInt(weekRes.rows[0]?.total || 0);
 
+    // 4. Update the DB table if records were broken
     let updated = false;
     if (dayTotal > currentPeakDay) {
       currentPeakDay = dayTotal;
@@ -414,6 +392,7 @@ wss.on('connection', (ws) => {
   });
 });
 
+// === DATE HELPER ===
 const parseDbDate = (dbDate) => {
   if (typeof dbDate === 'string') return dbDate.split('T')[0];
   const d = new Date(dbDate);
@@ -431,9 +410,11 @@ async function executeBroadcast() {
   const datesArray = Array.from(activeDates);
 
   try {
+    // --- MASSIVE OPTIMIZATION: Simply fetch the static peaks from the new table ---
     const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction');
     const peakProduction = {};
     
+    // Default them to 0 just in case the table hasn't been initialized yet
     facilities.forEach(f => {
       peakProduction[f] = { peakDay: 0, peakWeekly: 0 };
     });
