@@ -10,18 +10,14 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === ROCK-SOLID CONNECTION POOL ===
+// ===  DIRECT CONNECTION POOL (No Middleman Needed!) ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 15,                            
-  // 🚀 CRITICAL FIX: Set to 5s. Forces Node to close the connection before Supabase secretly kills it!
-  idleTimeoutMillis: 5000,           
-  connectionTimeoutMillis: 30000,     
-  statement_timeout: 30000,           
-  query_timeout: 0,                   
-  keepAlive: true,                    
-  keepAliveInitialDelayMillis: 2000   
+  max: 5,                             // We only need 2 connections now! 5 is incredibly safe.
+  idleTimeoutMillis: 60000,           // Let connections rest comfortably for a full minute
+  connectionTimeoutMillis: 15000,     // 15 seconds to connect
+  statement_timeout: 30000            // 30 seconds for long database math
 });
 
 pool.on('error', (err) => console.warn('Idle DB client error:', err.message));
@@ -35,16 +31,27 @@ async function queryWithRetry(sql, params = [], retries = 3) {
       return res;
     } catch (err) {
       if (i === retries) throw err;
-      if (err.message.includes('timeout') || err.message.includes('terminated') || err.code === 'ECONNRESET') {
-        const jitter = Math.floor(Math.random() * 500);
-        await new Promise(r => setTimeout(r, delay + jitter));
-        delay *= 2; 
-      } else {
-        throw err; 
-      }
+      const jitter = Math.floor(Math.random() * 500);
+      console.warn(`Query hiccup (${err.message}). Retrying in ${delay + jitter}ms...`);
+      await new Promise(r => setTimeout(r, delay + jitter));
+      delay *= 2; 
     }
   }
 }
+
+// === AUTO DATA CLEANUP ===
+async function cleanupOldData() {
+  try {
+    console.log('Running automated database cleanup for EVENTS older than 30 days...');
+    const eventRes = await queryWithRetry(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days' RETURNING id`);
+    console.log(`Cleanup complete: Removed ${eventRes.rowCount || 0} old events.`);
+  } catch (err) {
+    console.error('Scheduled Data Cleanup Error:', err.message);
+  }
+}
+
+setTimeout(cleanupOldData, 60000); 
+setInterval(cleanupOldData, 12 * 60 * 60 * 1000);
 
 // === CONSTANTS & TARGETS ===
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
@@ -83,7 +90,6 @@ const SYSTEM_RAM = {
   totals: {}          
 };
 
-// Helper to ensure the RAM object has the proper structure so the frontend doesn't crash
 function initRamForDate(date) {
   if (!SYSTEM_RAM.historicalData[date]) {
     SYSTEM_RAM.historicalData[date] = {};
@@ -112,9 +118,8 @@ app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime
 
 
 // ============================================================================
-// === 🚀 100% DECOUPLED ENDPOINTS (Instant Responses, 0 DB Queries) ===
+// === DECOUPLED ENDPOINTS (Instant Responses, 0 DB Queries) ===
 // ============================================================================
-// Even if 1,000 Pis refresh simultaneously, these return RAM instantly.
 
 app.get('/getCount', (req, res) => {
   const { facility, line, date = getLocalDateString() } = req.query;
@@ -196,7 +201,7 @@ async function processBatchQueue() {
     }
   }
 
-  if (changesMade) executeBroadcast(); // Push the optimistic update to screens immediately
+  if (changesMade) executeBroadcast(); 
   setTimeout(processBatchQueue, 3000); 
 }
 setTimeout(processBatchQueue, 3000);
@@ -258,13 +263,12 @@ async function syncDatabaseToRAM() {
     executeBroadcast();
     
   } catch (err) {
-    // If this fails, no big deal! The frontend RAM is still serving the old data until it works again!
     console.error('Background Sync Error:', err.message); 
   } finally {
     setTimeout(syncDatabaseToRAM, 10000); 
   }
 }
-setTimeout(syncDatabaseToRAM, 5000); // Start the sync 5 seconds after server boots up
+setTimeout(syncDatabaseToRAM, 5000); 
 
 
 // === DATABASE HELPERS ===
@@ -307,7 +311,7 @@ wss.on('connection', (ws) => {
       if (parsed.action === 'setClientDate' && parsed.clientDate) {
         ws.currentDate = parsed.clientDate;
       } else if (parsed.action === 'requestCurrentData') {
-        executeBroadcast(); // Instantly broadcasts from RAM, zero DB lookup!
+        executeBroadcast(); 
       } else if (parsed.action === 'ping') {
         ws.send(JSON.stringify({ type: 'pong' }));
       }
