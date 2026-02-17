@@ -14,23 +14,19 @@ if (!connectionString) {
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 20,                            
-  idleTimeoutMillis: 30000,           
-  connectionTimeoutMillis: 60000,     
-  statement_timeout: 60000,           // 60s: Gives Supabase plenty of time to calculate complex math
-  query_timeout: 0,                   // 0: Permanently disables the "Connection terminated" assassin
+  max: 15,                            
+  // 🚀 CRITICAL FIX: Set to 5s. Forces Node to close the connection before Supabase secretly kills it!
+  idleTimeoutMillis: 5000,           
+  connectionTimeoutMillis: 30000,     
+  statement_timeout: 30000,           
+  query_timeout: 0,                   
   keepAlive: true,                    
   keepAliveInitialDelayMillis: 2000   
 });
 
-pool.on('error', (err, client) => {
-  console.warn('Idle DB client error:', err.message);
-});
+pool.on('error', (err) => console.warn('Idle DB client error:', err.message));
 
-pool.on('connect', () => console.log('Pool acquired a new DB connection'));
-pool.on('remove', () => console.log('Pool released a DB connection'));
-
-// === RETRY WRAPPER WITH JITTER ===
+// === RETRY WRAPPER ===
 async function queryWithRetry(sql, params = [], retries = 3) {
   let delay = 1000;
   for (let i = 1; i <= retries; i++) {
@@ -38,12 +34,9 @@ async function queryWithRetry(sql, params = [], retries = 3) {
       const res = await pool.query(sql, params);
       return res;
     } catch (err) {
-      console.error(`DB query attempt ${i} failed:`, err.message);
       if (i === retries) throw err;
-      
-      if (err.message.includes('timeout') || err.message.includes('terminated') || err.message.includes('Max clients reached') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH' || err.code === 'ECONNRESET') {
+      if (err.message.includes('timeout') || err.message.includes('terminated') || err.code === 'ECONNRESET') {
         const jitter = Math.floor(Math.random() * 500);
-        console.warn(`Network/Pool limit hit. Retrying in ${delay + jitter}ms...`);
         await new Promise(r => setTimeout(r, delay + jitter));
         delay *= 2; 
       } else {
@@ -53,21 +46,7 @@ async function queryWithRetry(sql, params = [], retries = 3) {
   }
 }
 
-// === AUTO DATA CLEANUP ===
-async function cleanupOldData() {
-  try {
-    console.log('Running automated database cleanup for EVENTS older than 30 days...');
-    const eventRes = await queryWithRetry(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days' RETURNING id`);
-    console.log(`Cleanup complete: Removed ${eventRes.rowCount || 0} old events.`);
-  } catch (err) {
-    console.error('Scheduled Data Cleanup Error:', err.message);
-  }
-}
-
-setTimeout(cleanupOldData, 60000); 
-setInterval(cleanupOldData, 12 * 60 * 60 * 1000);
-
-// === CONSTANTS & CACHING ===
+// === CONSTANTS & TARGETS ===
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
 const dailyTargets = {
@@ -77,74 +56,111 @@ const dailyTargets = {
 };
 
 let lastMilestone = 0;
-const CACHE_TTL_MS = 5000; // Keep photocopies of data for 5 seconds
 
-// 🚀 THE READ CACHE
-const routeCache = { 
-  counts: {},
-  hourlyRates: {},
-  historicalData: {},
-  broadcasts: {}
+// === DATE HELPERS ===
+const parseDbDate = (dbDate) => {
+  if (typeof dbDate === 'string') return dbDate.split('T')[0];
+  const d = new Date(dbDate);
+  return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 };
 
-function debounce(fn, wait) {
-  let t;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), wait);
-  };
+function getLocalDateString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-let isBroadcasting = false;
-let pendingBroadcast = false;
+// ============================================================================
+// === 🚀 THE ZERO-HANG RAM STATE ENGINE 🚀 ===
+// ============================================================================
+// The screens ONLY read from this RAM object. They NEVER touch the database directly.
+const SYSTEM_RAM = {
+  historicalData: {}, 
+  hourlyRates: {},    
+  peaks: {},          
+  totals: {}          
+};
 
-async function triggerBroadcast() {
-  if (isBroadcasting) { pendingBroadcast = true; return; }
-  isBroadcasting = true;
-  pendingBroadcast = false;
-
-  try {
-    await executeBroadcast();
-  } catch (e) {
-    console.error('Broadcast failed:', e.message);
-  } finally {
-    isBroadcasting = false;
-    if (pendingBroadcast) setTimeout(triggerBroadcast, 100);
+// Helper to ensure the RAM object has the proper structure so the frontend doesn't crash
+function initRamForDate(date) {
+  if (!SYSTEM_RAM.historicalData[date]) {
+    SYSTEM_RAM.historicalData[date] = {};
+    facilities.forEach(f => {
+      SYSTEM_RAM.historicalData[date][f] = {};
+      lines.forEach(l => { SYSTEM_RAM.historicalData[date][f][l] = { count: 0, timestamp: new Date().toISOString() }; });
+    });
+  }
+  if (!SYSTEM_RAM.hourlyRates[date]) {
+    SYSTEM_RAM.hourlyRates[date] = {};
+    facilities.forEach(f => {
+      SYSTEM_RAM.hourlyRates[date][f] = {};
+      lines.forEach(l => { SYSTEM_RAM.hourlyRates[date][f][l] = Array(24).fill(0); });
+    });
+  }
+  if (SYSTEM_RAM.totals[date] === undefined) {
+    SYSTEM_RAM.totals[date] = 0;
   }
 }
 
-const debouncedBroadcast = debounce(triggerBroadcast, 400);
+// Initialize peaks with 0s
+facilities.forEach(f => SYSTEM_RAM.peaks[f] = { peakDay: 0, peakWeekly: 0 });
 
 app.use(express.static('public'));
 app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime() }));
 
 
 // ============================================================================
-// === 🚀 THE WRITE QUEUE (Saves button clicks in RAM) ===
+// === 🚀 100% DECOUPLED ENDPOINTS (Instant Responses, 0 DB Queries) ===
+// ============================================================================
+// Even if 1,000 Pis refresh simultaneously, these return RAM instantly.
+
+app.get('/getCount', (req, res) => {
+  const { facility, line, date = getLocalDateString() } = req.query;
+  if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
+  initRamForDate(date);
+  res.json({ count: SYSTEM_RAM.historicalData[date][facility][line].count });
+});
+
+app.get('/getHourlyRates', (req, res) => {
+  const { date = getLocalDateString() } = req.query;
+  initRamForDate(date);
+  res.json({ hourlyRates: SYSTEM_RAM.hourlyRates[date] });
+});
+
+app.get('/getHistoricalData', (req, res) => {
+  const { date } = req.query;
+  if (!date) return res.status(400).json({ error: 'Date required' });
+  initRamForDate(date);
+  res.json({ data: SYSTEM_RAM.historicalData[date] });
+});
+
+
+// ============================================================================
+// === WRITE QUEUE (Saves clicks instantly to RAM, writes to DB later) ===
 // ============================================================================
 const pendingWrites = {};
 
-app.post('/increment', async (req, res) => {
+app.post('/increment', (req, res) => {
   const { facility, line, date } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
   if (!date) return res.status(400).json({ error: 'Date required' });
 
-  const key = `${facility}|${line}|${date}`;
-  pendingWrites[key] = (pendingWrites[key] || 0) + 1; 
+  pendingWrites[`${facility}|${line}|${date}`] = (pendingWrites[`${facility}|${line}|${date}`] || 0) + 1; 
   res.sendStatus(200); 
 });
 
-app.post('/decrement', async (req, res) => {
+app.post('/decrement', (req, res) => {
   const { facility, line, date } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
   if (!date) return res.status(400).json({ error: 'Date required' });
 
-  const key = `${facility}|${line}|${date}`;
-  pendingWrites[key] = (pendingWrites[key] || 0) - 1; 
+  pendingWrites[`${facility}|${line}|${date}`] = (pendingWrites[`${facility}|${line}|${date}`] || 0) - 1; 
   res.sendStatus(200); 
 });
 
-// SMART BACKGROUND WORKER: Waits for DB to finish before starting the next batch
+// Write worker
 async function processBatchQueue() {
   const keys = Object.keys(pendingWrites);
   if (keys.length === 0) {
@@ -160,203 +176,98 @@ async function processBatchQueue() {
   for (const key in snapshot) {
     const delta = snapshot[key];
     if (delta === 0) continue; 
-
     const [facility, line, date] = key.split('|');
+
+    // Optimistic UI Update: Make it feel instant for the users by updating RAM right now
+    initRamForDate(date);
+    SYSTEM_RAM.historicalData[date][facility][line].count += delta;
+    SYSTEM_RAM.totals[date] += delta;
 
     try {
       await updateCount(facility, line, delta, date);
-      await checkAndUpdatePeaks(facility, date);
-      
-      const cacheKey = `${facility}_${line}_${date}`;
-      if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
-      routeCache.broadcasts[date] = null; // Invalidate broadcast cache
-      
       changesMade = true;
     } catch (err) {
-      console.error('Batch write failed, returning clicks to queue:', err.message);
+      console.error('Batch write failed, saving to memory to retry later:', err.message);
       pendingWrites[key] = (pendingWrites[key] || 0) + delta;
+      
+      // Revert optimistic update if DB failed
+      SYSTEM_RAM.historicalData[date][facility][line].count -= delta;
+      SYSTEM_RAM.totals[date] -= delta;
     }
   }
 
-  if (changesMade) debouncedBroadcast(); 
-
-  // Only schedule the next run AFTER this one successfully finishes
+  if (changesMade) executeBroadcast(); // Push the optimistic update to screens immediately
   setTimeout(processBatchQueue, 3000); 
 }
-
-// Start the worker
 setTimeout(processBatchQueue, 3000);
-// ============================================================================
-
 
 // ============================================================================
-// === 🚀 ENDPOINTS (Immune to 5-Minute Cache Stampedes) ===
+// === BACKGROUND DB POLLER (Keeps the RAM updated safely every 10s) ===
 // ============================================================================
-
-const inFlightRequests = { counts: {}, hourlyRates: {}, historicalData: {} };
-
-app.get('/getCount', async (req, res) => {
-  const { facility, line, date = new Date().toISOString().split('T')[0] } = req.query;
-  if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid facility/line' });
-
-  const cacheKey = `${facility}_${line}_${date}`;
-  const now = Date.now();
-  
-  if (routeCache.counts[cacheKey] && now - routeCache.counts[cacheKey].timestamp < CACHE_TTL_MS) {
-    return res.json({ count: routeCache.counts[cacheKey].value });
-  }
-
-  if (inFlightRequests.counts[cacheKey]) {
-    try {
-      const count = await inFlightRequests.counts[cacheKey];
-      return res.json({ count });
-    } catch (e) { }
-  }
-
-  const dbPromise = queryWithRetry(
-    'SELECT count FROM productioncounts WHERE date = $1 AND facility = $2 AND line = $3',
-    [date, facility, line]
-  ).then(result => result.rows.length ? result.rows[0].count : 0);
-
-  inFlightRequests.counts[cacheKey] = dbPromise;
-
+async function syncDatabaseToRAM() {
   try {
-    const count = await dbPromise;
-    routeCache.counts[cacheKey] = { value: count, timestamp: Date.now() };
-    res.json({ count });
-  } catch (err) {
-    console.error('GetCount Error:', err.message);
-    res.status(500).json({ error: 'Server error' });
-  } finally {
-    delete inFlightRequests.counts[cacheKey]; 
-  }
-});
+    const activeDates = new Set();
+    activeDates.add(getLocalDateString());
+    wss.clients.forEach(c => { if (c.currentDate) activeDates.add(c.currentDate); });
+    const datesArray = Array.from(activeDates);
 
-app.get('/getHourlyRates', async (req, res) => {
-  const { date = new Date().toISOString().split('T')[0] } = req.query;
-  if (!date) return res.status(400).json({ error: 'Date is required' });
+    datesArray.forEach(initRamForDate);
 
-  const now = Date.now();
-  if (routeCache.hourlyRates[date] && now - routeCache.hourlyRates[date].timestamp < CACHE_TTL_MS) {
-    return res.json({ hourlyRates: routeCache.hourlyRates[date].data });
-  }
-
-  if (inFlightRequests.hourlyRates[date]) {
-    try {
-      const hourlyRates = await inFlightRequests.hourlyRates[date];
-      return res.json({ hourlyRates });
-    } catch (e) { }
-  }
-
-  const dbPromise = queryWithRetry(
-    `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
-     FROM productionevents WHERE date = $1
-     GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')
-     ORDER BY facility, line, hour`,
-    [date]
-  ).then(result => {
-    const hourlyRates = {};
-    facilities.forEach(f => {
-      hourlyRates[f] = {};
-      lines.forEach(l => {
-        hourlyRates[f][l] = Array(24).fill(0);
-        const facilityRates = result.rows.filter(row => row.facility === f && row.line === l);
-        facilityRates.forEach(row => {
-          const hour = parseInt(row.hour);
-          hourlyRates[f][l][hour] = parseInt(row.rate);
-        });
-      });
-    });
-    return hourlyRates;
-  });
-
-  inFlightRequests.hourlyRates[date] = dbPromise;
-
-  try {
-    const hourlyRates = await dbPromise;
-    routeCache.hourlyRates[date] = { data: hourlyRates, timestamp: Date.now() };
-    res.json({ hourlyRates });
-  } catch (err) {
-    console.error('GetHourlyRates Error:', err.message);
-    res.status(500).json({ error: 'Server error' });
-  } finally {
-    delete inFlightRequests.hourlyRates[date];
-  }
-});
-
-app.get('/getHistoricalData', async (req, res) => {
-  const { date } = req.query;
-  if (!date) return res.status(400).json({ error: 'Date parameter is required' });
-
-  const now = Date.now();
-  if (routeCache.historicalData[date] && now - routeCache.historicalData[date].timestamp < CACHE_TTL_MS) {
-    return res.json({ data: routeCache.historicalData[date].data });
-  }
-
-  if (inFlightRequests.historicalData[date]) {
-    try {
-      const data = await inFlightRequests.historicalData[date];
-      return res.json({ data });
-    } catch (e) { }
-  }
-
-  const dbPromise = queryWithRetry('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date])
-    .then(resCounts => {
-      const data = {};
-      facilities.forEach(f => {
-        data[f] = {};
-        lines.forEach(l => {
-          const row = resCounts.rows.find(r => r.facility === f && r.line === l);
-          data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
-        });
-      });
-      return data;
+    // Fetch Peaks
+    const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction', [], 2);
+    peakRes.rows.forEach(r => {
+      SYSTEM_RAM.peaks[r.facility] = { peakDay: parseInt(r.peak_day) || 0, peakWeekly: parseInt(r.peak_weekly) || 0 };
     });
 
-  inFlightRequests.historicalData[date] = dbPromise;
+    // Fetch Counts
+    const countRes = await queryWithRetry('SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', [datesArray], 2);
+    countRes.rows.forEach(r => {
+      const d = parseDbDate(r.date);
+      if (SYSTEM_RAM.historicalData[d] && SYSTEM_RAM.historicalData[d][r.facility]) {
+        SYSTEM_RAM.historicalData[d][r.facility][r.line].count = parseInt(r.count);
+      }
+    });
 
-  try {
-    const data = await dbPromise;
-    routeCache.historicalData[date] = { data, timestamp: Date.now() };
-    res.json({ data });
+    // Fetch Hourly Rates
+    const hourlyRes = await queryWithRetry(
+      `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total 
+       FROM productionevents WHERE date = ANY($1::date[]) 
+       GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`, 
+      [datesArray], 2
+    );
+    
+    // Clear rates for active dates before repopulating
+    datesArray.forEach(d => {
+      facilities.forEach(f => lines.forEach(l => SYSTEM_RAM.hourlyRates[d][f][l] = Array(24).fill(0)));
+    });
+
+    hourlyRes.rows.forEach(r => {
+      const d = parseDbDate(r.date);
+      if (SYSTEM_RAM.hourlyRates[d] && SYSTEM_RAM.hourlyRates[d][r.facility]) {
+        SYSTEM_RAM.hourlyRates[d][r.facility][r.line][parseInt(r.hour)] = parseInt(r.hourly_total);
+      }
+    });
+
+    // Fetch Totals
+    const totalsRes = await queryWithRetry('SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', [datesArray], 2);
+    totalsRes.rows.forEach(r => {
+      SYSTEM_RAM.totals[parseDbDate(r.date)] = parseInt(r.total);
+    });
+
+    // Broadcast the perfectly synced data
+    executeBroadcast();
+    
   } catch (err) {
-    console.error('GetHistoricalData Error:', err.message);
-    res.status(500).json({ error: 'Server error' });
+    // If this fails, no big deal! The frontend RAM is still serving the old data until it works again!
+    console.error('Background Sync Error:', err.message); 
   } finally {
-    delete inFlightRequests.historicalData[date];
+    setTimeout(syncDatabaseToRAM, 10000); 
   }
-});
+}
+setTimeout(syncDatabaseToRAM, 5000); // Start the sync 5 seconds after server boots up
 
-app.post('/resetAllData', async (req, res) => {
-  try {
-    await queryWithRetry('TRUNCATE TABLE productioncounts, productionevents');
-    await queryWithRetry('UPDATE peakproduction SET peak_day = 0, peak_weekly = 0');
-    lastMilestone = 0;
-    routeCache.counts = {};
-    routeCache.hourlyRates = {};
-    routeCache.historicalData = {};
-    routeCache.broadcasts = {};
-    triggerBroadcast();
-    res.sendStatus(200);
-  } catch (err) {
-    console.error('ResetAllData Error:', err.message);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.get('/forceRecalculatePeaks', async (req, res) => {
-  try {
-    await recalculateAllPeaks();
-    debouncedBroadcast();
-    res.send('✅ Peaks successfully recalculated and broadcasted based on current productioncounts table!');
-  } catch (err) {
-    console.error('Recovery Error:', err.message);
-    res.status(500).send('Error recalculating peaks: ' + err.message);
-  }
-});
 
 // === DATABASE HELPERS ===
-
 async function updateCount(facility, line, delta, date) {
   let client;
   let hasError = false;
@@ -364,118 +275,23 @@ async function updateCount(facility, line, delta, date) {
     client = await pool.connect();
     await client.query('BEGIN');
     await client.query(
-      `INSERT INTO productionevents (date, facility, line, delta, timestamp)
-       VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
+      `INSERT INTO productionevents (date, facility, line, delta, timestamp) VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
       [date, facility, line, delta]
     );
-
-    const query = `
-      INSERT INTO productioncounts (date, facility, line, count, timestamp)
-      VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')
-      ON CONFLICT (date, facility, line) 
-      DO UPDATE SET 
-        count = productioncounts.count + $4,
-        timestamp = NOW() AT TIME ZONE 'UTC'
-      RETURNING count;
-    `;
-    await client.query(query, [date, facility, line, delta]);
+    await client.query(
+      `INSERT INTO productioncounts (date, facility, line, count, timestamp) VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')
+       ON CONFLICT (date, facility, line) DO UPDATE SET count = productioncounts.count + $4, timestamp = NOW() AT TIME ZONE 'UTC'`,
+      [date, facility, line, delta]
+    );
     await client.query('COMMIT');
   } catch (err) {
     hasError = true;
     if (client) {
-        try { await client.query('ROLLBACK'); } catch (rbErr) { console.warn('Rollback failed:', rbErr.message); }
+        try { await client.query('ROLLBACK'); } catch (rbErr) {}
     }
-    console.error('UpdateCount Error:', err.message);
     throw err;
   } finally {
     if (client) client.release(hasError);
-  }
-}
-
-async function checkAndUpdatePeaks(facility, date) {
-  try {
-    const singleQuery = `
-      WITH day_calc AS (
-        SELECT COALESCE(SUM(count), 0) as total 
-        FROM productioncounts WHERE facility = $1 AND date = $2
-      ),
-      week_calc AS (
-        SELECT COALESCE(SUM(count), 0) as total 
-        FROM productioncounts WHERE facility = $1 AND date BETWEEN $2::date - 6 AND $2::date
-      )
-      SELECT 
-        (SELECT total FROM day_calc) as day_total,
-        (SELECT total FROM week_calc) as week_total,
-        peak_day, peak_weekly
-      FROM peakproduction WHERE facility = $1;
-    `;
-    
-    const result = await queryWithRetry(singleQuery, [facility, date]);
-    if (!result.rows.length) return;
-
-    const row = result.rows[0];
-    const currentPeakDay = parseInt(row.peak_day) || 0;
-    const currentPeakWeekly = parseInt(row.peak_weekly) || 0;
-    const dayTotal = parseInt(row.day_total) || 0;
-    const weekTotal = parseInt(row.week_total) || 0;
-
-    let updated = false;
-    let newPeakDay = currentPeakDay;
-    let newPeakWeekly = currentPeakWeekly;
-
-    if (dayTotal > currentPeakDay) {
-      newPeakDay = dayTotal;
-      updated = true;
-    }
-    if (weekTotal > currentPeakWeekly) {
-      newPeakWeekly = weekTotal;
-      updated = true;
-    }
-
-    if (updated) {
-      await queryWithRetry(
-        'UPDATE peakproduction SET peak_day = $1, peak_weekly = $2 WHERE facility = $3',
-        [newPeakDay, newPeakWeekly, facility]
-      );
-    }
-  } catch (err) {
-    console.error('Error in checkAndUpdatePeaks:', err.message);
-  }
-}
-
-async function recalculateAllPeaks() {
-  try {
-    const peakQuery = `
-      WITH daily_sums AS (
-        SELECT facility, date, SUM(count) as daily_total
-        FROM productioncounts
-        GROUP BY facility, date
-      ),
-      weekly_sums AS (
-        SELECT facility, daily_total,
-               SUM(daily_total) OVER (
-                 PARTITION BY facility
-                 ORDER BY date
-                 ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
-               ) as weekly_total
-        FROM daily_sums
-      )
-      SELECT facility, MAX(daily_total) as peak_day, MAX(weekly_total) as peak_weekly
-      FROM weekly_sums GROUP BY facility;
-    `;
-    const res = await queryWithRetry(peakQuery);
-    
-    for (const f of facilities) {
-      const row = res.rows.find(r => r.facility === f);
-      const pd = row && row.peak_day ? parseInt(row.peak_day) : 0;
-      const pw = row && row.peak_weekly ? parseInt(row.peak_weekly) : 0;
-      await queryWithRetry(
-        'UPDATE peakproduction SET peak_day = $1, peak_weekly = $2 WHERE facility = $3',
-        [pd, pw, f]
-      );
-    }
-  } catch (err) {
-    console.error('Error recalculating peaks:', err.message);
   }
 }
 
@@ -491,124 +307,49 @@ wss.on('connection', (ws) => {
       if (parsed.action === 'setClientDate' && parsed.clientDate) {
         ws.currentDate = parsed.clientDate;
       } else if (parsed.action === 'requestCurrentData') {
-        debouncedBroadcast();
+        executeBroadcast(); // Instantly broadcasts from RAM, zero DB lookup!
       } else if (parsed.action === 'ping') {
         ws.send(JSON.stringify({ type: 'pong' }));
       }
-    } catch (e) {
-      console.error('WS message error:', e.message);
-    }
+    } catch (e) {}
   });
 });
 
-const parseDbDate = (dbDate) => {
-  if (typeof dbDate === 'string') return dbDate.split('T')[0];
-  const d = new Date(dbDate);
-  return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-};
-
-// === BROADCAST ===
-async function executeBroadcast() {
-  const activeDates = new Set();
-  wss.clients.forEach(c => {
-    if (c.readyState === WebSocket.OPEN && c.currentDate) activeDates.add(c.currentDate);
-  });
-
-  if (activeDates.size === 0) return;
-  const datesArray = Array.from(activeDates);
-  const now = Date.now();
-
-  try {
-    for (const date of datesArray) {
-      // CACHE CHECK: If 20 Pis trigger a broadcast, only run DB logic for the 1st one!
-      if (routeCache.broadcasts[date] && (now - routeCache.broadcasts[date].timestamp < CACHE_TTL_MS)) {
-         wss.clients.forEach(c => {
-           if (c.readyState === WebSocket.OPEN && c.currentDate === date) {
-             c.send(routeCache.broadcasts[date].data);
-           }
-         });
-         continue; 
-      }
-
-      const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction');
-      const currentRes = await queryWithRetry(
-        'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', 
-        [datesArray]
-      );
-      const hourlyRes = await queryWithRetry(
-        `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
-         FROM productionevents WHERE date = ANY($1::date[])
-         GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`,
-        [datesArray]
-      );
-      const totalsRes = await queryWithRetry(
-        'SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', 
-        [datesArray]
-      );
-
-      const peakProduction = {};
-      facilities.forEach(f => { peakProduction[f] = { peakDay: 0, peakWeekly: 0 }; });
-      peakRes.rows.forEach(r => {
-        peakProduction[r.facility] = { peakDay: parseInt(r.peak_day) || 0, peakWeekly: parseInt(r.peak_weekly) || 0 };
-      });
-
-      const data = {};
-      facilities.forEach(f => {
-        data[f] = {};
-        lines.forEach(l => {
-          const row = currentRes.rows.find(r => r.facility === f && r.line === l && parseDbDate(r.date) === date);
-          data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
-        });
-      });
-
-      const hourlyRates = {};
-      facilities.forEach(f => {
-        hourlyRates[f] = {};
-        lines.forEach(l => { hourlyRates[f][l] = Array(24).fill(0); });
-      });
-
-      hourlyRes.rows.forEach(row => {
-        if (parseDbDate(row.date) === date) {
-          const { facility, line, hourly_total, hour } = row;
-          if (hourlyRates[facility] && hourlyRates[facility][line]) {
-            hourlyRates[facility][line][parseInt(hour)] = parseInt(hourly_total);
-          }
-        }
-      });
-
-      const totalRow = totalsRes.rows.find(r => parseDbDate(r.date) === date);
-      const totalProduction = totalRow ? parseInt(totalRow.total) : 0;
+// === RAM BROADCAST LOGIC ===
+function executeBroadcast() {
+  wss.clients.forEach(ws => {
+    if (ws.readyState === WebSocket.OPEN && ws.currentDate) {
+      const date = ws.currentDate;
+      initRamForDate(date);
 
       const targetPercentages = {};
       for (const facility of facilities) {
-        const facilityTotal = Object.values(data[facility]).reduce((sum, { count }) => sum + count, 0);
+        const facilityTotal = Object.values(SYSTEM_RAM.historicalData[date][facility]).reduce((sum, { count }) => sum + count, 0);
         const target = dailyTargets[facility];
-        const percentage = target > 0 ? Math.round((facilityTotal / target) * 100) : 0;
-        targetPercentages[facility] = percentage;
+        targetPercentages[facility] = target > 0 ? Math.round((facilityTotal / target) * 100) : 0;
       }
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getLocalDateString();
       let notification = null;
       if (date === todayStr) {
-        const milestone = Math.floor(totalProduction / 100) * 100;
-        if (milestone > lastMilestone && totalProduction >= milestone) {
+        const milestone = Math.floor(SYSTEM_RAM.totals[date] / 100) * 100;
+        if (milestone > lastMilestone && SYSTEM_RAM.totals[date] >= milestone) {
           lastMilestone = milestone;
           notification = `Milestone Reached: Total production hit ${milestone} units!`;
         }
       }
 
       const messageStr = JSON.stringify({
-        date, data, hourlyRates, totalProduction, peakProduction, targetPercentages, notification
+        date,
+        data: SYSTEM_RAM.historicalData[date],
+        hourlyRates: SYSTEM_RAM.hourlyRates[date],
+        totalProduction: SYSTEM_RAM.totals[date],
+        peakProduction: SYSTEM_RAM.peaks,
+        targetPercentages,
+        notification
       });
 
-      // Save photocopy to RAM so the other Pis don't have to query the database!
-      routeCache.broadcasts[date] = { data: messageStr, timestamp: now };
-
-      wss.clients.forEach(c => {
-        if (c.readyState === WebSocket.OPEN && c.currentDate === date) c.send(messageStr);
-      });
+      ws.send(messageStr);
     }
-  } catch (err) {
-    console.error('Broadcast Update Error:', err.message);
-  }
+  });
 }
