@@ -10,17 +10,20 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === 🚀 AGGRESSIVELY RECYCLED CONNECTION POOL ===
+// === 🚀 THE ANTI-ZOMBIE CONNECTION POOL ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
   max: 5,                             
-  // 1 SECOND IDLE TIMEOUT: Forces Node to destroy connections before the network can silently kill them
-  idleTimeoutMillis: 1000,           
-  connectionTimeoutMillis: 15000,     
+  idleTimeoutMillis: 1000,            // Throw away idle connections immediately
+  connectionTimeoutMillis: 5000,      // Fail fast if the pool is stuck
+  keepAlive: true,                    // 🚀 NEW: OS-level TCP keep-alive to detect silent drops
+  keepAliveInitialDelayMillis: 2000,  
+  query_timeout: 5000,                // 🚀 NEW: Kills any query stuck in a zombie socket after 5s
+  statement_timeout: 5000             // 🚀 NEW: Kills any hanging Postgres operations
 });
 
-pool.on('error', (err) => console.warn('Idle DB client error (ignored safely):', err.message));
+pool.on('error', (err) => console.warn('Idle DB client error (safely evicted):', err.message));
 
 // === RETRY WRAPPER ===
 async function queryWithRetry(sql, params = [], retries = 3) {
@@ -39,11 +42,12 @@ async function queryWithRetry(sql, params = [], retries = 3) {
   }
 }
 
-// === AUTO DATA CLEANUP ===
+// === 🚀 AUTOMATED DATA CLEANUP (Events AND Counts) ===
 async function cleanupOldData() {
   try {
-    const eventRes = await queryWithRetry(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days' RETURNING id`);
-    console.log(`Cleanup complete: Removed ${eventRes.rowCount || 0} old events.`);
+    await queryWithRetry(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days'`);
+    await queryWithRetry(`DELETE FROM productioncounts WHERE date < NOW() - INTERVAL '30 days'`);
+    console.log(`30-day database cleanup complete for events and counts.`);
   } catch (err) {
     console.error('Scheduled Data Cleanup Error:', err.message);
   }
@@ -79,7 +83,7 @@ function getLocalDateString() {
 }
 
 // ============================================================================
-// === 🚀 THE TRUE INSTANT RAM STATE ENGINE ===
+// === THE TRUE INSTANT RAM STATE ENGINE ===
 // ============================================================================
 const SYSTEM_RAM = {
   historicalData: {}, 
@@ -139,7 +143,7 @@ app.get('/getHistoricalData', (req, res) => {
 
 
 // ============================================================================
-// === 🚀 INSTANT WRITE QUEUE (Updates UI in 0 milliseconds) ===
+// === INSTANT WRITE QUEUE (Updates UI in 0 milliseconds) ===
 // ============================================================================
 const pendingWrites = {};
 
@@ -203,7 +207,7 @@ async function processBatchQueue() {
 setTimeout(processBatchQueue, 3000);
 
 // ============================================================================
-// === BACKGROUND DB POLLER (Only runs every 15 minutes now) ===
+// === BACKGROUND DB POLLER ===
 // ============================================================================
 async function syncDatabaseToRAM() {
   try {
@@ -285,6 +289,7 @@ async function updateCount(facility, line, delta, date) {
     }
     throw err;
   } finally {
+    // 🚀 NEW: By passing `hasError`, Node physically destroys corrupted connections instead of returning them to the pool
     if (client) client.release(hasError);
   }
 }
