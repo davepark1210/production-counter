@@ -19,8 +19,9 @@ const queryWithRetry = async (queryText, params, retries = 3, backoff = 1000) =>
     try {
       return await db.any(queryText, params);
     } catch (err) {
-      if (err.message.includes('timeout') && attempt < retries) {
-        console.warn(`Query retry ${attempt}/${retries}: ${err.message}`);
+      console.error(`Query attempt ${attempt} failed:`, err.stack || err);
+      if ((err.message || '').includes('timeout') && attempt < retries) {
+        console.warn(`Query retry ${attempt}/${retries}`);
         await new Promise(res => setTimeout(res, backoff * attempt));
       } else {
         throw err;
@@ -68,6 +69,8 @@ async function triggerBroadcast() {
 
   try {
     await executeBroadcast();
+  } catch (err) {
+    console.error('Broadcast trigger error:', err.stack || err);
   } finally {
     isBroadcasting = false;
     if (pendingBroadcast) {
@@ -108,8 +111,8 @@ app.get('/getCount', async (req, res) => {
     routeCache.counts[cacheKey] = { value: count, timestamp: now };
     res.json({ count });
   } catch (err) {
-    console.error('GetCount Error:', err.message);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    console.error('GetCount Error:', err.stack || err);
+    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
   }
 });
 
@@ -141,8 +144,8 @@ app.get('/getHourlyRates', async (req, res) => {
     });
     res.json({ hourlyRates });
   } catch (err) {
-    console.error('GetHourlyRates Error:', err.message);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    console.error('GetHourlyRates Error:', err.stack || err);
+    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
   }
 });
 
@@ -162,8 +165,8 @@ app.get('/getHistoricalDates', async (req, res) => {
     routeCache.historicalDates = { dates, timestamp: now };
     res.json({ dates });
   } catch (err) {
-    console.error('GetHistoricalDates Error:', err.message);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    console.error('GetHistoricalDates Error:', err.stack || err);
+    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
   }
 });
 
@@ -183,8 +186,8 @@ app.get('/getHistoricalData', async (req, res) => {
     });
     res.json({ data });
   } catch (err) {
-    console.error('GetHistoricalData Error:', err.message);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    console.error('GetHistoricalData Error:', err.stack || err);
+    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
   }
 });
 
@@ -202,8 +205,8 @@ app.post('/increment', async (req, res) => {
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
-    console.error('Increment Error:', err.message);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    console.error('Increment Error:', err.stack || err);
+    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
   }
 });
 
@@ -221,8 +224,8 @@ app.post('/decrement', async (req, res) => {
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
-    console.error('Decrement Error:', err.message);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    console.error('Decrement Error:', err.stack || err);
+    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
   }
 });
 
@@ -237,8 +240,8 @@ app.post('/resetAllData', async (req, res) => {
     triggerBroadcast();
     res.sendStatus(200);
   } catch (err) {
-    console.error('ResetAllData Error:', err.message);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    console.error('ResetAllData Error:', err.stack || err);
+    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
   }
 });
 
@@ -263,7 +266,7 @@ async function updateCount(facility, line, delta, date) {
       await t.any(query, [date, facility, line, delta]);
     });
   } catch (err) {
-    console.error('UpdateCount Error:', err.message);
+    console.error('UpdateCount Error:', err.stack || err);
     throw err;
   }
 }
@@ -288,7 +291,7 @@ wss.on('connection', (ws) => {
         ws.send(JSON.stringify({ type: 'pong' }));
       }
     } catch (err) {
-      console.error('WebSocket Error:', err.message);
+      console.error('WebSocket Error:', err.stack || err);
     }
   });
 });
@@ -431,6 +434,6 @@ async function executeBroadcast() {
       }
     });
   } catch (err) {
-    console.error('Broadcast Update Error:', err.message);
+    console.error('Broadcast Update Error:', err.stack || err);
   } 
 }
