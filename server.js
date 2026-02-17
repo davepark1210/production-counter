@@ -10,17 +10,20 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// ===  DIRECT CONNECTION POOL (No Middleman Needed!) ===
+// === 🚀 AGGRESSIVELY RECYCLED CONNECTION POOL ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 5,                             // We only need 2 connections now! 5 is incredibly safe.
-  idleTimeoutMillis: 60000,           // Let connections rest comfortably for a full minute
-  connectionTimeoutMillis: 15000,     // 15 seconds to connect
-  statement_timeout: 30000            // 30 seconds for long database math
+  max: 5,                             
+  // 🚀 2 SECONDS: Forces Node to throw away idle connections BEFORE PgBouncer secretly kills them!
+  idleTimeoutMillis: 2000,           
+  connectionTimeoutMillis: 15000,     
+  statement_timeout: 30000,            
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 1000
 });
 
-pool.on('error', (err) => console.warn('Idle DB client error:', err.message));
+pool.on('error', (err) => console.warn('Idle DB client error (safely ignored):', err.message));
 
 // === RETRY WRAPPER ===
 async function queryWithRetry(sql, params = [], retries = 3) {
@@ -80,9 +83,8 @@ function getLocalDateString() {
 }
 
 // ============================================================================
-// === 🚀 THE ZERO-HANG RAM STATE ENGINE 🚀 ===
+// === THE ZERO-HANG RAM STATE ENGINE ===
 // ============================================================================
-// The screens ONLY read from this RAM object. They NEVER touch the database directly.
 const SYSTEM_RAM = {
   historicalData: {}, 
   hourlyRates: {},    
@@ -110,7 +112,6 @@ function initRamForDate(date) {
   }
 }
 
-// Initialize peaks with 0s
 facilities.forEach(f => SYSTEM_RAM.peaks[f] = { peakDay: 0, peakWeekly: 0 });
 
 app.use(express.static('public'));
@@ -118,7 +119,7 @@ app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime
 
 
 // ============================================================================
-// === DECOUPLED ENDPOINTS (Instant Responses, 0 DB Queries) ===
+// === DECOUPLED ENDPOINTS ===
 // ============================================================================
 
 app.get('/getCount', (req, res) => {
@@ -143,7 +144,7 @@ app.get('/getHistoricalData', (req, res) => {
 
 
 // ============================================================================
-// === WRITE QUEUE (Saves clicks instantly to RAM, writes to DB later) ===
+// === WRITE QUEUE ===
 // ============================================================================
 const pendingWrites = {};
 
@@ -165,7 +166,6 @@ app.post('/decrement', (req, res) => {
   res.sendStatus(200); 
 });
 
-// Write worker
 async function processBatchQueue() {
   const keys = Object.keys(pendingWrites);
   if (keys.length === 0) {
@@ -183,7 +183,6 @@ async function processBatchQueue() {
     if (delta === 0) continue; 
     const [facility, line, date] = key.split('|');
 
-    // Optimistic UI Update: Make it feel instant for the users by updating RAM right now
     initRamForDate(date);
     SYSTEM_RAM.historicalData[date][facility][line].count += delta;
     SYSTEM_RAM.totals[date] += delta;
@@ -195,7 +194,6 @@ async function processBatchQueue() {
       console.error('Batch write failed, saving to memory to retry later:', err.message);
       pendingWrites[key] = (pendingWrites[key] || 0) + delta;
       
-      // Revert optimistic update if DB failed
       SYSTEM_RAM.historicalData[date][facility][line].count -= delta;
       SYSTEM_RAM.totals[date] -= delta;
     }
@@ -207,7 +205,7 @@ async function processBatchQueue() {
 setTimeout(processBatchQueue, 3000);
 
 // ============================================================================
-// === BACKGROUND DB POLLER (Keeps the RAM updated safely every 10s) ===
+// === BACKGROUND DB POLLER ===
 // ============================================================================
 async function syncDatabaseToRAM() {
   try {
@@ -218,13 +216,11 @@ async function syncDatabaseToRAM() {
 
     datesArray.forEach(initRamForDate);
 
-    // Fetch Peaks
     const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction', [], 2);
     peakRes.rows.forEach(r => {
       SYSTEM_RAM.peaks[r.facility] = { peakDay: parseInt(r.peak_day) || 0, peakWeekly: parseInt(r.peak_weekly) || 0 };
     });
 
-    // Fetch Counts
     const countRes = await queryWithRetry('SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', [datesArray], 2);
     countRes.rows.forEach(r => {
       const d = parseDbDate(r.date);
@@ -233,7 +229,6 @@ async function syncDatabaseToRAM() {
       }
     });
 
-    // Fetch Hourly Rates
     const hourlyRes = await queryWithRetry(
       `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total 
        FROM productionevents WHERE date = ANY($1::date[]) 
@@ -241,7 +236,6 @@ async function syncDatabaseToRAM() {
       [datesArray], 2
     );
     
-    // Clear rates for active dates before repopulating
     datesArray.forEach(d => {
       facilities.forEach(f => lines.forEach(l => SYSTEM_RAM.hourlyRates[d][f][l] = Array(24).fill(0)));
     });
@@ -253,13 +247,11 @@ async function syncDatabaseToRAM() {
       }
     });
 
-    // Fetch Totals
     const totalsRes = await queryWithRetry('SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', [datesArray], 2);
     totalsRes.rows.forEach(r => {
       SYSTEM_RAM.totals[parseDbDate(r.date)] = parseInt(r.total);
     });
 
-    // Broadcast the perfectly synced data
     executeBroadcast();
     
   } catch (err) {
@@ -319,7 +311,6 @@ wss.on('connection', (ws) => {
   });
 });
 
-// === RAM BROADCAST LOGIC ===
 function executeBroadcast() {
   wss.clients.forEach(ws => {
     if (ws.readyState === WebSocket.OPEN && ws.currentDate) {
