@@ -1,58 +1,52 @@
 const express = require('express');
 const WebSocket = require('ws');
-const pgp = require('pg-promise')({
-  // Custom init options for pool limiting and logging
-  capSQL: true,
-  connect: (client, dc, useCount) => {
-    console.log(`DB Connection established. Use count: ${useCount}`);
-  },
-  disconnect: (client, dc) => {
-    console.log('DB Connection disconnected');
-  },
-  error: (err, e) => {
-    console.error('DB Client Error:', err.stack || err);
-  }
-}); // For retries and transaction support
+const { Pool } = require('pg');
 const app = express();
 
-// --- 1. STRICT ENVIRONMENT VARIABLE CHECK ---
+// === ENVIRONMENT CHECK ===
 const connectionString = process.env.DATABASE_URL;
-
 if (!connectionString) {
-  console.error('CRITICAL ERROR: DATABASE_URL environment variable is missing.');
-  console.error('Please set this variable in your Render dashboard before deploying.');
-  process.exit(1); // Fail fast to prevent silent connection timeouts
+  console.error('CRITICAL ERROR: DATABASE_URL is missing');
+  process.exit(1);
 }
 
-// Parse connection string to inject timeouts
-const pgOptions = {
-  connectionTimeoutMillis: 30000, // 30s connect timeout
-  idleTimeoutMillis: 0, // No idle close
-  max: 2, // Limit pool to 2 for free tier
-  application_name: 'render-app' // For Supabase logging
-};
+// === VERY CONSERVATIVE POOL FOR FREE TIER ===
+const pool = new Pool({
+  connectionString,
+  ssl: { rejectUnauthorized: false },
+  max: 3,                    // Absolutely critical for free tier
+  idleTimeoutMillis: 10000,  // Close idle connections after 10s
+  connectionTimeoutMillis: 30000,
+  statement_timeout: 30000,
+  keepAlive: true
+});
 
-const db = pgp(connectionString, pgOptions);
+pool.on('error', (err) => {
+  console.error('Unexpected pool error:', err.message);
+});
+pool.on('connect', () => console.log('Pool acquired a new DB connection'));
+pool.on('remove', () => console.log('Pool released a DB connection'));
 
-// Query with retry (handles ETIMEDOUT and AggregateError)
-const queryWithRetry = async (queryText, params, retries = 5) => {
-  let backoff = 1000; // Start with 1s
-  for (let attempt = 1; attempt <= retries; attempt++) {
+// === RETRY WRAPPER (handles ETIMEDOUT / AggregateError) ===
+async function queryWithRetry(sql, params = [], retries = 5) {
+  let delay = 1000;
+  for (let i = 1; i <= retries; i++) {
     try {
-      return await db.any(queryText, params);
+      const res = await pool.query(sql, params);
+      return res;
     } catch (err) {
-      const errMsg = err.message || '';
-      console.error(`Query attempt ${attempt} failed:`, err.stack || err);
-      if ((errMsg.includes('timeout') || err.name === 'AggregateError') && attempt < retries) {
-        console.warn(`Query retry ${attempt}/${retries}. Waiting ${backoff}ms`);
-        await new Promise(res => setTimeout(res, backoff));
-        backoff *= 2; // Exponential: 1s -> 2s -> 4s -> 8s -> 16s
+      console.error(`DB query attempt ${i} failed:`, err.message);
+      if (i === retries) throw err;
+      if (err.message.includes('timeout') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH') {
+        console.warn(`Retrying in ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 2; // 1s → 2s → 4s → 8s → 16s
       } else {
-        throw err;
+        throw err; // non-retryable error
       }
     }
   }
-};
+}
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
@@ -64,64 +58,53 @@ const dailyTargets = {
 
 let lastMilestone = 0;
 
-// --- CACHING LAYER ---
+// === CACHING ===
 const routeCache = {
   counts: {},
   historicalDates: { dates: null, timestamp: 0 }
 };
-const CACHE_TTL_MS = 5000; 
+const CACHE_TTL_MS = 5000;
 
-function debounce(func, wait) {
-  let timeout;
-  return function(...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
+function debounce(fn, wait) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
   };
 }
 
-// --- CONCURRENCY LOCK ---
 let isBroadcasting = false;
 let pendingBroadcast = false;
 
 async function triggerBroadcast() {
-  if (isBroadcasting) {
-    pendingBroadcast = true; 
-    return;
-  }
+  if (isBroadcasting) { pendingBroadcast = true; return; }
   isBroadcasting = true;
   pendingBroadcast = false;
 
   try {
     await executeBroadcast();
-  } catch (err) {
-    console.error('Broadcast trigger error:', err.stack || err);
+  } catch (e) {
+    console.error('Broadcast failed:', e.message);
   } finally {
     isBroadcasting = false;
-    if (pendingBroadcast) {
-      setTimeout(triggerBroadcast, 100);
-    }
+    if (pendingBroadcast) setTimeout(triggerBroadcast, 100);
   }
 }
 
-const debouncedBroadcast = debounce(triggerBroadcast, 300);  
+const debouncedBroadcast = debounce(triggerBroadcast, 400);
 
 app.use(express.static('public'));
 
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', uptime: process.uptime() });
-});
+app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime() }));
 
+// === ENDPOINTS (all use retry wrapper) ===
 app.get('/getCount', async (req, res) => {
   const { facility, line, date = new Date().toISOString().split('T')[0] } = req.query;
-  if (!facilities.includes(facility) || !lines.includes(line)) {
-    return res.status(400).json({ error: 'Invalid facility or line' });
-  }
-  if (!date) return res.status(400).json({ error: 'Date is required' });
-  
+  if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid facility/line' });
+
   const cacheKey = `${facility}_${line}_${date}`;
   const now = Date.now();
-  
-  if (routeCache.counts[cacheKey] && (now - routeCache.counts[cacheKey].timestamp < CACHE_TTL_MS)) {
+  if (routeCache.counts[cacheKey] && now - routeCache.counts[cacheKey].timestamp < CACHE_TTL_MS) {
     return res.json({ count: routeCache.counts[cacheKey].value });
   }
 
@@ -130,13 +113,12 @@ app.get('/getCount', async (req, res) => {
       'SELECT count FROM productioncounts WHERE date = $1 AND facility = $2 AND line = $3',
       [date, facility, line]
     );
-    const count = result.length > 0 ? result[0].count : 0;
-    
+    const count = result.rows.length ? result.rows[0].count : 0;
     routeCache.counts[cacheKey] = { value: count, timestamp: now };
     res.json({ count });
   } catch (err) {
-    console.error('GetCount Error:', err.stack || err);
-    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
+    console.error('GetCount Error:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -159,7 +141,7 @@ app.get('/getHourlyRates', async (req, res) => {
       hourlyRates[f] = {};
       lines.forEach(l => {
         hourlyRates[f][l] = Array(24).fill(0);
-        const facilityRates = result.filter(row => row.facility === f && row.line === l);
+        const facilityRates = result.rows.filter(row => row.facility === f && row.line === l);
         facilityRates.forEach(row => {
           const hour = parseInt(row.hour);
           hourlyRates[f][l][hour] = parseInt(row.rate);
@@ -168,8 +150,8 @@ app.get('/getHourlyRates', async (req, res) => {
     });
     res.json({ hourlyRates });
   } catch (err) {
-    console.error('GetHourlyRates Error:', err.stack || err);
-    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
+    console.error('GetHourlyRates Error:', err.message);
+    res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 
@@ -181,7 +163,7 @@ app.get('/getHistoricalDates', async (req, res) => {
 
   try {
     const result = await queryWithRetry('SELECT DISTINCT date FROM productioncounts ORDER BY date DESC');
-    const dates = result.map(row => {
+    const dates = result.rows.map(row => {
        const d = new Date(row.date);
        return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     });
@@ -189,8 +171,8 @@ app.get('/getHistoricalDates', async (req, res) => {
     routeCache.historicalDates = { dates, timestamp: now };
     res.json({ dates });
   } catch (err) {
-    console.error('GetHistoricalDates Error:', err.stack || err);
-    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
+    console.error('GetHistoricalDates Error:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -204,14 +186,14 @@ app.get('/getHistoricalData', async (req, res) => {
     facilities.forEach(f => {
       data[f] = {};
       lines.forEach(l => {
-        const row = resCounts.find(r => r.facility === f && r.line === l);
+        const row = resCounts.rows.find(r => r.facility === f && r.line === l);
         data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
       });
     });
     res.json({ data });
   } catch (err) {
-    console.error('GetHistoricalData Error:', err.stack || err);
-    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
+    console.error('GetHistoricalData Error:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -229,8 +211,8 @@ app.post('/increment', async (req, res) => {
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
-    console.error('Increment Error:', err.stack || err);
-    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
+    console.error('Increment Error:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -248,216 +230,211 @@ app.post('/decrement', async (req, res) => {
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
-    console.error('Decrement Error:', err.stack || err);
-    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
+    console.error('Decrement Error:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
 app.post('/resetAllData', async (req, res) => {
   try {
-    await db.tx(async t => {
-      await t.none('TRUNCATE TABLE productioncounts, productionevents');
-    });
+    await queryWithRetry('TRUNCATE TABLE productioncounts, productionevents');
     lastMilestone = 0;
     routeCache.counts = {};
     routeCache.historicalDates = { dates: null, timestamp: 0 };
     triggerBroadcast();
     res.sendStatus(200);
   } catch (err) {
-    console.error('ResetAllData Error:', err.stack || err);
-    res.status(500).json({ error: 'Server error: ' + (err.message || 'Unknown error') });
+    console.error('ResetAllData Error:', err.message);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
 async function updateCount(facility, line, delta, date) {
+  let client;
   try {
-    await db.tx(async t => {
-      await t.none(
-        `INSERT INTO productionevents (date, facility, line, delta, timestamp)
-         VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
-        [date, facility, line, delta]
-      );
+    client = await pool.connect();
+    await client.query('BEGIN');
+    await client.query(
+      `INSERT INTO productionevents (date, facility, line, delta, timestamp)
+       VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
+      [date, facility, line, delta]
+    );
 
-      const query = `
-        INSERT INTO productioncounts (date, facility, line, count, timestamp)
-        VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')
-        ON CONFLICT (date, facility, line) 
-        DO UPDATE SET 
-          count = productioncounts.count + $4,
-          timestamp = NOW() AT TIME ZONE 'UTC'
-        RETURNING count;
-      `;
-      await t.any(query, [date, facility, line, delta]);
-    });
+    const query = `
+      INSERT INTO productioncounts (date, facility, line, count, timestamp)
+      VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')
+      ON CONFLICT (date, facility, line) 
+      DO UPDATE SET 
+        count = productioncounts.count + $4,
+        timestamp = NOW() AT TIME ZONE 'UTC'
+      RETURNING count;
+    `;
+    await client.query(query, [date, facility, line, delta]);
+    await client.query('COMMIT');
   } catch (err) {
-    console.error('UpdateCount Error:', err.stack || err);
+    if (client) await client.query('ROLLBACK');
+    console.error('UpdateCount Error:', err.message);
     throw err;
+  } finally {
+    if (client) client.release();
   }
 }
 
-// WebSocket server
+// === WEB SOCKET ===
 const PORT = process.env.PORT || 10000;
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const server = app.listen(PORT, () => console.log(`Server running on ${PORT}`));
 const wss = new WebSocket.Server({ server });
 
 wss.on('connection', (ws) => {
-  ws.on('message', async (message) => {
+  ws.on('message', (message) => {
     try {
-      const parsedMessage = JSON.parse(message);
-      
-      if (parsedMessage.action === 'setClientDate' && parsedMessage.clientDate) {
-        ws.currentDate = parsedMessage.clientDate;
-      } else if (parsedMessage.action === 'requestCurrentData') {
+      const parsed = JSON.parse(message);
+      if (parsed.action === 'setClientDate' && parsed.clientDate) {
+        ws.currentDate = parsed.clientDate;
+      } else if (parsed.action === 'requestCurrentData') {
         debouncedBroadcast();
-      } else if (parsedMessage.action === 'ping') {
+      } else if (parsed.action === 'ping') {
         ws.send(JSON.stringify({ type: 'pong' }));
       }
-    } catch (err) {
-      console.error('WebSocket Error:', err.stack || err);
+    } catch (e) {
+      console.error('WS message error:', e.message);
     }
   });
 });
 
-// Helper to reliably format Postgres date responses back to YYYY-MM-DD strings
+// === DATE HELPER ===
 const parseDbDate = (dbDate) => {
   if (typeof dbDate === 'string') return dbDate.split('T')[0];
   const d = new Date(dbDate);
   return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 };
 
-// --- 2. BATCHED BROADCAST QUERY (NO N+1 LOOPS) ---
+// === BROADCAST ===
 async function executeBroadcast() {
   const activeDates = new Set();
-  wss.clients.forEach(client => {
-    if (client.readyState === WebSocket.OPEN && client.currentDate) {
-      activeDates.add(client.currentDate);
-    }
+  wss.clients.forEach(c => {
+    if (c.readyState === WebSocket.OPEN && c.currentDate) activeDates.add(c.currentDate);
   });
 
   if (activeDates.size === 0) return;
   const datesArray = Array.from(activeDates);
-  
+
+  let client;
   try {
-    await db.tx(async t => {
-      // Fetch Global / Peak Stats (Independent of active dates)
-      const peakDayRes = await queryWithRetry(
-        `SELECT facility, date, SUM(count) as daily_total
-         FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
-      );
-      
-      const allDailyRes = await queryWithRetry(
-        `SELECT facility, date, SUM(count) as daily_total
-         FROM productioncounts GROUP BY facility, date ORDER BY facility, date`
-      );
+    client = await pool.connect();
+    const peakDayRes = await queryWithRetry(
+      `SELECT facility, date, SUM(count) as daily_total
+       FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
+    );
 
-      const peakProduction = {};
-      facilities.forEach(f => {
-        const facilityRows = peakDayRes.filter(row => row.facility === f);
-        const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
+    const allDailyRes = await queryWithRetry(
+      `SELECT facility, date, SUM(count) as daily_total
+       FROM productioncounts GROUP BY facility, date ORDER BY facility, date`
+    );
 
-        const facilityDailyTotals = allDailyRes
-          .filter(row => row.facility === f)
-          .map(row => ({ date: parseDbDate(row.date), daily_total: parseInt(row.daily_total) }))
-          .sort((a, b) => a.date.localeCompare(b.date));
+    const peakProduction = {};
+    facilities.forEach(f => {
+      const facilityRows = peakDayRes.rows.filter(row => row.facility === f);
+      const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
 
-        let maxWeeklySum = 0;
-        if (facilityDailyTotals.length > 0) {
-          const availableDays = Math.min(facilityDailyTotals.length, 7);
-          for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
-            const weekSum = facilityDailyTotals.slice(i, i + availableDays).reduce((sum, day) => sum + day.daily_total, 0);
-            maxWeeklySum = Math.max(maxWeeklySum, weekSum);
-          }
+      const facilityDailyTotals = allDailyRes.rows
+        .filter(row => row.facility === f)
+        .map(row => ({ date: parseDbDate(row.date), daily_total: parseInt(row.daily_total) }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      let maxWeeklySum = 0;
+      if (facilityDailyTotals.length > 0) {
+        const availableDays = Math.min(facilityDailyTotals.length, 7);
+        for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
+          const weekSum = facilityDailyTotals.slice(i, i + availableDays).reduce((sum, day) => sum + day.daily_total, 0);
+          maxWeeklySum = Math.max(maxWeeklySum, weekSum);
         }
-        peakProduction[f] = { peakDay, peakWeekly: maxWeeklySum };
+      }
+      peakProduction[f] = { peakDay, peakWeekly: maxWeeklySum };
+    });
+
+    const currentRes = await queryWithRetry(
+      'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])',
+      [datesArray]
+    );
+
+    const hourlyRes = await queryWithRetry(
+      `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
+       FROM productionevents WHERE date = ANY($1::date[])
+       GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`,
+      [datesArray]
+    );
+
+    const totalsRes = await queryWithRetry(
+      'SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date',
+      [datesArray]
+    );
+
+    for (const date of datesArray) {
+      const data = {};
+      facilities.forEach(f => {
+        data[f] = {};
+        lines.forEach(l => {
+          const row = currentRes.rows.find(r => r.facility === f && r.line === l && parseDbDate(r.date) === date);
+          data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
+        });
       });
 
-      // Batched Queries: Fetch everything for ALL active dates in just 3 queries
-      const currentRes = await queryWithRetry(
-        'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])',
-        [datesArray]
-      );
-      
-      const hourlyRes = await queryWithRetry(
-        `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
-         FROM productionevents WHERE date = ANY($1::date[])
-         GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`, 
-        [datesArray]
-      );
-      
-      const totalsRes = await queryWithRetry(
-        'SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', 
-        [datesArray]
-      );
-
-      // Filter and structure data for each specific active date
-      for (const date of datesArray) {
-        const data = {};
-        facilities.forEach(f => {
-          data[f] = {};
-          lines.forEach(l => {
-            const row = currentRes.find(r => r.facility === f && r.line === l && parseDbDate(r.date) === date);
-            data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
-          });
+      const hourlyRates = {};
+      facilities.forEach(f => {
+        hourlyRates[f] = {};
+        lines.forEach(l => {
+          hourlyRates[f][l] = Array(24).fill(0);
         });
+      });
 
-        const hourlyRates = {};
-        facilities.forEach(f => {
-          hourlyRates[f] = {};
-          lines.forEach(l => {
-            hourlyRates[f][l] = Array(24).fill(0);
-          });
-        });
-        
-        hourlyRes.forEach(row => {
-          if (parseDbDate(row.date) === date) {
-            const { facility, line, hourly_total, hour } = row;
-            if (hourlyRates[facility] && hourlyRates[facility][line]) {
-              hourlyRates[facility][line][parseInt(hour)] = parseInt(hourly_total);
-            }
-          }
-        });
-
-        const totalRow = totalsRes.find(r => parseDbDate(r.date) === date);
-        const totalProduction = totalRow ? parseInt(totalRow.total) : 0;
-
-        const targetPercentages = {};
-        for (const facility of facilities) {
-          const facilityTotal = Object.values(data[facility]).reduce((sum, { count }) => sum + count, 0);
-          const target = dailyTargets[facility];
-          const percentage = target > 0 ? Math.round((facilityTotal / target) * 100) : 0;
-          targetPercentages[facility] = percentage;
-        }
-
-        const todayStr = new Date().toISOString().split('T')[0];
-        let notification = null;
-        if (date === todayStr) {
-          const milestone = Math.floor(totalProduction / 100) * 100;
-          if (milestone > lastMilestone && totalProduction >= milestone) {
-            lastMilestone = milestone;
-            notification = `Milestone Reached: Total production hit ${milestone} units!`;
+      hourlyRes.rows.forEach(row => {
+        if (parseDbDate(row.date) === date) {
+          const { facility, line, hourly_total, hour } = row;
+          if (hourlyRates[facility] && hourlyRates[facility][line]) {
+            hourlyRates[facility][line][parseInt(hour)] = parseInt(hourly_total);
           }
         }
+      });
 
-        const messageStr = JSON.stringify({
-          date: date,
-          data,
-          hourlyRates,
-          totalProduction,
-          peakProduction,
-          targetPercentages,
-          notification
-        });
-        
-        wss.clients.forEach((c) => {
-          if (c.readyState === WebSocket.OPEN && c.currentDate === date) {
-            c.send(messageStr);
-          }
-        });
+      const totalRow = totalsRes.rows.find(r => parseDbDate(r.date) === date);
+      const totalProduction = totalRow ? parseInt(totalRow.total) : 0;
+
+      const targetPercentages = {};
+      for (const facility of facilities) {
+        const facilityTotal = Object.values(data[facility]).reduce((sum, { count }) => sum + count, 0);
+        const target = dailyTargets[facility];
+        const percentage = target > 0 ? Math.round((facilityTotal / target) * 100) : 0;
+        targetPercentages[facility] = percentage;
       }
-    });
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      let notification = null;
+      if (date === todayStr) {
+        const milestone = Math.floor(totalProduction / 100) * 100;
+        if (milestone > lastMilestone && totalProduction >= milestone) {
+          lastMilestone = milestone;
+          notification = `Milestone Reached: Total production hit ${milestone} units!`;
+        }
+      }
+
+      const messageStr = JSON.stringify({
+        date,
+        data,
+        hourlyRates,
+        totalProduction,
+        peakProduction,
+        targetPercentages,
+        notification
+      });
+
+      wss.clients.forEach(c => {
+        if (c.readyState === WebSocket.OPEN && c.currentDate === date) c.send(messageStr);
+      });
+    }
   } catch (err) {
-    console.error('Broadcast Update Error:', err.stack || err);
-  } 
+    console.error('Broadcast Update Error:', err.message);
+  } finally {
+    if (client) client.release();
+  }
 }
