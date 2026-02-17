@@ -77,8 +77,15 @@ const dailyTargets = {
 };
 
 let lastMilestone = 0;
-const routeCache = { counts: {} };
-const CACHE_TTL_MS = 5000;
+
+// 🚀 THE READ CACHE: This stops the 20 Raspberry Pis from murdering the database
+const CACHE_TTL_MS = 5000; // Keep photocopies of data for 5 seconds
+const routeCache = { 
+  counts: {},
+  hourlyRates: {},
+  historicalData: {},
+  broadcasts: {}
+};
 
 function debounce(fn, wait) {
   let t;
@@ -113,9 +120,8 @@ app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime
 
 
 // ============================================================================
-// === 🚀 THE DATABASE SAVIOR: BATCHED WRITE QUEUE 🚀 ===
+// === THE WRITE QUEUE (Saves button clicks in RAM) ===
 // ============================================================================
-// This object holds all incoming clicks in memory so we don't spam the database
 const pendingWrites = {};
 
 app.post('/increment', async (req, res) => {
@@ -124,9 +130,8 @@ app.post('/increment', async (req, res) => {
   if (!date) return res.status(400).json({ error: 'Date required' });
 
   const key = `${facility}|${line}|${date}`;
-  pendingWrites[key] = (pendingWrites[key] || 0) + 1; // Store click in RAM
-  
-  res.sendStatus(200); // Instantly reply success without touching the DB!
+  pendingWrites[key] = (pendingWrites[key] || 0) + 1; 
+  res.sendStatus(200); 
 });
 
 app.post('/decrement', async (req, res) => {
@@ -135,17 +140,15 @@ app.post('/decrement', async (req, res) => {
   if (!date) return res.status(400).json({ error: 'Date required' });
 
   const key = `${facility}|${line}|${date}`;
-  pendingWrites[key] = (pendingWrites[key] || 0) - 1; // Store click in RAM
-  
+  pendingWrites[key] = (pendingWrites[key] || 0) - 1; 
   res.sendStatus(200); 
 });
 
-// === BACKGROUND WORKER (Runs every 3 seconds) ===
+// Background worker to flush writes to the DB every 3 seconds
 setInterval(async () => {
   const keys = Object.keys(pendingWrites);
-  if (keys.length === 0) return; // Nothing to do
+  if (keys.length === 0) return; 
 
-  // Copy the queue and clear it immediately to catch new incoming clicks
   const snapshot = { ...pendingWrites };
   for (const k of keys) delete pendingWrites[k]; 
 
@@ -153,32 +156,31 @@ setInterval(async () => {
 
   for (const key in snapshot) {
     const delta = snapshot[key];
-    if (delta === 0) continue; // Net zero (someone clicked + then - before flush)
+    if (delta === 0) continue; 
 
     const [facility, line, date] = key.split('|');
 
     try {
-      // Send the bulk tally to the database
       await updateCount(facility, line, delta, date);
       await checkAndUpdatePeaks(facility, date);
       
       const cacheKey = `${facility}_${line}_${date}`;
       if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
+      routeCache.broadcasts[date] = null; // Invalidate broadcast cache so it refreshes
       
       changesMade = true;
     } catch (err) {
       console.error('Batch write failed, returning clicks to queue:', err.message);
-      // If DB hiccuped, put the clicks back in the RAM queue so they are never lost
       pendingWrites[key] = (pendingWrites[key] || 0) + delta;
     }
   }
 
-  // Only broadcast to screens IF we actually sent data to the database
-  if (changesMade) {
-    debouncedBroadcast(); 
-  }
+  if (changesMade) debouncedBroadcast(); 
 }, 3000); 
 // ============================================================================
+
+
+// === ENDPOINTS (Now heavily cached for the 20 Pis) ===
 
 app.get('/getCount', async (req, res) => {
   const { facility, line, date = new Date().toISOString().split('T')[0] } = req.query;
@@ -186,6 +188,7 @@ app.get('/getCount', async (req, res) => {
 
   const cacheKey = `${facility}_${line}_${date}`;
   const now = Date.now();
+  // If 20 Pis ask for this within 5 seconds, 19 of them get this instant RAM reply
   if (routeCache.counts[cacheKey] && now - routeCache.counts[cacheKey].timestamp < CACHE_TTL_MS) {
     return res.json({ count: routeCache.counts[cacheKey].value });
   }
@@ -207,6 +210,11 @@ app.get('/getCount', async (req, res) => {
 app.get('/getHourlyRates', async (req, res) => {
   const { date = new Date().toISOString().split('T')[0] } = req.query;
   if (!date) return res.status(400).json({ error: 'Date is required' });
+
+  const now = Date.now();
+  if (routeCache.hourlyRates[date] && now - routeCache.hourlyRates[date].timestamp < CACHE_TTL_MS) {
+    return res.json({ hourlyRates: routeCache.hourlyRates[date].data });
+  }
 
   try {
     const result = await queryWithRetry(
@@ -230,6 +238,8 @@ app.get('/getHourlyRates', async (req, res) => {
         });
       });
     });
+    
+    routeCache.hourlyRates[date] = { data: hourlyRates, timestamp: now };
     res.json({ hourlyRates });
   } catch (err) {
     console.error('GetHourlyRates Error:', err.message);
@@ -241,6 +251,11 @@ app.get('/getHistoricalData', async (req, res) => {
   const { date } = req.query;
   if (!date) return res.status(400).json({ error: 'Date parameter is required' });
 
+  const now = Date.now();
+  if (routeCache.historicalData[date] && now - routeCache.historicalData[date].timestamp < CACHE_TTL_MS) {
+    return res.json({ data: routeCache.historicalData[date].data });
+  }
+
   try {
     const resCounts = await queryWithRetry('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]);
     const data = {};
@@ -251,6 +266,8 @@ app.get('/getHistoricalData', async (req, res) => {
         data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
       });
     });
+    
+    routeCache.historicalData[date] = { data, timestamp: now };
     res.json({ data });
   } catch (err) {
     console.error('GetHistoricalData Error:', err.message);
@@ -264,6 +281,9 @@ app.post('/resetAllData', async (req, res) => {
     await queryWithRetry('UPDATE peakproduction SET peak_day = 0, peak_weekly = 0');
     lastMilestone = 0;
     routeCache.counts = {};
+    routeCache.hourlyRates = {};
+    routeCache.historicalData = {};
+    routeCache.broadcasts = {};
     triggerBroadcast();
     res.sendStatus(200);
   } catch (err) {
@@ -316,9 +336,7 @@ async function updateCount(facility, line, delta, date) {
     console.error('UpdateCount Error:', err.message);
     throw err;
   } finally {
-    if (client) {
-        client.release(hasError);
-    }
+    if (client) client.release(hasError);
   }
 }
 
@@ -446,41 +464,43 @@ async function executeBroadcast() {
 
   if (activeDates.size === 0) return;
   const datesArray = Array.from(activeDates);
+  const now = Date.now();
 
   try {
-    const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction');
-    
-    const currentRes = await queryWithRetry(
-      'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', 
-      [datesArray]
-    );
-    
-    const hourlyRes = await queryWithRetry(
-      `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
-       FROM productionevents WHERE date = ANY($1::date[])
-       GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`,
-      [datesArray]
-    );
-    
-    const totalsRes = await queryWithRetry(
-      'SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', 
-      [datesArray]
-    );
-
-    const peakProduction = {};
-    
-    facilities.forEach(f => {
-      peakProduction[f] = { peakDay: 0, peakWeekly: 0 };
-    });
-    
-    peakRes.rows.forEach(r => {
-      peakProduction[r.facility] = {
-        peakDay: parseInt(r.peak_day) || 0,
-        peakWeekly: parseInt(r.peak_weekly) || 0
-      };
-    });
-
     for (const date of datesArray) {
+      // 🚀 CACHE CHECK: If the 20 Pis trigger a broadcast, only run the DB logic for the 1st one!
+      if (routeCache.broadcasts[date] && (now - routeCache.broadcasts[date].timestamp < CACHE_TTL_MS)) {
+         wss.clients.forEach(c => {
+           if (c.readyState === WebSocket.OPEN && c.currentDate === date) {
+             c.send(routeCache.broadcasts[date].data);
+           }
+         });
+         continue; 
+      }
+
+      // If no cache, hit the database once
+      const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction');
+      const currentRes = await queryWithRetry(
+        'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', 
+        [datesArray]
+      );
+      const hourlyRes = await queryWithRetry(
+        `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
+         FROM productionevents WHERE date = ANY($1::date[])
+         GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`,
+        [datesArray]
+      );
+      const totalsRes = await queryWithRetry(
+        'SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', 
+        [datesArray]
+      );
+
+      const peakProduction = {};
+      facilities.forEach(f => { peakProduction[f] = { peakDay: 0, peakWeekly: 0 }; });
+      peakRes.rows.forEach(r => {
+        peakProduction[r.facility] = { peakDay: parseInt(r.peak_day) || 0, peakWeekly: parseInt(r.peak_weekly) || 0 };
+      });
+
       const data = {};
       facilities.forEach(f => {
         data[f] = {};
@@ -493,9 +513,7 @@ async function executeBroadcast() {
       const hourlyRates = {};
       facilities.forEach(f => {
         hourlyRates[f] = {};
-        lines.forEach(l => {
-          hourlyRates[f][l] = Array(24).fill(0);
-        });
+        lines.forEach(l => { hourlyRates[f][l] = Array(24).fill(0); });
       });
 
       hourlyRes.rows.forEach(row => {
@@ -529,14 +547,11 @@ async function executeBroadcast() {
       }
 
       const messageStr = JSON.stringify({
-        date,
-        data,
-        hourlyRates,
-        totalProduction,
-        peakProduction,
-        targetPercentages,
-        notification
+        date, data, hourlyRates, totalProduction, peakProduction, targetPercentages, notification
       });
+
+      // Save photocopy to RAM so the other 19 Pis don't have to query the database!
+      routeCache.broadcasts[date] = { data: messageStr, timestamp: now };
 
       wss.clients.forEach(c => {
         if (c.readyState === WebSocket.OPEN && c.currentDate === date) c.send(messageStr);
