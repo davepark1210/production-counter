@@ -10,48 +10,39 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// Function to create/recreate pool
-let pool;
-function createPool() {
-  pool = new Pool({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
-    max: 2,                    // Ultra-conservative for free tier
-    idleTimeoutMillis: 5000,   // Close idle faster (5s)
-    connectionTimeoutMillis: 60000, // 60s connect timeout
-    statement_timeout: 60000,  // 60s query timeout
-    keepAlive: true
-  });
+// === VERY CONSERVATIVE POOL FOR FREE TIER ===
+const pool = new Pool({
+  connectionString,
+  ssl: { rejectUnauthorized: false },
+  max: 3,                    // Absolutely critical for free tier
+  idleTimeoutMillis: 10000,  // Close idle connections after 10s
+  connectionTimeoutMillis: 30000,
+  statement_timeout: 30000,
+  keepAlive: true
+});
 
-  pool.on('error', (err) => {
-    console.error('Pool error:', err.message);
-    // Auto-recreate pool on fatal errors
-    if (err.message.includes('terminated')) {
-      console.warn('Recreating pool due to termination');
-      createPool();
-    }
-  });
-  pool.on('connect', () => console.log('New DB connection acquired'));
-  pool.on('remove', () => console.log('DB connection released'));
-}
-createPool(); // Initial creation
+pool.on('error', (err) => {
+  console.error('Unexpected pool error:', err.message);
+});
+pool.on('connect', () => console.log('Pool acquired a new DB connection'));
+pool.on('remove', () => console.log('Pool released a DB connection'));
 
-// === RETRY WRAPPER ===
-async function queryWithRetry(sql, params = [], retries = 7) {
+// === RETRY WRAPPER (handles ETIMEDOUT / AggregateError) ===
+async function queryWithRetry(sql, params = [], retries = 5) {
   let delay = 1000;
   for (let i = 1; i <= retries; i++) {
     try {
       const res = await pool.query(sql, params);
       return res;
     } catch (err) {
-      console.error(`Query attempt ${i} failed:`, err.message);
+      console.error(`DB query attempt ${i} failed:`, err.message);
       if (i === retries) throw err;
       if (err.message.includes('timeout') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH') {
         console.warn(`Retrying in ${delay}ms...`);
         await new Promise(r => setTimeout(r, delay));
-        delay *= 2; // Exponential up to ~64s total possible wait
+        delay *= 2; // 1s → 2s → 4s → 8s → 16s
       } else {
-        throw err;
+        throw err; // non-retryable error
       }
     }
   }
@@ -106,6 +97,7 @@ app.use(express.static('public'));
 
 app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime() }));
 
+// === ENDPOINTS (all use retry wrapper) ===
 app.get('/getCount', async (req, res) => {
   const { facility, line, date = new Date().toISOString().split('T')[0] } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid facility/line' });
@@ -132,7 +124,7 @@ app.get('/getCount', async (req, res) => {
 
 app.get('/getHourlyRates', async (req, res) => {
   const { date = new Date().toISOString().split('T')[0] } = req.query;
-  if (!date) return res.status(400).json({ error: 'Date required' });
+  if (!date) return res.status(400).json({ error: 'Date is required' });
 
   try {
     const result = await queryWithRetry(
@@ -159,22 +151,23 @@ app.get('/getHourlyRates', async (req, res) => {
     res.json({ hourlyRates });
   } catch (err) {
     console.error('GetHourlyRates Error:', err.message);
-    res.status(500).json({ error: 'Server error' });
+    res.status(500).json({ error: 'Server error: ' + err.message });
   }
 });
 
 app.get('/getHistoricalDates', async (req, res) => {
   const now = Date.now();
-  if (routeCache.historicalDates.dates && now - routeCache.historicalDates.timestamp < 60000) {
+  if (routeCache.historicalDates.dates && (now - routeCache.historicalDates.timestamp < 60000)) {
     return res.json({ dates: routeCache.historicalDates.dates });
   }
 
   try {
     const result = await queryWithRetry('SELECT DISTINCT date FROM productioncounts ORDER BY date DESC');
     const dates = result.rows.map(row => {
-      const d = new Date(row.date);
-      return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+       const d = new Date(row.date);
+       return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     });
+    
     routeCache.historicalDates = { dates, timestamp: now };
     res.json({ dates });
   } catch (err) {
@@ -185,15 +178,15 @@ app.get('/getHistoricalDates', async (req, res) => {
 
 app.get('/getHistoricalData', async (req, res) => {
   const { date } = req.query;
-  if (!date) return res.status(400).json({ error: 'Date required' });
+  if (!date) return res.status(400).json({ error: 'Date parameter is required' });
 
   try {
-    const result = await queryWithRetry('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]);
+    const resCounts = await queryWithRetry('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]);
     const data = {};
     facilities.forEach(f => {
       data[f] = {};
       lines.forEach(l => {
-        const row = result.rows.find(r => r.facility === f && r.line === l);
+        const row = resCounts.rows.find(r => r.facility === f && r.line === l);
         data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
       });
     });
@@ -211,8 +204,10 @@ app.post('/increment', async (req, res) => {
 
   try {
     await updateCount(facility, line, 1, date);
+    
     const cacheKey = `${facility}_${line}_${date}`;
     if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
+    
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
@@ -228,8 +223,10 @@ app.post('/decrement', async (req, res) => {
 
   try {
     await updateCount(facility, line, -1, date);
+    
     const cacheKey = `${facility}_${line}_${date}`;
     if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
+    
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
