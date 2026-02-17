@@ -10,20 +10,16 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === 🚀 AGGRESSIVELY RECYCLED CONNECTION POOL ===
+// === CLEAN & SIMPLE CONNECTION POOL ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
   max: 5,                             
-  // 🚀 2 SECONDS: Forces Node to throw away idle connections BEFORE PgBouncer secretly kills them!
-  idleTimeoutMillis: 2000,           
+  idleTimeoutMillis: 10000,           // 10s: Node will gracefully close connections before the network silently drops them
   connectionTimeoutMillis: 15000,     
-  statement_timeout: 30000,            
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 1000
 });
 
-pool.on('error', (err) => console.warn('Idle DB client error (safely ignored):', err.message));
+pool.on('error', (err) => console.warn('Idle DB client error (ignored):', err.message));
 
 // === RETRY WRAPPER ===
 async function queryWithRetry(sql, params = [], retries = 3) {
@@ -45,7 +41,6 @@ async function queryWithRetry(sql, params = [], retries = 3) {
 // === AUTO DATA CLEANUP ===
 async function cleanupOldData() {
   try {
-    console.log('Running automated database cleanup for EVENTS older than 30 days...');
     const eventRes = await queryWithRetry(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days' RETURNING id`);
     console.log(`Cleanup complete: Removed ${eventRes.rowCount || 0} old events.`);
   } catch (err) {
@@ -83,7 +78,7 @@ function getLocalDateString() {
 }
 
 // ============================================================================
-// === THE ZERO-HANG RAM STATE ENGINE ===
+// === 🚀 THE TRUE INSTANT RAM STATE ENGINE ===
 // ============================================================================
 const SYSTEM_RAM = {
   historicalData: {}, 
@@ -121,7 +116,6 @@ app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime
 // ============================================================================
 // === DECOUPLED ENDPOINTS ===
 // ============================================================================
-
 app.get('/getCount', (req, res) => {
   const { facility, line, date = getLocalDateString() } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
@@ -144,7 +138,7 @@ app.get('/getHistoricalData', (req, res) => {
 
 
 // ============================================================================
-// === WRITE QUEUE ===
+// === 🚀 INSTANT WRITE QUEUE (Updates UI in 0 milliseconds) ===
 // ============================================================================
 const pendingWrites = {};
 
@@ -153,7 +147,16 @@ app.post('/increment', (req, res) => {
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
   if (!date) return res.status(400).json({ error: 'Date required' });
 
+  // 1. Instantly update the master RAM
+  initRamForDate(date);
+  SYSTEM_RAM.historicalData[date][facility][line].count += 1;
+  SYSTEM_RAM.totals[date] += 1;
+  
+  // 2. Put it in the queue for the database
   pendingWrites[`${facility}|${line}|${date}`] = (pendingWrites[`${facility}|${line}|${date}`] || 0) + 1; 
+  
+  // 3. Blast the new RAM state to all 20 screens instantly
+  executeBroadcast(); 
   res.sendStatus(200); 
 });
 
@@ -162,10 +165,16 @@ app.post('/decrement', (req, res) => {
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
   if (!date) return res.status(400).json({ error: 'Date required' });
 
+  initRamForDate(date);
+  SYSTEM_RAM.historicalData[date][facility][line].count -= 1;
+  SYSTEM_RAM.totals[date] -= 1;
+
   pendingWrites[`${facility}|${line}|${date}`] = (pendingWrites[`${facility}|${line}|${date}`] || 0) - 1; 
+  executeBroadcast(); 
   res.sendStatus(200); 
 });
 
+// Silent Database Worker: Takes the queue and uploads it to Supabase
 async function processBatchQueue() {
   const keys = Object.keys(pendingWrites);
   if (keys.length === 0) {
@@ -176,36 +185,27 @@ async function processBatchQueue() {
   const snapshot = { ...pendingWrites };
   for (const k of keys) delete pendingWrites[k]; 
 
-  let changesMade = false;
-
   for (const key in snapshot) {
     const delta = snapshot[key];
     if (delta === 0) continue; 
     const [facility, line, date] = key.split('|');
 
-    initRamForDate(date);
-    SYSTEM_RAM.historicalData[date][facility][line].count += delta;
-    SYSTEM_RAM.totals[date] += delta;
-
     try {
       await updateCount(facility, line, delta, date);
-      changesMade = true;
+      await checkAndUpdatePeaks(facility, date);
     } catch (err) {
-      console.error('Batch write failed, saving to memory to retry later:', err.message);
+      console.error('Batch write failed, keeping delta in queue to retry:', err.message);
+      // If DB fails, leave the UI alone! Just put the delta back in the queue to try again.
       pendingWrites[key] = (pendingWrites[key] || 0) + delta;
-      
-      SYSTEM_RAM.historicalData[date][facility][line].count -= delta;
-      SYSTEM_RAM.totals[date] -= delta;
     }
   }
 
-  if (changesMade) executeBroadcast(); 
   setTimeout(processBatchQueue, 3000); 
 }
 setTimeout(processBatchQueue, 3000);
 
 // ============================================================================
-// === BACKGROUND DB POLLER ===
+// === BACKGROUND DB POLLER (Only runs every 15 minutes now) ===
 // ============================================================================
 async function syncDatabaseToRAM() {
   try {
@@ -257,10 +257,12 @@ async function syncDatabaseToRAM() {
   } catch (err) {
     console.error('Background Sync Error:', err.message); 
   } finally {
-    setTimeout(syncDatabaseToRAM, 10000); 
+    // 🚀 RUNS EVERY 15 MINUTES INSTEAD OF 10 SECONDS
+    setTimeout(syncDatabaseToRAM, 15 * 60 * 1000); 
   }
 }
-setTimeout(syncDatabaseToRAM, 5000); 
+// Run once on boot to get the initial state
+setTimeout(syncDatabaseToRAM, 2000); 
 
 
 // === DATABASE HELPERS ===
@@ -288,6 +290,57 @@ async function updateCount(facility, line, delta, date) {
     throw err;
   } finally {
     if (client) client.release(hasError);
+  }
+}
+
+async function checkAndUpdatePeaks(facility, date) {
+  try {
+    const singleQuery = `
+      WITH day_calc AS (
+        SELECT COALESCE(SUM(count), 0) as total 
+        FROM productioncounts WHERE facility = $1 AND date = $2
+      ),
+      week_calc AS (
+        SELECT COALESCE(SUM(count), 0) as total 
+        FROM productioncounts WHERE facility = $1 AND date BETWEEN $2::date - 6 AND $2::date
+      )
+      SELECT 
+        (SELECT total FROM day_calc) as day_total,
+        (SELECT total FROM week_calc) as week_total,
+        peak_day, peak_weekly
+      FROM peakproduction WHERE facility = $1;
+    `;
+    
+    const result = await queryWithRetry(singleQuery, [facility, date]);
+    if (!result.rows.length) return;
+
+    const row = result.rows[0];
+    const currentPeakDay = parseInt(row.peak_day) || 0;
+    const currentPeakWeekly = parseInt(row.peak_weekly) || 0;
+    const dayTotal = parseInt(row.day_total) || 0;
+    const weekTotal = parseInt(row.week_total) || 0;
+
+    let updated = false;
+    let newPeakDay = currentPeakDay;
+    let newPeakWeekly = currentPeakWeekly;
+
+    if (dayTotal > currentPeakDay) {
+      newPeakDay = dayTotal;
+      updated = true;
+    }
+    if (weekTotal > currentPeakWeekly) {
+      newPeakWeekly = weekTotal;
+      updated = true;
+    }
+
+    if (updated) {
+      await queryWithRetry(
+        'UPDATE peakproduction SET peak_day = $1, peak_weekly = $2 WHERE facility = $3',
+        [newPeakDay, newPeakWeekly, facility]
+      );
+    }
+  } catch (err) {
+    console.error('Error in checkAndUpdatePeaks:', err.message);
   }
 }
 
