@@ -10,14 +10,13 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === ULTRA-STABLE CONNECTION POOL ===
+// === ULTRA-STABLE CONNECTION POOL (PGBOUNCER OPTIMIZED) ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 10,                            // Strict limit to keep Supabase happy
-  idleTimeoutMillis: 120000,          // Wait 2 full minutes before dropping idle connections
-  connectionTimeoutMillis: 0,         // 0 = DISABLED! This forces Node to queue clicks patiently instead of throwing timeouts.
-  // Note: statement_timeout is intentionally removed so we don't aggressively kill queries under load
+  max: 20,                            // Increased to 20! PgBouncer can easily handle this.
+  idleTimeoutMillis: 10000,           // Lowered to 10s. Let Node cycle connections fast; PgBouncer handles the heavy lifting.
+  connectionTimeoutMillis: 0,         // Still 0 (Queue indefinitely instead of crashing)
   keepAlive: true,                    
   keepAliveInitialDelayMillis: 2000   
 });
