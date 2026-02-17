@@ -17,8 +17,8 @@ const pool = new Pool({
   max: 20,                            
   idleTimeoutMillis: 30000,           
   connectionTimeoutMillis: 60000,     
-  statement_timeout: 60000,           // 🚀 BUMPED TO 60s: Gives Supabase time to do the math
-  // query_timeout: REMOVED COMPLETELY! This was the assassin killing your queries!
+  statement_timeout: 60000,           
+  query_timeout: 0,                   // 🚀 EXPLICITLY set to 0 to permanently disable the "Connection terminated" assassin
   keepAlive: true,                    
   keepAliveInitialDelayMillis: 2000   
 });
@@ -144,10 +144,13 @@ app.post('/decrement', async (req, res) => {
   res.sendStatus(200); 
 });
 
-// Background worker to flush writes to the DB every 3 seconds
-setInterval(async () => {
+// 🚀 SMART BACKGROUND WORKER: Waits for Supabase to finish before starting the next batch
+async function processBatchQueue() {
   const keys = Object.keys(pendingWrites);
-  if (keys.length === 0) return; 
+  if (keys.length === 0) {
+    setTimeout(processBatchQueue, 3000); // Check again in 3 seconds
+    return;
+  }
 
   const snapshot = { ...pendingWrites };
   for (const k of keys) delete pendingWrites[k]; 
@@ -176,9 +179,14 @@ setInterval(async () => {
   }
 
   if (changesMade) debouncedBroadcast(); 
-}, 3000); 
-// ============================================================================
 
+  // Only schedule the next run AFTER this one successfully finishes!
+  setTimeout(processBatchQueue, 3000); 
+}
+
+// Start the worker
+setTimeout(processBatchQueue, 3000);
+// ============================================================================
 
 // === ENDPOINTS (Immune to 5-Minute Cache Stampedes) ===
 
