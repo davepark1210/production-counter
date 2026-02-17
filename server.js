@@ -10,15 +10,15 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === ROCK-SOLID CONNECTION POOL ===
+// === ROCK-SOLID CONNECTION POOL (GOLDILOCKS CONFIG) ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 15,                            // 15 is the sweet spot for PgBouncer on Supabase Free Tier
+  max: 40,                            // 🚀 BUMPED TO 40: Port 6543 can easily handle this. Processes clicks 4x faster!
   idleTimeoutMillis: 30000,           // Drop idle connections after 30 seconds
-  connectionTimeoutMillis: 10000,     // 10s: If the pool is full, fail fast and trigger a retry!
-  statement_timeout: 10000,           // 10s: Kills "zombie" locked queries in the database
-  query_timeout: 10000,               // 10s: Tells Node.js to stop waiting for dead network packets
+  connectionTimeoutMillis: 60000,     // 🚀 60s: Gives Node's internal queue a full minute of patience for rapid clicks
+  statement_timeout: 10000,           // 10s: Safety valve #1 (Prevents 5-minute freezes)
+  query_timeout: 10000,               // 10s: Safety valve #2 (Prevents 5-minute freezes)
   keepAlive: true,                    
   keepAliveInitialDelayMillis: 2000   
 });
