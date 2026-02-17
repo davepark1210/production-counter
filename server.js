@@ -14,10 +14,13 @@ if (!connectionString) {
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 30,                            // Bumping to 30 to comfortably handle concurrent broadcast queries
-  idleTimeoutMillis: 120000,          // Wait 2 full minutes before dropping idle connections
-  connectionTimeoutMillis: 0,         // 0 = DISABLED. Stops the "timeout exceeded" error entirely. It will wait patiently in the queue.
-  // Note: statement_timeout has been intentionally removed so we don't aggressively kill queries
+  // STRICT LIMIT: Prevents the "MaxClientsInSessionMode" error from Supabase
+  max: 10,                            
+  idleTimeoutMillis: 30000,           
+  connectionTimeoutMillis: 20000, // Wait 20s in Node's internal queue before throwing an error
+  statement_timeout: 15000,           
+  keepAlive: true,                    
+  keepAliveInitialDelayMillis: 2000   
 });
 
 pool.on('error', (err, client) => {
@@ -37,10 +40,12 @@ async function queryWithRetry(sql, params = [], retries = 5) {
     } catch (err) {
       console.error(`DB query attempt ${i} failed:`, err.message);
       if (i === retries) throw err;
-      if (err.message.includes('timeout') || err.message.includes('terminated') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH' || err.code === 'ECONNRESET') {
+      
+      // Catch network hiccups AND max client connection limits
+      if (err.message.includes('timeout') || err.message.includes('terminated') || err.message.includes('Max clients reached') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH' || err.code === 'ECONNRESET') {
         // Add jitter to prevent concurrent queries from retrying at the exact same millisecond
         const jitter = Math.floor(Math.random() * 500);
-        console.warn(`Network hiccup. Retrying in ${delay + jitter}ms...`);
+        console.warn(`Network/Pool limit hit. Retrying in ${delay + jitter}ms...`);
         await new Promise(r => setTimeout(r, delay + jitter));
         delay *= 2; 
       } else {
@@ -54,11 +59,7 @@ async function queryWithRetry(sql, params = [], retries = 5) {
 async function cleanupOldData() {
   try {
     console.log('Running automated database cleanup for EVENTS older than 30 days...');
-    
-    // ONLY prune events (the individual clicks). 
-    // DO NOT prune productioncounts. It only grows by ~12 rows/day, and is required for all-time peak math.
     const eventRes = await queryWithRetry(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days' RETURNING id`);
-    
     console.log(`Cleanup complete: Removed ${eventRes.rowCount || 0} old events.`);
   } catch (err) {
     console.error('Scheduled Data Cleanup Error:', err.message);
@@ -80,10 +81,7 @@ const dailyTargets = {
 
 let lastMilestone = 0;
 
-const routeCache = {
-  counts: {},
-  historicalDates: { dates: null, timestamp: 0 }
-};
+const routeCache = { counts: {} };
 const CACHE_TTL_MS = 5000;
 
 function debounce(fn, wait) {
@@ -244,7 +242,6 @@ app.post('/resetAllData', async (req, res) => {
     await queryWithRetry('UPDATE peakproduction SET peak_day = 0, peak_weekly = 0');
     lastMilestone = 0;
     routeCache.counts = {};
-    routeCache.historicalDates = { dates: null, timestamp: 0 };
     triggerBroadcast();
     res.sendStatus(200);
   } catch (err) {
@@ -357,7 +354,6 @@ async function checkAndUpdatePeaks(facility, date) {
   }
 }
 
-// Full recalculation: runs on decrement or manual recovery
 async function recalculateAllPeaks() {
   try {
     const peakQuery = `
@@ -393,7 +389,6 @@ async function recalculateAllPeaks() {
     console.error('Error recalculating peaks:', err.message);
   }
 }
-
 
 // === WEB SOCKET ===
 const PORT = process.env.PORT || 10000;
@@ -434,18 +429,25 @@ async function executeBroadcast() {
   const datesArray = Array.from(activeDates);
 
   try {
-    // OPTIMIZED: Run all 4 read queries concurrently instead of waiting for each to finish
-    const [peakRes, currentRes, hourlyRes, totalsRes] = await Promise.all([
-      queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction'),
-      queryWithRetry('SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', [datesArray]),
-      queryWithRetry(
-        `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
-         FROM productionevents WHERE date = ANY($1::date[])
-         GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`,
-        [datesArray]
-      ),
-      queryWithRetry('SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', [datesArray])
-    ]);
+    // OPTIMIZED: Run sequentially to ensure a broadcast only uses 1 pool connection at a time.
+    const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction');
+    
+    const currentRes = await queryWithRetry(
+      'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', 
+      [datesArray]
+    );
+    
+    const hourlyRes = await queryWithRetry(
+      `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
+       FROM productionevents WHERE date = ANY($1::date[])
+       GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`,
+      [datesArray]
+    );
+    
+    const totalsRes = await queryWithRetry(
+      'SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', 
+      [datesArray]
+    );
 
     const peakProduction = {};
     
