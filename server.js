@@ -180,7 +180,10 @@ setInterval(async () => {
 // ============================================================================
 
 
-// === ENDPOINTS (Now heavily cached for the 20 Pis) ===
+// === ENDPOINTS (Immune to 5-Minute Cache Stampedes) ===
+
+// The Stampede Breaker: Tracks queries that are currently running
+const inFlightRequests = { counts: {}, hourlyRates: {}, historicalData: {} };
 
 app.get('/getCount', async (req, res) => {
   const { facility, line, date = new Date().toISOString().split('T')[0] } = req.query;
@@ -188,22 +191,36 @@ app.get('/getCount', async (req, res) => {
 
   const cacheKey = `${facility}_${line}_${date}`;
   const now = Date.now();
-  // If 20 Pis ask for this within 5 seconds, 19 of them get this instant RAM reply
+  
   if (routeCache.counts[cacheKey] && now - routeCache.counts[cacheKey].timestamp < CACHE_TTL_MS) {
     return res.json({ count: routeCache.counts[cacheKey].value });
   }
 
+  // 🚀 THE STAMPEDE BREAKER: If a Pi is already asking the DB for this, make the other 19 wait for that answer!
+  if (inFlightRequests.counts[cacheKey]) {
+    try {
+      const count = await inFlightRequests.counts[cacheKey];
+      return res.json({ count });
+    } catch (e) { /* ignore and try again */ }
+  }
+
+  // Nobody is asking yet, so we start the query and log it as "In Flight"
+  const dbPromise = queryWithRetry(
+    'SELECT count FROM productioncounts WHERE date = $1 AND facility = $2 AND line = $3',
+    [date, facility, line]
+  ).then(result => result.rows.length ? result.rows[0].count : 0);
+
+  inFlightRequests.counts[cacheKey] = dbPromise;
+
   try {
-    const result = await queryWithRetry(
-      'SELECT count FROM productioncounts WHERE date = $1 AND facility = $2 AND line = $3',
-      [date, facility, line]
-    );
-    const count = result.rows.length ? result.rows[0].count : 0;
-    routeCache.counts[cacheKey] = { value: count, timestamp: now };
+    const count = await dbPromise;
+    routeCache.counts[cacheKey] = { value: count, timestamp: Date.now() };
     res.json({ count });
   } catch (err) {
     console.error('GetCount Error:', err.message);
     res.status(500).json({ error: 'Server error' });
+  } finally {
+    delete inFlightRequests.counts[cacheKey]; // Clear the lock when done
   }
 });
 
@@ -216,16 +233,20 @@ app.get('/getHourlyRates', async (req, res) => {
     return res.json({ hourlyRates: routeCache.hourlyRates[date].data });
   }
 
-  try {
-    const result = await queryWithRetry(
-      `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
-       FROM productionevents
-       WHERE date = $1
-       GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')
-       ORDER BY facility, line, hour`,
-      [date]
-    );
+  if (inFlightRequests.hourlyRates[date]) {
+    try {
+      const hourlyRates = await inFlightRequests.hourlyRates[date];
+      return res.json({ hourlyRates });
+    } catch (e) { }
+  }
 
+  const dbPromise = queryWithRetry(
+    `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
+     FROM productionevents WHERE date = $1
+     GROUP BY facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')
+     ORDER BY facility, line, hour`,
+    [date]
+  ).then(result => {
     const hourlyRates = {};
     facilities.forEach(f => {
       hourlyRates[f] = {};
@@ -238,12 +259,20 @@ app.get('/getHourlyRates', async (req, res) => {
         });
       });
     });
-    
-    routeCache.hourlyRates[date] = { data: hourlyRates, timestamp: now };
+    return hourlyRates;
+  });
+
+  inFlightRequests.hourlyRates[date] = dbPromise;
+
+  try {
+    const hourlyRates = await dbPromise;
+    routeCache.hourlyRates[date] = { data: hourlyRates, timestamp: Date.now() };
     res.json({ hourlyRates });
   } catch (err) {
     console.error('GetHourlyRates Error:', err.message);
-    res.status(500).json({ error: 'Server error: ' + err.message });
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    delete inFlightRequests.hourlyRates[date];
   }
 });
 
@@ -256,22 +285,37 @@ app.get('/getHistoricalData', async (req, res) => {
     return res.json({ data: routeCache.historicalData[date].data });
   }
 
-  try {
-    const resCounts = await queryWithRetry('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]);
-    const data = {};
-    facilities.forEach(f => {
-      data[f] = {};
-      lines.forEach(l => {
-        const row = resCounts.rows.find(r => r.facility === f && r.line === l);
-        data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
+  if (inFlightRequests.historicalData[date]) {
+    try {
+      const data = await inFlightRequests.historicalData[date];
+      return res.json({ data });
+    } catch (e) { }
+  }
+
+  const dbPromise = queryWithRetry('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date])
+    .then(resCounts => {
+      const data = {};
+      facilities.forEach(f => {
+        data[f] = {};
+        lines.forEach(l => {
+          const row = resCounts.rows.find(r => r.facility === f && r.line === l);
+          data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
+        });
       });
+      return data;
     });
-    
-    routeCache.historicalData[date] = { data, timestamp: now };
+
+  inFlightRequests.historicalData[date] = dbPromise;
+
+  try {
+    const data = await dbPromise;
+    routeCache.historicalData[date] = { data, timestamp: Date.now() };
     res.json({ data });
   } catch (err) {
     console.error('GetHistoricalData Error:', err.message);
     res.status(500).json({ error: 'Server error' });
+  } finally {
+    delete inFlightRequests.historicalData[date];
   }
 });
 
