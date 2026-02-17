@@ -14,11 +14,10 @@ if (!connectionString) {
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  // STRICT LIMIT: Prevents the "MaxClientsInSessionMode" error from Supabase
-  max: 10,                            
-  idleTimeoutMillis: 30000,           
-  connectionTimeoutMillis: 20000, // Wait 20s in Node's internal queue before throwing an error
-  statement_timeout: 15000,           
+  max: 10,                            // Strict limit to keep Supabase happy
+  idleTimeoutMillis: 120000,          // Wait 2 full minutes before dropping idle connections
+  connectionTimeoutMillis: 0,         // 0 = DISABLED! This forces Node to queue clicks patiently instead of throwing timeouts.
+  // Note: statement_timeout is intentionally removed so we don't aggressively kill queries under load
   keepAlive: true,                    
   keepAliveInitialDelayMillis: 2000   
 });
