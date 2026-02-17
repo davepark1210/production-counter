@@ -10,20 +10,24 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === VERY CONSERVATIVE POOL FOR FREE TIER ===
+// === OPTIMIZED CONNECTION POOL ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 3,                    // Absolutely critical for free tier
-  idleTimeoutMillis: 10000,  // Close idle connections after 10s
-  connectionTimeoutMillis: 30000,
-  statement_timeout: 30000,
-  keepAlive: true
+  max: 5,                             // Safe to bump up now that deadlocks are fixed
+  idleTimeoutMillis: 30000,           // Drop idle clients after 30s to prevent firewall drops
+  connectionTimeoutMillis: 10000,     // Fail fast if Supabase is unreachable
+  statement_timeout: 15000,           // Prevent hanging queries
+  keepAlive: true,                    // Crucial: Enables TCP KeepAlive
+  keepAliveInitialDelayMillis: 10000  // Crucial: Ping DB every 10s to keep tunnel open
 });
 
-pool.on('error', (err) => {
-  console.error('Unexpected pool error:', err.message);
+// Update error handler to prevent crashing on background idle errors
+pool.on('error', (err, client) => {
+  console.error('Unexpected pool error on idle client:', err.message);
+  // The pg pool will automatically remove the faulty client and create a new one.
 });
+
 pool.on('connect', () => console.log('Pool acquired a new DB connection'));
 pool.on('remove', () => console.log('Pool released a DB connection'));
 
@@ -319,9 +323,7 @@ async function executeBroadcast() {
   if (activeDates.size === 0) return;
   const datesArray = Array.from(activeDates);
 
-  let client;
   try {
-    client = await pool.connect();
     const peakDayRes = await queryWithRetry(
       `SELECT facility, date, SUM(count) as daily_total
        FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
@@ -434,7 +436,5 @@ async function executeBroadcast() {
     }
   } catch (err) {
     console.error('Broadcast Update Error:', err.message);
-  } finally {
-    if (client) client.release();
   }
 }
