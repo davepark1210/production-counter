@@ -10,13 +10,15 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === ULTRA-STABLE CONNECTION POOL (PGBOUNCER OPTIMIZED) ===
+// === ROCK-SOLID CONNECTION POOL ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 20,                            // Increased to 20! PgBouncer can easily handle this.
-  idleTimeoutMillis: 10000,           // Lowered to 10s. Let Node cycle connections fast; PgBouncer handles the heavy lifting.
-  connectionTimeoutMillis: 0,         // Still 0 (Queue indefinitely instead of crashing)
+  max: 15,                            // 15 is the sweet spot for PgBouncer on Supabase Free Tier
+  idleTimeoutMillis: 30000,           // Drop idle connections after 30 seconds
+  connectionTimeoutMillis: 10000,     // 10s: If the pool is full, fail fast and trigger a retry!
+  statement_timeout: 10000,           // 10s: Kills "zombie" locked queries in the database
+  query_timeout: 10000,               // 10s: Tells Node.js to stop waiting for dead network packets
   keepAlive: true,                    
   keepAliveInitialDelayMillis: 2000   
 });
@@ -29,7 +31,8 @@ pool.on('connect', () => console.log('Pool acquired a new DB connection'));
 pool.on('remove', () => console.log('Pool released a DB connection'));
 
 // === RETRY WRAPPER WITH JITTER ===
-async function queryWithRetry(sql, params = [], retries = 5) {
+// Lowered to 3 retries so we don't backlog the server during heavy traffic
+async function queryWithRetry(sql, params = [], retries = 3) {
   let delay = 1000;
   for (let i = 1; i <= retries; i++) {
     try {
@@ -39,9 +42,8 @@ async function queryWithRetry(sql, params = [], retries = 5) {
       console.error(`DB query attempt ${i} failed:`, err.message);
       if (i === retries) throw err;
       
-      // Catch network hiccups AND max client connection limits
+      // Catch network hiccups, zombie sockets, and max client limits
       if (err.message.includes('timeout') || err.message.includes('terminated') || err.message.includes('Max clients reached') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH' || err.code === 'ECONNRESET') {
-        // Add jitter to prevent concurrent queries from retrying at the exact same millisecond
         const jitter = Math.floor(Math.random() * 500);
         console.warn(`Network/Pool limit hit. Retrying in ${delay + jitter}ms...`);
         await new Promise(r => setTimeout(r, delay + jitter));
