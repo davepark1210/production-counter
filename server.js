@@ -14,12 +14,10 @@ if (!connectionString) {
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 15,                            // Increased slightly for transaction pooler
-  idleTimeoutMillis: 5000,            
-  connectionTimeoutMillis: 30000,     // 30s: Crucial for Supabase cold-starts
-  statement_timeout: 15000,           
-  keepAlive: true,                    
-  keepAliveInitialDelayMillis: 2000   
+  max: 30,                            // Bumping to 30 to comfortably handle concurrent broadcast queries
+  idleTimeoutMillis: 120000,          // Wait 2 full minutes before dropping idle connections
+  connectionTimeoutMillis: 0,         // 0 = DISABLED. Stops the "timeout exceeded" error entirely. It will wait patiently in the queue.
+  // Note: statement_timeout has been intentionally removed so we don't aggressively kill queries
 });
 
 pool.on('error', (err, client) => {
