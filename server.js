@@ -1,6 +1,6 @@
 const express = require('express');
 const WebSocket = require('ws');
-const { Pool } = require('pg');
+const pgp = require('pg-promise')(); // For retries and transaction support
 const app = express();
 
 // --- 1. STRICT ENVIRONMENT VARIABLE CHECK ---
@@ -12,33 +12,22 @@ if (!connectionString) {
   process.exit(1); // Fail fast to prevent silent connection timeouts
 }
 
-// MAXIMUM STABILITY CONFIGURATION
-const pool = new Pool({
-  connectionString: connectionString,
-  ssl: { rejectUnauthorized: false }, 
-  max: 10, // Reduced to 10 to avoid exhausting Supabase free tier limits
-  idleTimeoutMillis: 0, // Disable idle timeout to reuse connections longer
-  connectionTimeoutMillis: 60000, // Increased to 60 seconds to handle latency/cold starts
-  statement_timeout: 60000, // Increased to 60 seconds for query execution
-  keepAlive: true
-});
-
-pool.on('error', (err, client) => {
-  console.error('Unexpected error on idle client:', err.message);
-});
-
-// Additional pool event logging for debugging
-pool.on('connect', (client) => {
-  console.log('New client connected to pool');
-});
-
-pool.on('acquire', (client) => {
-  console.log('Client acquired from pool');
-});
-
-pool.on('remove', (client) => {
-  console.log('Client removed from pool');
-});
+// pg-promise config with retry logic
+const db = pgp(connectionString);
+const queryWithRetry = async (queryText, params, retries = 3, backoff = 1000) => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await db.any(queryText, params);
+    } catch (err) {
+      if (err.message.includes('timeout') && attempt < retries) {
+        console.warn(`Query retry ${attempt}/${retries}: ${err.message}`);
+        await new Promise(res => setTimeout(res, backoff * attempt));
+      } else {
+        throw err;
+      }
+    }
+  }
+};
 
 const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
 const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
@@ -110,11 +99,11 @@ app.get('/getCount', async (req, res) => {
   }
 
   try {
-    const result = await pool.query(
+    const result = await queryWithRetry(
       'SELECT count FROM productioncounts WHERE date = $1 AND facility = $2 AND line = $3',
       [date, facility, line]
     );
-    const count = result.rows.length > 0 ? result.rows[0].count : 0;
+    const count = result.length > 0 ? result[0].count : 0;
     
     routeCache.counts[cacheKey] = { value: count, timestamp: now };
     res.json({ count });
@@ -129,7 +118,7 @@ app.get('/getHourlyRates', async (req, res) => {
   if (!date) return res.status(400).json({ error: 'Date is required' });
 
   try {
-    const result = await pool.query(
+    const result = await queryWithRetry(
       `SELECT facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as rate
        FROM productionevents
        WHERE date = $1
@@ -143,7 +132,7 @@ app.get('/getHourlyRates', async (req, res) => {
       hourlyRates[f] = {};
       lines.forEach(l => {
         hourlyRates[f][l] = Array(24).fill(0);
-        const facilityRates = result.rows.filter(row => row.facility === f && row.line === l);
+        const facilityRates = result.filter(row => row.facility === f && row.line === l);
         facilityRates.forEach(row => {
           const hour = parseInt(row.hour);
           hourlyRates[f][l][hour] = parseInt(row.rate);
@@ -164,8 +153,8 @@ app.get('/getHistoricalDates', async (req, res) => {
   }
 
   try {
-    const result = await pool.query('SELECT DISTINCT date FROM productioncounts ORDER BY date DESC');
-    const dates = result.rows.map(row => {
+    const result = await queryWithRetry('SELECT DISTINCT date FROM productioncounts ORDER BY date DESC');
+    const dates = result.map(row => {
        const d = new Date(row.date);
        return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     });
@@ -183,12 +172,12 @@ app.get('/getHistoricalData', async (req, res) => {
   if (!date) return res.status(400).json({ error: 'Date parameter is required' });
 
   try {
-    const resCounts = await pool.query('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]);
+    const resCounts = await queryWithRetry('SELECT facility, line, count FROM productioncounts WHERE date = $1', [date]);
     const data = {};
     facilities.forEach(f => {
       data[f] = {};
       lines.forEach(l => {
-        const row = resCounts.rows.find(r => r.facility === f && r.line === l);
+        const row = resCounts.find(r => r.facility === f && r.line === l);
         data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
       });
     });
@@ -239,7 +228,9 @@ app.post('/decrement', async (req, res) => {
 
 app.post('/resetAllData', async (req, res) => {
   try {
-    await pool.query('TRUNCATE TABLE productioncounts, productionevents');
+    await db.tx(async t => {
+      await t.none('TRUNCATE TABLE productioncounts, productionevents');
+    });
     lastMilestone = 0;
     routeCache.counts = {};
     routeCache.historicalDates = { dates: null, timestamp: 0 };
@@ -252,37 +243,28 @@ app.post('/resetAllData', async (req, res) => {
 });
 
 async function updateCount(facility, line, delta, date) {
-  let client;
   try {
-    client = await pool.connect();
-    await client.query('BEGIN');
-    
-    await client.query(
-      `INSERT INTO productionevents (date, facility, line, delta, timestamp)
-       VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
-      [date, facility, line, delta]
-    );
+    await db.tx(async t => {
+      await t.none(
+        `INSERT INTO productionevents (date, facility, line, delta, timestamp)
+         VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
+        [date, facility, line, delta]
+      );
 
-    const query = `
-      INSERT INTO productioncounts (date, facility, line, count, timestamp)
-      VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')
-      ON CONFLICT (date, facility, line) 
-      DO UPDATE SET 
-        count = productioncounts.count + $4,
-        timestamp = NOW() AT TIME ZONE 'UTC'
-      RETURNING count;
-    `;
-    await client.query(query, [date, facility, line, delta]);
-    
-    await client.query('COMMIT');
+      const query = `
+        INSERT INTO productioncounts (date, facility, line, count, timestamp)
+        VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')
+        ON CONFLICT (date, facility, line) 
+        DO UPDATE SET 
+          count = productioncounts.count + $4,
+          timestamp = NOW() AT TIME ZONE 'UTC'
+        RETURNING count;
+      `;
+      await t.any(query, [date, facility, line, delta]);
+    });
   } catch (err) {
-    if (client) {
-      try { await client.query('ROLLBACK'); } catch (rollbackErr) { console.error('Rollback Error:', rollbackErr.message); }
-    }
     console.error('UpdateCount Error:', err.message);
     throw err;
-  } finally {
-    if (client) client.release();
   }
 }
 
@@ -330,130 +312,125 @@ async function executeBroadcast() {
   if (activeDates.size === 0) return;
   const datesArray = Array.from(activeDates);
   
-  let client;
   try {
-    client = await pool.connect();
-
-    // Fetch Global / Peak Stats (Independent of active dates)
-    const peakDayRes = await client.query(
-      `SELECT facility, date, SUM(count) as daily_total
-       FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
-    );
-    
-    const allDailyRes = await client.query(
-      `SELECT facility, date, SUM(count) as daily_total
-       FROM productioncounts GROUP BY facility, date ORDER BY facility, date`
-    );
-
-    const peakProduction = {};
-    facilities.forEach(f => {
-      const facilityRows = peakDayRes.rows.filter(row => row.facility === f);
-      const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
-
-      const facilityDailyTotals = allDailyRes.rows
-        .filter(row => row.facility === f)
-        .map(row => ({ date: parseDbDate(row.date), daily_total: parseInt(row.daily_total) }))
-        .sort((a, b) => a.date.localeCompare(b.date));
-
-      let maxWeeklySum = 0;
-      if (facilityDailyTotals.length > 0) {
-        const availableDays = Math.min(facilityDailyTotals.length, 7);
-        for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
-          const weekSum = facilityDailyTotals.slice(i, i + availableDays).reduce((sum, day) => sum + day.daily_total, 0);
-          maxWeeklySum = Math.max(maxWeeklySum, weekSum);
-        }
-      }
-      peakProduction[f] = { peakDay, peakWeekly: maxWeeklySum };
-    });
-
-    // Batched Queries: Fetch everything for ALL active dates in just 3 queries
-    const currentRes = await client.query(
-      'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])',
-      [datesArray]
-    );
-    
-    const hourlyRes = await client.query(
-      `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
-       FROM productionevents WHERE date = ANY($1::date[])
-       GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`, 
-      [datesArray]
-    );
-    
-    const totalsRes = await client.query(
-      'SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', 
-      [datesArray]
-    );
-
-    // Filter and structure data for each specific active date
-    for (const date of datesArray) {
-      const data = {};
-      facilities.forEach(f => {
-        data[f] = {};
-        lines.forEach(l => {
-          const row = currentRes.rows.find(r => r.facility === f && r.line === l && parseDbDate(r.date) === date);
-          data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
-        });
-      });
-
-      const hourlyRates = {};
-      facilities.forEach(f => {
-        hourlyRates[f] = {};
-        lines.forEach(l => {
-          hourlyRates[f][l] = Array(24).fill(0);
-        });
-      });
+    await db.tx(async t => {
+      // Fetch Global / Peak Stats (Independent of active dates)
+      const peakDayRes = await queryWithRetry(
+        `SELECT facility, date, SUM(count) as daily_total
+         FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
+      );
       
-      hourlyRes.rows.forEach(row => {
-        if (parseDbDate(row.date) === date) {
-          const { facility, line, hourly_total, hour } = row;
-          if (hourlyRates[facility] && hourlyRates[facility][line]) {
-            hourlyRates[facility][line][parseInt(hour)] = parseInt(hourly_total);
+      const allDailyRes = await queryWithRetry(
+        `SELECT facility, date, SUM(count) as daily_total
+         FROM productioncounts GROUP BY facility, date ORDER BY facility, date`
+      );
+
+      const peakProduction = {};
+      facilities.forEach(f => {
+        const facilityRows = peakDayRes.filter(row => row.facility === f);
+        const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
+
+        const facilityDailyTotals = allDailyRes
+          .filter(row => row.facility === f)
+          .map(row => ({ date: parseDbDate(row.date), daily_total: parseInt(row.daily_total) }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        let maxWeeklySum = 0;
+        if (facilityDailyTotals.length > 0) {
+          const availableDays = Math.min(facilityDailyTotals.length, 7);
+          for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
+            const weekSum = facilityDailyTotals.slice(i, i + availableDays).reduce((sum, day) => sum + day.daily_total, 0);
+            maxWeeklySum = Math.max(maxWeeklySum, weekSum);
           }
         }
+        peakProduction[f] = { peakDay, peakWeekly: maxWeeklySum };
       });
 
-      const totalRow = totalsRes.rows.find(r => parseDbDate(r.date) === date);
-      const totalProduction = totalRow ? parseInt(totalRow.total) : 0;
-
-      const targetPercentages = {};
-      for (const facility of facilities) {
-        const facilityTotal = Object.values(data[facility]).reduce((sum, { count }) => sum + count, 0);
-        const target = dailyTargets[facility];
-        const percentage = target > 0 ? Math.round((facilityTotal / target) * 100) : 0;
-        targetPercentages[facility] = percentage;
-      }
-
-      const todayStr = new Date().toISOString().split('T')[0];
-      let notification = null;
-      if (date === todayStr) {
-        const milestone = Math.floor(totalProduction / 100) * 100;
-        if (milestone > lastMilestone && totalProduction >= milestone) {
-          lastMilestone = milestone;
-          notification = `Milestone Reached: Total production hit ${milestone} units!`;
-        }
-      }
-
-      const messageStr = JSON.stringify({
-        date: date,
-        data,
-        hourlyRates,
-        totalProduction,
-        peakProduction,
-        targetPercentages,
-        notification
-      });
+      // Batched Queries: Fetch everything for ALL active dates in just 3 queries
+      const currentRes = await queryWithRetry(
+        'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])',
+        [datesArray]
+      );
       
-      wss.clients.forEach((c) => {
-        if (c.readyState === WebSocket.OPEN && c.currentDate === date) {
-          c.send(messageStr);
+      const hourlyRes = await queryWithRetry(
+        `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total
+         FROM productionevents WHERE date = ANY($1::date[])
+         GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`, 
+        [datesArray]
+      );
+      
+      const totalsRes = await queryWithRetry(
+        'SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', 
+        [datesArray]
+      );
+
+      // Filter and structure data for each specific active date
+      for (const date of datesArray) {
+        const data = {};
+        facilities.forEach(f => {
+          data[f] = {};
+          lines.forEach(l => {
+            const row = currentRes.find(r => r.facility === f && r.line === l && parseDbDate(r.date) === date);
+            data[f][l] = { count: row ? row.count : 0, timestamp: new Date().toISOString() };
+          });
+        });
+
+        const hourlyRates = {};
+        facilities.forEach(f => {
+          hourlyRates[f] = {};
+          lines.forEach(l => {
+            hourlyRates[f][l] = Array(24).fill(0);
+          });
+        });
+        
+        hourlyRes.forEach(row => {
+          if (parseDbDate(row.date) === date) {
+            const { facility, line, hourly_total, hour } = row;
+            if (hourlyRates[facility] && hourlyRates[facility][line]) {
+              hourlyRates[facility][line][parseInt(hour)] = parseInt(hourly_total);
+            }
+          }
+        });
+
+        const totalRow = totalsRes.find(r => parseDbDate(r.date) === date);
+        const totalProduction = totalRow ? parseInt(totalRow.total) : 0;
+
+        const targetPercentages = {};
+        for (const facility of facilities) {
+          const facilityTotal = Object.values(data[facility]).reduce((sum, { count }) => sum + count, 0);
+          const target = dailyTargets[facility];
+          const percentage = target > 0 ? Math.round((facilityTotal / target) * 100) : 0;
+          targetPercentages[facility] = percentage;
         }
-      });
-    }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        let notification = null;
+        if (date === todayStr) {
+          const milestone = Math.floor(totalProduction / 100) * 100;
+          if (milestone > lastMilestone && totalProduction >= milestone) {
+            lastMilestone = milestone;
+            notification = `Milestone Reached: Total production hit ${milestone} units!`;
+          }
+        }
+
+        const messageStr = JSON.stringify({
+          date: date,
+          data,
+          hourlyRates,
+          totalProduction,
+          peakProduction,
+          targetPercentages,
+          notification
+        });
+        
+        wss.clients.forEach((c) => {
+          if (c.readyState === WebSocket.OPEN && c.currentDate === date) {
+            c.send(messageStr);
+          }
+        });
+      }
+    });
   } catch (err) {
     console.error('Broadcast Update Error:', err.message);
-  } finally {
-    if (client) {
-      client.release();
-    }
-  }
+  } 
 }
