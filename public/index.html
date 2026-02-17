@@ -2702,21 +2702,17 @@
             let heartbeatInterval;
         
                 ws.onopen = () => {
-                    console.log('WebSocket connection established at', new Date().toISOString());
-                    document.getElementById('loadingSpinner').style.display = 'none';
-                    
-                    // NOTE: All data fetching (requestCurrentData, loadHistoricalDates) has been 
-                    // removed from here. It is now safely handled by initializeRankings() 
-                    // to prevent double-firing and maxing out the database pool!
-                
-                    if (heartbeatInterval) clearInterval(heartbeatInterval);
-                    heartbeatInterval = setInterval(() => {
-                        if (ws.readyState === WebSocket.OPEN) {
-                             ws.send(JSON.stringify({ action: 'ping' })); 
-                        }
-                    }, 45000);
-                };
-            
+                            console.log('WebSocket connection established at', new Date().toISOString());
+                            document.getElementById('loadingSpinner').style.display = 'none';
+                            
+                            if (heartbeatInterval) clearInterval(heartbeatInterval);
+                            heartbeatInterval = setInterval(() => {
+                                if (ws.readyState === WebSocket.OPEN) {
+                                     ws.send(JSON.stringify({ action: 'ping' })); 
+                                }
+                            }, 30000); // <-- CHANGED from 45000 to 30000
+                        };
+                            
                 ws.onmessage = (event) => {
                     // Ignore pong messages if you implement ping
                     try {
