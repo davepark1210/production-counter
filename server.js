@@ -78,6 +78,7 @@ const dailyTargets = {
 
 let lastMilestone = 0;
 const routeCache = { counts: {} };
+const CACHE_TTL_MS = 5000;
 
 function debounce(fn, wait) {
   let t;
