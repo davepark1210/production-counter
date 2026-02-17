@@ -10,39 +10,48 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === VERY CONSERVATIVE POOL FOR FREE TIER ===
-const pool = new Pool({
-  connectionString,
-  ssl: { rejectUnauthorized: false },
-  max: 3,                    // Absolutely critical for free tier
-  idleTimeoutMillis: 10000,  // Close idle connections after 10s
-  connectionTimeoutMillis: 30000,
-  statement_timeout: 30000,
-  keepAlive: true
-});
+// Function to create/recreate pool
+let pool;
+function createPool() {
+  pool = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+    max: 2,                    // Ultra-conservative for free tier
+    idleTimeoutMillis: 5000,   // Close idle faster (5s)
+    connectionTimeoutMillis: 60000, // 60s connect timeout
+    statement_timeout: 60000,  // 60s query timeout
+    keepAlive: true
+  });
 
-pool.on('error', (err) => {
-  console.error('Unexpected pool error:', err.message);
-});
-pool.on('connect', () => console.log('Pool acquired a new DB connection'));
-pool.on('remove', () => console.log('Pool released a DB connection'));
+  pool.on('error', (err) => {
+    console.error('Pool error:', err.message);
+    // Auto-recreate pool on fatal errors
+    if (err.message.includes('terminated')) {
+      console.warn('Recreating pool due to termination');
+      createPool();
+    }
+  });
+  pool.on('connect', () => console.log('New DB connection acquired'));
+  pool.on('remove', () => console.log('DB connection released'));
+}
+createPool(); // Initial creation
 
-// === RETRY WRAPPER (handles ETIMEDOUT / AggregateError) ===
-async function queryWithRetry(sql, params = [], retries = 5) {
+// === RETRY WRAPPER ===
+async function queryWithRetry(sql, params = [], retries = 7) {
   let delay = 1000;
   for (let i = 1; i <= retries; i++) {
     try {
       const res = await pool.query(sql, params);
       return res;
     } catch (err) {
-      console.error(`DB query attempt ${i} failed:`, err.message);
+      console.error(`Query attempt ${i} failed:`, err.message);
       if (i === retries) throw err;
       if (err.message.includes('timeout') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH') {
         console.warn(`Retrying in ${delay}ms...`);
         await new Promise(r => setTimeout(r, delay));
-        delay *= 2; // 1s → 2s → 4s → 8s → 16s
+        delay *= 2; // Exponential up to ~64s total possible wait
       } else {
-        throw err; // non-retryable error
+        throw err;
       }
     }
   }
@@ -97,7 +106,6 @@ app.use(express.static('public'));
 
 app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime() }));
 
-// === ENDPOINTS (all use retry wrapper) ===
 app.get('/getCount', async (req, res) => {
   const { facility, line, date = new Date().toISOString().split('T')[0] } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid facility/line' });
