@@ -10,17 +10,16 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === 🚀 THE ANTI-ZOMBIE CONNECTION POOL ===
+// === 🚀 THE PATIENT, ANTI-ZOMBIE CONNECTION POOL ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
   max: 5,                             
-  idleTimeoutMillis: 1000,            // Throw away idle connections immediately
-  connectionTimeoutMillis: 5000,      // Fail fast if the pool is stuck
-  keepAlive: true,                    // 🚀 NEW: OS-level TCP keep-alive to detect silent drops
-  keepAliveInitialDelayMillis: 2000,  
-  query_timeout: 5000,                // 🚀 NEW: Kills any query stuck in a zombie socket after 5s
-  statement_timeout: 5000             // 🚀 NEW: Kills any hanging Postgres operations
+  idleTimeoutMillis: 30000,           // Let connections rest for 30 seconds
+  connectionTimeoutMillis: 60000,     // 🚀 GIVES SUPABASE 60 SECONDS TO RESPOND (No more assassinations!)
+  keepAlive: true,                    // OS-level TCP keep-alive to detect silent drops
+  keepAliveInitialDelayMillis: 2000
+  // REMOVED: query_timeout and statement_timeout so the background workers can take their time!
 });
 
 pool.on('error', (err) => console.warn('Idle DB client error (safely evicted):', err.message));
@@ -42,9 +41,10 @@ async function queryWithRetry(sql, params = [], retries = 3) {
   }
 }
 
-// === 🚀 AUTOMATED DATA CLEANUP (Events AND Counts) ===
+// === AUTOMATED DATA CLEANUP (Events AND Counts) ===
 async function cleanupOldData() {
   try {
+    // Correctly purges both tables beyond 30 days
     await queryWithRetry(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days'`);
     await queryWithRetry(`DELETE FROM productioncounts WHERE date < NOW() - INTERVAL '30 days'`);
     console.log(`30-day database cleanup complete for events and counts.`);
@@ -143,7 +143,7 @@ app.get('/getHistoricalData', (req, res) => {
 
 
 // ============================================================================
-// === INSTANT WRITE QUEUE (Updates UI in 0 milliseconds) ===
+// === INSTANT WRITE QUEUE ===
 // ============================================================================
 const pendingWrites = {};
 
@@ -219,17 +219,21 @@ async function syncDatabaseToRAM() {
     datesArray.forEach(initRamForDate);
 
     const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction', [], 2);
-    peakRes.rows.forEach(r => {
-      SYSTEM_RAM.peaks[r.facility] = { peakDay: parseInt(r.peak_day) || 0, peakWeekly: parseInt(r.peak_weekly) || 0 };
-    });
+    if (peakRes && peakRes.rows) {
+      peakRes.rows.forEach(r => {
+        SYSTEM_RAM.peaks[r.facility] = { peakDay: parseInt(r.peak_day) || 0, peakWeekly: parseInt(r.peak_weekly) || 0 };
+      });
+    }
 
     const countRes = await queryWithRetry('SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', [datesArray], 2);
-    countRes.rows.forEach(r => {
-      const d = parseDbDate(r.date);
-      if (SYSTEM_RAM.historicalData[d] && SYSTEM_RAM.historicalData[d][r.facility]) {
-        SYSTEM_RAM.historicalData[d][r.facility][r.line].count = parseInt(r.count);
-      }
-    });
+    if (countRes && countRes.rows) {
+      countRes.rows.forEach(r => {
+        const d = parseDbDate(r.date);
+        if (SYSTEM_RAM.historicalData[d] && SYSTEM_RAM.historicalData[d][r.facility]) {
+          SYSTEM_RAM.historicalData[d][r.facility][r.line].count = parseInt(r.count);
+        }
+      });
+    }
 
     const hourlyRes = await queryWithRetry(
       `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total 
@@ -242,17 +246,21 @@ async function syncDatabaseToRAM() {
       facilities.forEach(f => lines.forEach(l => SYSTEM_RAM.hourlyRates[d][f][l] = Array(24).fill(0)));
     });
 
-    hourlyRes.rows.forEach(r => {
-      const d = parseDbDate(r.date);
-      if (SYSTEM_RAM.hourlyRates[d] && SYSTEM_RAM.hourlyRates[d][r.facility]) {
-        SYSTEM_RAM.hourlyRates[d][r.facility][r.line][parseInt(r.hour)] = parseInt(r.hourly_total);
-      }
-    });
+    if (hourlyRes && hourlyRes.rows) {
+      hourlyRes.rows.forEach(r => {
+        const d = parseDbDate(r.date);
+        if (SYSTEM_RAM.hourlyRates[d] && SYSTEM_RAM.hourlyRates[d][r.facility]) {
+          SYSTEM_RAM.hourlyRates[d][r.facility][r.line][parseInt(r.hour)] = parseInt(r.hourly_total);
+        }
+      });
+    }
 
     const totalsRes = await queryWithRetry('SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', [datesArray], 2);
-    totalsRes.rows.forEach(r => {
-      SYSTEM_RAM.totals[parseDbDate(r.date)] = parseInt(r.total);
-    });
+    if (totalsRes && totalsRes.rows) {
+      totalsRes.rows.forEach(r => {
+        SYSTEM_RAM.totals[parseDbDate(r.date)] = parseInt(r.total);
+      });
+    }
 
     executeBroadcast();
     
@@ -289,7 +297,6 @@ async function updateCount(facility, line, delta, date) {
     }
     throw err;
   } finally {
-    // 🚀 NEW: By passing `hasError`, Node physically destroys corrupted connections instead of returning them to the pool
     if (client) client.release(hasError);
   }
 }
@@ -313,7 +320,7 @@ async function checkAndUpdatePeaks(facility, date) {
     `;
     
     const result = await queryWithRetry(singleQuery, [facility, date]);
-    if (!result.rows.length) return;
+    if (!result || !result.rows.length) return;
 
     const row = result.rows[0];
     const currentPeakDay = parseInt(row.peak_day) || 0;
