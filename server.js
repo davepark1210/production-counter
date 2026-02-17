@@ -10,28 +10,27 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === ROCK-SOLID CONNECTION POOL (GOLDILOCKS CONFIG) ===
+// === ROCK-SOLID CONNECTION POOL ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 40,                            // 🚀 BUMPED TO 40: Port 6543 can easily handle this. Processes clicks 4x faster!
-  idleTimeoutMillis: 30000,           // Drop idle connections after 30 seconds
-  connectionTimeoutMillis: 60000,     // 🚀 60s: Gives Node's internal queue a full minute of patience for rapid clicks
-  statement_timeout: 10000,           // 10s: Safety valve #1 (Prevents 5-minute freezes)
-  query_timeout: 10000,               // 10s: Safety valve #2 (Prevents 5-minute freezes)
+  max: 20,                            
+  idleTimeoutMillis: 30000,           
+  connectionTimeoutMillis: 60000,     
+  statement_timeout: 10000,           
+  query_timeout: 10000,               
   keepAlive: true,                    
   keepAliveInitialDelayMillis: 2000   
 });
 
 pool.on('error', (err, client) => {
-  console.warn('Idle DB client error (expected on free tiers):', err.message);
+  console.warn('Idle DB client error:', err.message);
 });
 
 pool.on('connect', () => console.log('Pool acquired a new DB connection'));
 pool.on('remove', () => console.log('Pool released a DB connection'));
 
 // === RETRY WRAPPER WITH JITTER ===
-// Lowered to 3 retries so we don't backlog the server during heavy traffic
 async function queryWithRetry(sql, params = [], retries = 3) {
   let delay = 1000;
   for (let i = 1; i <= retries; i++) {
@@ -42,7 +41,6 @@ async function queryWithRetry(sql, params = [], retries = 3) {
       console.error(`DB query attempt ${i} failed:`, err.message);
       if (i === retries) throw err;
       
-      // Catch network hiccups, zombie sockets, and max client limits
       if (err.message.includes('timeout') || err.message.includes('terminated') || err.message.includes('Max clients reached') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH' || err.code === 'ECONNRESET') {
         const jitter = Math.floor(Math.random() * 500);
         console.warn(`Network/Pool limit hit. Retrying in ${delay + jitter}ms...`);
@@ -55,7 +53,7 @@ async function queryWithRetry(sql, params = [], retries = 3) {
   }
 }
 
-// === AUTO DATA CLEANUP (30-DAY RETENTION FOR EVENTS ONLY) ===
+// === AUTO DATA CLEANUP ===
 async function cleanupOldData() {
   try {
     console.log('Running automated database cleanup for EVENTS older than 30 days...');
@@ -66,7 +64,6 @@ async function cleanupOldData() {
   }
 }
 
-// Run cleanup once shortly after server startup, then every 12 hours
 setTimeout(cleanupOldData, 60000); 
 setInterval(cleanupOldData, 12 * 60 * 60 * 1000);
 
@@ -80,9 +77,7 @@ const dailyTargets = {
 };
 
 let lastMilestone = 0;
-
 const routeCache = { counts: {} };
-const CACHE_TTL_MS = 5000;
 
 function debounce(fn, wait) {
   let t;
@@ -115,7 +110,75 @@ const debouncedBroadcast = debounce(triggerBroadcast, 400);
 app.use(express.static('public'));
 app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime() }));
 
-// === ENDPOINTS ===
+
+// ============================================================================
+// === 🚀 THE DATABASE SAVIOR: BATCHED WRITE QUEUE 🚀 ===
+// ============================================================================
+// This object holds all incoming clicks in memory so we don't spam the database
+const pendingWrites = {};
+
+app.post('/increment', async (req, res) => {
+  const { facility, line, date } = req.query;
+  if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
+  if (!date) return res.status(400).json({ error: 'Date required' });
+
+  const key = `${facility}|${line}|${date}`;
+  pendingWrites[key] = (pendingWrites[key] || 0) + 1; // Store click in RAM
+  
+  res.sendStatus(200); // Instantly reply success without touching the DB!
+});
+
+app.post('/decrement', async (req, res) => {
+  const { facility, line, date } = req.query;
+  if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
+  if (!date) return res.status(400).json({ error: 'Date required' });
+
+  const key = `${facility}|${line}|${date}`;
+  pendingWrites[key] = (pendingWrites[key] || 0) - 1; // Store click in RAM
+  
+  res.sendStatus(200); 
+});
+
+// === BACKGROUND WORKER (Runs every 3 seconds) ===
+setInterval(async () => {
+  const keys = Object.keys(pendingWrites);
+  if (keys.length === 0) return; // Nothing to do
+
+  // Copy the queue and clear it immediately to catch new incoming clicks
+  const snapshot = { ...pendingWrites };
+  for (const k of keys) delete pendingWrites[k]; 
+
+  let changesMade = false;
+
+  for (const key in snapshot) {
+    const delta = snapshot[key];
+    if (delta === 0) continue; // Net zero (someone clicked + then - before flush)
+
+    const [facility, line, date] = key.split('|');
+
+    try {
+      // Send the bulk tally to the database
+      await updateCount(facility, line, delta, date);
+      await checkAndUpdatePeaks(facility, date);
+      
+      const cacheKey = `${facility}_${line}_${date}`;
+      if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
+      
+      changesMade = true;
+    } catch (err) {
+      console.error('Batch write failed, returning clicks to queue:', err.message);
+      // If DB hiccuped, put the clicks back in the RAM queue so they are never lost
+      pendingWrites[key] = (pendingWrites[key] || 0) + delta;
+    }
+  }
+
+  // Only broadcast to screens IF we actually sent data to the database
+  if (changesMade) {
+    debouncedBroadcast(); 
+  }
+}, 3000); 
+// ============================================================================
+
 app.get('/getCount', async (req, res) => {
   const { facility, line, date = new Date().toISOString().split('T')[0] } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid facility/line' });
@@ -194,48 +257,6 @@ app.get('/getHistoricalData', async (req, res) => {
   }
 });
 
-app.post('/increment', async (req, res) => {
-  const { facility, line, date } = req.query;
-  if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
-  if (!date) return res.status(400).json({ error: 'Date required' });
-
-  try {
-    await updateCount(facility, line, 1, date);
-    
-    const cacheKey = `${facility}_${line}_${date}`;
-    if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
-    
-    await checkAndUpdatePeaks(facility, date);
-    
-    debouncedBroadcast();
-    res.sendStatus(200);
-  } catch (err) {
-    console.error('Increment Error:', err.message);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.post('/decrement', async (req, res) => {
-  const { facility, line, date } = req.query;
-  if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
-  if (!date) return res.status(400).json({ error: 'Date required' });
-
-  try {
-    await updateCount(facility, line, -1, date);
-    
-    const cacheKey = `${facility}_${line}_${date}`;
-    if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
-    
-    await recalculateAllPeaks();
-    
-    debouncedBroadcast();
-    res.sendStatus(200);
-  } catch (err) {
-    console.error('Decrement Error:', err.message);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 app.post('/resetAllData', async (req, res) => {
   try {
     await queryWithRetry('TRUNCATE TABLE productioncounts, productionevents');
@@ -250,7 +271,6 @@ app.post('/resetAllData', async (req, res) => {
   }
 });
 
-// === RECOVERY ENDPOINT ===
 app.get('/forceRecalculatePeaks', async (req, res) => {
   try {
     await recalculateAllPeaks();
@@ -296,13 +316,11 @@ async function updateCount(facility, line, delta, date) {
     throw err;
   } finally {
     if (client) {
-        // Permanently destroy the corrupted connection if there was a fatal network error
         client.release(hasError);
     }
   }
 }
 
-// OPTIMIZED: Condenses 3 sequential queries down to 1 using a CTE.
 async function checkAndUpdatePeaks(facility, date) {
   try {
     const singleQuery = `
@@ -429,7 +447,6 @@ async function executeBroadcast() {
   const datesArray = Array.from(activeDates);
 
   try {
-    // OPTIMIZED: Run sequentially to ensure a broadcast only uses 1 pool connection at a time.
     const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction');
     
     const currentRes = await queryWithRetry(
