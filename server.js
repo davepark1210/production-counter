@@ -17,8 +17,8 @@ const pool = new Pool({
   max: 20,                            
   idleTimeoutMillis: 30000,           
   connectionTimeoutMillis: 60000,     
-  statement_timeout: 60000,           
-  query_timeout: 0,                   // 🚀 EXPLICITLY set to 0 to permanently disable the "Connection terminated" assassin
+  statement_timeout: 60000,           // 60s: Gives Supabase plenty of time to calculate complex math
+  query_timeout: 0,                   // 0: Permanently disables the "Connection terminated" assassin
   keepAlive: true,                    
   keepAliveInitialDelayMillis: 2000   
 });
@@ -77,9 +77,9 @@ const dailyTargets = {
 };
 
 let lastMilestone = 0;
-
-// 🚀 THE READ CACHE: This stops the 20 Raspberry Pis from murdering the database
 const CACHE_TTL_MS = 5000; // Keep photocopies of data for 5 seconds
+
+// 🚀 THE READ CACHE
 const routeCache = { 
   counts: {},
   hourlyRates: {},
@@ -120,7 +120,7 @@ app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime
 
 
 // ============================================================================
-// === THE WRITE QUEUE (Saves button clicks in RAM) ===
+// === 🚀 THE WRITE QUEUE (Saves button clicks in RAM) ===
 // ============================================================================
 const pendingWrites = {};
 
@@ -144,11 +144,11 @@ app.post('/decrement', async (req, res) => {
   res.sendStatus(200); 
 });
 
-// 🚀 SMART BACKGROUND WORKER: Waits for Supabase to finish before starting the next batch
+// SMART BACKGROUND WORKER: Waits for DB to finish before starting the next batch
 async function processBatchQueue() {
   const keys = Object.keys(pendingWrites);
   if (keys.length === 0) {
-    setTimeout(processBatchQueue, 3000); // Check again in 3 seconds
+    setTimeout(processBatchQueue, 3000); 
     return;
   }
 
@@ -169,7 +169,7 @@ async function processBatchQueue() {
       
       const cacheKey = `${facility}_${line}_${date}`;
       if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
-      routeCache.broadcasts[date] = null; // Invalidate broadcast cache so it refreshes
+      routeCache.broadcasts[date] = null; // Invalidate broadcast cache
       
       changesMade = true;
     } catch (err) {
@@ -180,7 +180,7 @@ async function processBatchQueue() {
 
   if (changesMade) debouncedBroadcast(); 
 
-  // Only schedule the next run AFTER this one successfully finishes!
+  // Only schedule the next run AFTER this one successfully finishes
   setTimeout(processBatchQueue, 3000); 
 }
 
@@ -188,9 +188,11 @@ async function processBatchQueue() {
 setTimeout(processBatchQueue, 3000);
 // ============================================================================
 
-// === ENDPOINTS (Immune to 5-Minute Cache Stampedes) ===
 
-// The Stampede Breaker: Tracks queries that are currently running
+// ============================================================================
+// === 🚀 ENDPOINTS (Immune to 5-Minute Cache Stampedes) ===
+// ============================================================================
+
 const inFlightRequests = { counts: {}, hourlyRates: {}, historicalData: {} };
 
 app.get('/getCount', async (req, res) => {
@@ -204,15 +206,13 @@ app.get('/getCount', async (req, res) => {
     return res.json({ count: routeCache.counts[cacheKey].value });
   }
 
-  // 🚀 THE STAMPEDE BREAKER: If a Pi is already asking the DB for this, make the other 19 wait for that answer!
   if (inFlightRequests.counts[cacheKey]) {
     try {
       const count = await inFlightRequests.counts[cacheKey];
       return res.json({ count });
-    } catch (e) { /* ignore and try again */ }
+    } catch (e) { }
   }
 
-  // Nobody is asking yet, so we start the query and log it as "In Flight"
   const dbPromise = queryWithRetry(
     'SELECT count FROM productioncounts WHERE date = $1 AND facility = $2 AND line = $3',
     [date, facility, line]
@@ -228,7 +228,7 @@ app.get('/getCount', async (req, res) => {
     console.error('GetCount Error:', err.message);
     res.status(500).json({ error: 'Server error' });
   } finally {
-    delete inFlightRequests.counts[cacheKey]; // Clear the lock when done
+    delete inFlightRequests.counts[cacheKey]; 
   }
 });
 
@@ -520,7 +520,7 @@ async function executeBroadcast() {
 
   try {
     for (const date of datesArray) {
-      // 🚀 CACHE CHECK: If the 20 Pis trigger a broadcast, only run the DB logic for the 1st one!
+      // CACHE CHECK: If 20 Pis trigger a broadcast, only run DB logic for the 1st one!
       if (routeCache.broadcasts[date] && (now - routeCache.broadcasts[date].timestamp < CACHE_TTL_MS)) {
          wss.clients.forEach(c => {
            if (c.readyState === WebSocket.OPEN && c.currentDate === date) {
@@ -530,7 +530,6 @@ async function executeBroadcast() {
          continue; 
       }
 
-      // If no cache, hit the database once
       const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction');
       const currentRes = await queryWithRetry(
         'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', 
@@ -602,7 +601,7 @@ async function executeBroadcast() {
         date, data, hourlyRates, totalProduction, peakProduction, targetPercentages, notification
       });
 
-      // Save photocopy to RAM so the other 19 Pis don't have to query the database!
+      // Save photocopy to RAM so the other Pis don't have to query the database!
       routeCache.broadcasts[date] = { data: messageStr, timestamp: now };
 
       wss.clients.forEach(c => {
