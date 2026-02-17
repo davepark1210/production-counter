@@ -65,8 +65,7 @@ let lastMilestone = 0;
 // === CACHING ===
 const routeCache = {
   counts: {},
-  historicalDates: { dates: null, timestamp: 0 },
-  peakProduction: null // NEW: Cache for historical peaks to save DB CPU
+  historicalDates: { dates: null, timestamp: 0 }
 };
 const CACHE_TTL_MS = 5000;
 
@@ -213,12 +212,6 @@ app.post('/increment', async (req, res) => {
     const cacheKey = `${facility}_${line}_${date}`;
     if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
     
-    // Clear peak cache for today so it recalculates if they just broke a record
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (date === todayStr) {
-      routeCache.peakProduction = null;
-    }
-    
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
@@ -252,7 +245,6 @@ app.post('/resetAllData', async (req, res) => {
     lastMilestone = 0;
     routeCache.counts = {};
     routeCache.historicalDates = { dates: null, timestamp: 0 };
-    routeCache.peakProduction = null; // Clear peaks when resetting data
     triggerBroadcast();
     res.sendStatus(200);
   } catch (err) {
@@ -332,42 +324,36 @@ async function executeBroadcast() {
   const datesArray = Array.from(activeDates);
 
   try {
-    // --- OPTIMIZATION: Check cache for peaks instead of querying the DB every time ---
-    if (!routeCache.peakProduction) {
-      const peakDayRes = await queryWithRetry(
-        `SELECT facility, date, SUM(count) as daily_total
-         FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
-      );
+    const peakDayRes = await queryWithRetry(
+      `SELECT facility, date, SUM(count) as daily_total
+       FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
+    );
 
-      const allDailyRes = await queryWithRetry(
-        `SELECT facility, date, SUM(count) as daily_total
-         FROM productioncounts GROUP BY facility, date ORDER BY facility, date`
-      );
+    const allDailyRes = await queryWithRetry(
+      `SELECT facility, date, SUM(count) as daily_total
+       FROM productioncounts GROUP BY facility, date ORDER BY facility, date`
+    );
 
-      routeCache.peakProduction = {};
-      facilities.forEach(f => {
-        const facilityRows = peakDayRes.rows.filter(row => row.facility === f);
-        const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
+    const peakProduction = {};
+    facilities.forEach(f => {
+      const facilityRows = peakDayRes.rows.filter(row => row.facility === f);
+      const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
 
-        const facilityDailyTotals = allDailyRes.rows
-          .filter(row => row.facility === f)
-          .map(row => ({ date: parseDbDate(row.date), daily_total: parseInt(row.daily_total) }))
-          .sort((a, b) => a.date.localeCompare(b.date));
+      const facilityDailyTotals = allDailyRes.rows
+        .filter(row => row.facility === f)
+        .map(row => ({ date: parseDbDate(row.date), daily_total: parseInt(row.daily_total) }))
+        .sort((a, b) => a.date.localeCompare(b.date));
 
-        let maxWeeklySum = 0;
-        if (facilityDailyTotals.length > 0) {
-          const availableDays = Math.min(facilityDailyTotals.length, 7);
-          for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
-            const weekSum = facilityDailyTotals.slice(i, i + availableDays).reduce((sum, day) => sum + day.daily_total, 0);
-            maxWeeklySum = Math.max(maxWeeklySum, weekSum);
-          }
+      let maxWeeklySum = 0;
+      if (facilityDailyTotals.length > 0) {
+        const availableDays = Math.min(facilityDailyTotals.length, 7);
+        for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
+          const weekSum = facilityDailyTotals.slice(i, i + availableDays).reduce((sum, day) => sum + day.daily_total, 0);
+          maxWeeklySum = Math.max(maxWeeklySum, weekSum);
         }
-        routeCache.peakProduction[f] = { peakDay, peakWeekly: maxWeeklySum };
-      });
-    }
-
-    // Clone cached peaks for broadcast
-    const peakProduction = JSON.parse(JSON.stringify(routeCache.peakProduction));
+      }
+      peakProduction[f] = { peakDay, peakWeekly: maxWeeklySum };
+    });
 
     const currentRes = await queryWithRetry(
       'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])',
