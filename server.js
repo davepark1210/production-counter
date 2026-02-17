@@ -324,37 +324,43 @@ async function executeBroadcast() {
   const datesArray = Array.from(activeDates);
 
   try {
-    const peakDayRes = await queryWithRetry(
-      `SELECT facility, date, SUM(count) as daily_total
-       FROM productioncounts GROUP BY facility, date ORDER BY facility, daily_total DESC`
-    );
-
-    const allDailyRes = await queryWithRetry(
-      `SELECT facility, date, SUM(count) as daily_total
-       FROM productioncounts GROUP BY facility, date ORDER BY facility, date`
-    );
+    // --- OPTIMIZATION: Let Supabase calculate the Peak Day and Peak Weekly entirely ---
+    // This SQL Window Function acts like a dynamic view, completely eliminating 
+    // the need to download and loop through thousands of rows in Node.js.
+    const peakQuery = `
+      WITH daily_sums AS (
+        SELECT facility, date, SUM(count) as daily_total
+        FROM productioncounts
+        GROUP BY facility, date
+      ),
+      weekly_sums AS (
+        SELECT facility, daily_total,
+               SUM(daily_total) OVER (
+                 PARTITION BY facility
+                 ORDER BY date
+                 ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+               ) as weekly_total
+        FROM daily_sums
+      )
+      SELECT facility, 
+             MAX(daily_total) as peak_day, 
+             MAX(weekly_total) as peak_weekly
+      FROM weekly_sums
+      GROUP BY facility;
+    `;
+    
+    const peakRes = await queryWithRetry(peakQuery);
 
     const peakProduction = {};
     facilities.forEach(f => {
-      const facilityRows = peakDayRes.rows.filter(row => row.facility === f);
-      const peakDay = facilityRows.length > 0 ? Math.max(...facilityRows.map(row => parseInt(row.daily_total))) : 0;
-
-      const facilityDailyTotals = allDailyRes.rows
-        .filter(row => row.facility === f)
-        .map(row => ({ date: parseDbDate(row.date), daily_total: parseInt(row.daily_total) }))
-        .sort((a, b) => a.date.localeCompare(b.date));
-
-      let maxWeeklySum = 0;
-      if (facilityDailyTotals.length > 0) {
-        const availableDays = Math.min(facilityDailyTotals.length, 7);
-        for (let i = 0; i <= facilityDailyTotals.length - availableDays; i++) {
-          const weekSum = facilityDailyTotals.slice(i, i + availableDays).reduce((sum, day) => sum + day.daily_total, 0);
-          maxWeeklySum = Math.max(maxWeeklySum, weekSum);
-        }
-      }
-      peakProduction[f] = { peakDay, peakWeekly: maxWeeklySum };
+      const row = peakRes.rows.find(r => r.facility === f);
+      peakProduction[f] = { 
+        peakDay: row && row.peak_day ? parseInt(row.peak_day) : 0, 
+        peakWeekly: row && row.peak_weekly ? parseInt(row.peak_weekly) : 0 
+      };
     });
 
+    // --- Fetch Current Day Data ---
     const currentRes = await queryWithRetry(
       'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])',
       [datesArray]
