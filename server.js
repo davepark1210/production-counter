@@ -14,24 +14,22 @@ if (!connectionString) {
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
-  max: 5,                             // Safe to bump up now that deadlocks are fixed
-  idleTimeoutMillis: 30000,           // Drop idle clients after 30s to prevent firewall drops
-  connectionTimeoutMillis: 10000,     // Fail fast if Supabase is unreachable
-  statement_timeout: 15000,           // Prevent hanging queries
-  keepAlive: true,                    // Crucial: Enables TCP KeepAlive
-  keepAliveInitialDelayMillis: 10000  // Crucial: Ping DB every 10s to keep tunnel open
+  max: 5,                             
+  idleTimeoutMillis: 30000,           
+  connectionTimeoutMillis: 10000,     
+  statement_timeout: 15000,           
+  keepAlive: true,                    
+  keepAliveInitialDelayMillis: 10000  
 });
 
-// Update error handler to prevent crashing on background idle errors
 pool.on('error', (err, client) => {
   console.error('Unexpected pool error on idle client:', err.message);
-  // The pg pool will automatically remove the faulty client and create a new one.
 });
 
 pool.on('connect', () => console.log('Pool acquired a new DB connection'));
 pool.on('remove', () => console.log('Pool released a DB connection'));
 
-// === RETRY WRAPPER (handles ETIMEDOUT / AggregateError) ===
+// === RETRY WRAPPER ===
 async function queryWithRetry(sql, params = [], retries = 5) {
   let delay = 1000;
   for (let i = 1; i <= retries; i++) {
@@ -44,9 +42,9 @@ async function queryWithRetry(sql, params = [], retries = 5) {
       if (err.message.includes('timeout') || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH') {
         console.warn(`Retrying in ${delay}ms...`);
         await new Promise(r => setTimeout(r, delay));
-        delay *= 2; // 1s → 2s → 4s → 8s → 16s
+        delay *= 2; 
       } else {
-        throw err; // non-retryable error
+        throw err; 
       }
     }
   }
@@ -101,7 +99,7 @@ app.use(express.static('public'));
 
 app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime() }));
 
-// === ENDPOINTS (all use retry wrapper) ===
+// === ENDPOINTS ===
 app.get('/getCount', async (req, res) => {
   const { facility, line, date = new Date().toISOString().split('T')[0] } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid facility/line' });
@@ -212,6 +210,9 @@ app.post('/increment', async (req, res) => {
     const cacheKey = `${facility}_${line}_${date}`;
     if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
     
+    // FAST CHECK: Update the peak table if we broke a record
+    await checkAndUpdatePeaks(facility, date);
+    
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
@@ -231,6 +232,9 @@ app.post('/decrement', async (req, res) => {
     const cacheKey = `${facility}_${line}_${date}`;
     if (routeCache.counts[cacheKey]) routeCache.counts[cacheKey].timestamp = 0;
     
+    // HEAVY RECALCULATION: Only runs on decrement in case a fake peak was invalidated
+    await recalculateAllPeaks();
+    
     debouncedBroadcast();
     res.sendStatus(200);
   } catch (err) {
@@ -242,6 +246,7 @@ app.post('/decrement', async (req, res) => {
 app.post('/resetAllData', async (req, res) => {
   try {
     await queryWithRetry('TRUNCATE TABLE productioncounts, productionevents');
+    await queryWithRetry('UPDATE peakproduction SET peak_day = 0, peak_weekly = 0');
     lastMilestone = 0;
     routeCache.counts = {};
     routeCache.historicalDates = { dates: null, timestamp: 0 };
@@ -252,6 +257,8 @@ app.post('/resetAllData', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+// === DATABASE HELPERS ===
 
 async function updateCount(facility, line, delta, date) {
   let client;
@@ -283,6 +290,85 @@ async function updateCount(facility, line, delta, date) {
     if (client) client.release();
   }
 }
+
+// Quickly checks if the current increment broke the historical record in the new table
+async function checkAndUpdatePeaks(facility, date) {
+  try {
+    // 1. Get current peaks from the dedicated table
+    const peakRes = await queryWithRetry('SELECT peak_day, peak_weekly FROM peakproduction WHERE facility = $1', [facility]);
+    let currentPeakDay = peakRes.rows[0] ? parseInt(peakRes.rows[0].peak_day) : 0;
+    let currentPeakWeekly = peakRes.rows[0] ? parseInt(peakRes.rows[0].peak_weekly) : 0;
+
+    // 2. Calculate today's total
+    const dayRes = await queryWithRetry('SELECT SUM(count) as total FROM productioncounts WHERE facility = $1 AND date = $2', [facility, date]);
+    const dayTotal = parseInt(dayRes.rows[0]?.total || 0);
+
+    // 3. Calculate rolling 7-day total ending on this date
+    const weekRes = await queryWithRetry(`
+      SELECT SUM(count) as total FROM productioncounts 
+      WHERE facility = $1 AND date BETWEEN $2::date - 6 AND $2::date
+    `, [facility, date]);
+    const weekTotal = parseInt(weekRes.rows[0]?.total || 0);
+
+    // 4. Update the DB table if records were broken
+    let updated = false;
+    if (dayTotal > currentPeakDay) {
+      currentPeakDay = dayTotal;
+      updated = true;
+    }
+    if (weekTotal > currentPeakWeekly) {
+      currentPeakWeekly = weekTotal;
+      updated = true;
+    }
+
+    if (updated) {
+      await queryWithRetry(
+        'UPDATE peakproduction SET peak_day = $1, peak_weekly = $2 WHERE facility = $3',
+        [currentPeakDay, currentPeakWeekly, facility]
+      );
+    }
+  } catch (err) {
+    console.error('Error in checkAndUpdatePeaks:', err.message);
+  }
+}
+
+// Full recalculation: only runs if someone hits decrement and invalidates a high score
+async function recalculateAllPeaks() {
+  try {
+    const peakQuery = `
+      WITH daily_sums AS (
+        SELECT facility, date, SUM(count) as daily_total
+        FROM productioncounts
+        GROUP BY facility, date
+      ),
+      weekly_sums AS (
+        SELECT facility, daily_total,
+               SUM(daily_total) OVER (
+                 PARTITION BY facility
+                 ORDER BY date
+                 ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+               ) as weekly_total
+        FROM daily_sums
+      )
+      SELECT facility, MAX(daily_total) as peak_day, MAX(weekly_total) as peak_weekly
+      FROM weekly_sums GROUP BY facility;
+    `;
+    const res = await queryWithRetry(peakQuery);
+    
+    for (const f of facilities) {
+      const row = res.rows.find(r => r.facility === f);
+      const pd = row && row.peak_day ? parseInt(row.peak_day) : 0;
+      const pw = row && row.peak_weekly ? parseInt(row.peak_weekly) : 0;
+      await queryWithRetry(
+        'UPDATE peakproduction SET peak_day = $1, peak_weekly = $2 WHERE facility = $3',
+        [pd, pw, f]
+      );
+    }
+  } catch (err) {
+    console.error('Error recalculating peaks:', err.message);
+  }
+}
+
 
 // === WEB SOCKET ===
 const PORT = process.env.PORT || 10000;
@@ -324,43 +410,22 @@ async function executeBroadcast() {
   const datesArray = Array.from(activeDates);
 
   try {
-    // --- OPTIMIZATION: Let Supabase calculate the Peak Day and Peak Weekly entirely ---
-    // This SQL Window Function acts like a dynamic view, completely eliminating 
-    // the need to download and loop through thousands of rows in Node.js.
-    const peakQuery = `
-      WITH daily_sums AS (
-        SELECT facility, date, SUM(count) as daily_total
-        FROM productioncounts
-        GROUP BY facility, date
-      ),
-      weekly_sums AS (
-        SELECT facility, daily_total,
-               SUM(daily_total) OVER (
-                 PARTITION BY facility
-                 ORDER BY date
-                 ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
-               ) as weekly_total
-        FROM daily_sums
-      )
-      SELECT facility, 
-             MAX(daily_total) as peak_day, 
-             MAX(weekly_total) as peak_weekly
-      FROM weekly_sums
-      GROUP BY facility;
-    `;
-    
-    const peakRes = await queryWithRetry(peakQuery);
-
+    // --- MASSIVE OPTIMIZATION: Simply fetch the static peaks from the new table ---
+    const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction');
     const peakProduction = {};
+    
+    // Default them to 0 just in case the table hasn't been initialized yet
     facilities.forEach(f => {
-      const row = peakRes.rows.find(r => r.facility === f);
-      peakProduction[f] = { 
-        peakDay: row && row.peak_day ? parseInt(row.peak_day) : 0, 
-        peakWeekly: row && row.peak_weekly ? parseInt(row.peak_weekly) : 0 
+      peakProduction[f] = { peakDay: 0, peakWeekly: 0 };
+    });
+    
+    peakRes.rows.forEach(r => {
+      peakProduction[r.facility] = {
+        peakDay: parseInt(r.peak_day) || 0,
+        peakWeekly: parseInt(r.peak_weekly) || 0
       };
     });
 
-    // --- Fetch Current Day Data ---
     const currentRes = await queryWithRetry(
       'SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])',
       [datesArray]
