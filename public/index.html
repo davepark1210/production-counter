@@ -1949,7 +1949,7 @@
         resetDateButton.addEventListener('click', () => {
             const dateSelect = document.getElementById('dateSelect');
             dateSelect.value = '';
-            currentDate = new Date().toISOString().split('T')[0];
+            currentDate = getLocalDateString();
             ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
             ws.send(JSON.stringify({ action: 'requestCurrentData' }));
             clearUI();
@@ -2178,7 +2178,7 @@
                     });
             
                     const dateSelect = document.getElementById('dateSelect');
-                    const selectedDate = dateSelect.value || new Date().toISOString().split('T')[0];
+                    const selectedDate = dateSelect.value || getLocalDateString();
                     currentDate = selectedDate;
                     
                     await waitForWebSocket(ws);
@@ -2242,25 +2242,18 @@
 
         // Instantly load Today and Yesterday using local browser time
         async function loadHistoricalDates() {
-            console.log('Generating today and yesterday dates locally...');
             const dateSelect = document.getElementById('dateSelect');
             
-            // Helper to format date as YYYY-MM-DD
-            const getFormattedDate = (d) => {
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            };
+            // Calculate Today using local timezone
+            const todayStr = getLocalDateString();
             
-            // Calculate Today
-            const today = new Date();
-            const todayStr = getFormattedDate(today);
-            
-            // Calculate Yesterday
-            const yesterday = new Date(today);
+            // Calculate Yesterday using local timezone
+            const yesterday = new Date();
             yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = getFormattedDate(yesterday);
+            const yYear = yesterday.getFullYear();
+            const yMonth = String(yesterday.getMonth() + 1).padStart(2, '0');
+            const yDay = String(yesterday.getDate()).padStart(2, '0');
+            const yesterdayStr = `${yYear}-${yMonth}-${yDay}`;
             
             // Populate the dropdown
             dateSelect.innerHTML = `<option value="">Current Day (${todayStr})</option>`;
@@ -2270,7 +2263,7 @@
             optionYesterday.textContent = `Yesterday (${yesterdayStr})`;
             dateSelect.appendChild(optionYesterday);
             
-            return Promise.resolve(); // Keeps compatibility with any 'await' calls in your code
+            return Promise.resolve();
         }
 
         // Function to animate counting up
@@ -2302,7 +2295,7 @@
                    clearUI();
                    previousRanking = []; // Reset ranking to force reorder
                    if (!selectedDate) {
-                       currentDate = new Date().toISOString().split('T')[0];
+                       currentDate = getLocalDateString();
                        console.log(`Resetting to current date: ${currentDate}`);
                        document.getElementById('graphTitle').textContent = 'Hourly Production Rates';
                    } else {
@@ -2343,7 +2336,17 @@
         const facilities = ['Sellersburg_Certified_Center', 'Williamsport_Certified_Center', 'North_Las_Vegas_Certified_Center'];
         const lines = ['FTN', 'Cooler', 'Vendor', 'A-Repair'];
         const facilityGrid = document.getElementById('facilityGrid');
-        let currentDate = new Date().toISOString().split('T')[0];
+        
+        // Helper to consistently get local date (EST/PST) instead of UTC
+        function getLocalDateString() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        let currentDate = getLocalDateString();
         // Track whether each facility has triggered the starburst animation
         const hasTriggeredStarburst = {};
         facilities.forEach(facility => hasTriggeredStarburst[facility] = false);
