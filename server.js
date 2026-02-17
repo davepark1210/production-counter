@@ -1,6 +1,18 @@
 const express = require('express');
 const WebSocket = require('ws');
-const pgp = require('pg-promise')(); // For retries and transaction support
+const pgp = require('pg-promise')({
+  // Custom init options for pool limiting and logging
+  capSQL: true,
+  connect: (client, dc, useCount) => {
+    console.log(`DB Connection established. Use count: ${useCount}`);
+  },
+  disconnect: (client, dc) => {
+    console.log('DB Connection disconnected');
+  },
+  error: (err, e) => {
+    console.error('DB Client Error:', err.stack || err);
+  }
+}); // For retries and transaction support
 const app = express();
 
 // --- 1. STRICT ENVIRONMENT VARIABLE CHECK ---
@@ -12,17 +24,29 @@ if (!connectionString) {
   process.exit(1); // Fail fast to prevent silent connection timeouts
 }
 
-// pg-promise config with retry logic
-const db = pgp(connectionString);
-const queryWithRetry = async (queryText, params, retries = 3, backoff = 1000) => {
+// Parse connection string to inject timeouts
+const pgOptions = {
+  connectionTimeoutMillis: 30000, // 30s connect timeout
+  idleTimeoutMillis: 0, // No idle close
+  max: 2, // Limit pool to 2 for free tier
+  application_name: 'render-app' // For Supabase logging
+};
+
+const db = pgp(connectionString, pgOptions);
+
+// Query with retry (handles ETIMEDOUT and AggregateError)
+const queryWithRetry = async (queryText, params, retries = 5) => {
+  let backoff = 1000; // Start with 1s
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       return await db.any(queryText, params);
     } catch (err) {
+      const errMsg = err.message || '';
       console.error(`Query attempt ${attempt} failed:`, err.stack || err);
-      if ((err.message || '').includes('timeout') && attempt < retries) {
-        console.warn(`Query retry ${attempt}/${retries}`);
-        await new Promise(res => setTimeout(res, backoff * attempt));
+      if ((errMsg.includes('timeout') || err.name === 'AggregateError') && attempt < retries) {
+        console.warn(`Query retry ${attempt}/${retries}. Waiting ${backoff}ms`);
+        await new Promise(res => setTimeout(res, backoff));
+        backoff *= 2; // Exponential: 1s -> 2s -> 4s -> 8s -> 16s
       } else {
         throw err;
       }
