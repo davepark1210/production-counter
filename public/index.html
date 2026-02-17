@@ -2750,37 +2750,51 @@
                     updateUI(date, data, hourlyRates, totalProduction, peakProduction, targetPercentages);
                 };
             
-                // Consolidated Reconnection Logic
-                const handleClose = () => {
-                    console.log('WebSocket connection closed');
-                    document.getElementById('loadingSpinner').style.display = 'none';
-                    showNotification('Connection lost. Reconnecting...');
-                    
-                    if (heartbeatInterval) clearInterval(heartbeatInterval);
-            
-                    setTimeout(() => {
-                        console.log('Attempting to reconnect...');
-                        ws = new WebSocket('wss://production-counter.onrender.com');
+                // Consolidated Reconnection Logic with Exponential Backoff
+                        let reconnectAttempts = 0;
                         
-                        ws.onclose = handleClose; 
-                        ws.onerror = (err) => console.error('WS Error:', err);
-                        
-                        ws.onopen = () => {
-                            console.log('Reconnected!');
+                        const handleClose = () => {
+                            console.log('WebSocket connection closed');
                             document.getElementById('loadingSpinner').style.display = 'none';
-                            ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
-                            ws.send(JSON.stringify({ action: 'requestCurrentData' }));
-                            loadHistoricalDates();
+                            showNotification('Connection lost. Reconnecting...');
+                            
+                            if (heartbeatInterval) clearInterval(heartbeatInterval);
+                        
+                            // Exponential backoff: 2s, 4s, 8s, 16s, up to 30s max
+                            const backoffTime = Math.min(30000, 2000 * Math.pow(2, reconnectAttempts));
+                            reconnectAttempts++;
+                        
+                            setTimeout(() => {
+                                console.log(`Attempting to reconnect... (Attempt ${reconnectAttempts})`);
+                                ws = new WebSocket(`${protocol}//${host}`);
+                                
+                                ws.onclose = handleClose; 
+                                ws.onerror = (err) => console.error('WS Error:', err);
+                                
+                                ws.onopen = () => {
+                                    console.log('Reconnected successfully!');
+                                    reconnectAttempts = 0; // Reset attempts on success
+                                    document.getElementById('loadingSpinner').style.display = 'none';
+                                    ws.send(JSON.stringify({ action: 'setClientDate', clientDate: currentDate }));
+                                    ws.send(JSON.stringify({ action: 'requestCurrentData' }));
+                                    loadHistoricalDates();
+                                    
+                                    // Restart Heartbeat
+                                    heartbeatInterval = setInterval(() => {
+                                        if (ws.readyState === WebSocket.OPEN) {
+                                             ws.send(JSON.stringify({ action: 'ping' })); 
+                                        }
+                                    }, 30000);
+                                };
+                            }, backoffTime);
                         };
-                    }, 5000);
-                };
-            
-                ws.onclose = handleClose;
-                
-                ws.onerror = (error) => {
-                    console.error('WebSocket error:', error);
-                    // Do not hide spinner here, wait for close/reconnect
-                };
+                        
+                        ws.onclose = handleClose;
+                        
+                        ws.onerror = (error) => {
+                            console.error('WebSocket error:', error);
+                            // Do not hide spinner here, wait for close/reconnect
+                        };
     </script>
 </body>
 </html>
