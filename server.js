@@ -10,16 +10,16 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === 🚀 THE PATIENT, ANTI-ZOMBIE CONNECTION POOL ===
+// === 🚀 THE "NO-STALE" CONNECTION POOL ===
 const pool = new Pool({
   connectionString,
   ssl: { rejectUnauthorized: false },
   max: 5,                             
-  idleTimeoutMillis: 30000,           // Let connections rest for 30 seconds
-  connectionTimeoutMillis: 60000,     // 🚀 GIVES SUPABASE 60 SECONDS TO RESPOND (No more assassinations!)
-  keepAlive: true,                    // OS-level TCP keep-alive to detect silent drops
+  // 🚀 THE MAGIC FIX: Forces Node to close the connection after 5 seconds of quiet time
+  idleTimeoutMillis: 5000,           
+  connectionTimeoutMillis: 60000,     // Still gives Supabase plenty of time to respond
+  keepAlive: true,                    // OS-level TCP keep-alive 
   keepAliveInitialDelayMillis: 2000
-  // REMOVED: query_timeout and statement_timeout so the background workers can take their time!
 });
 
 pool.on('error', (err) => console.warn('Idle DB client error (safely evicted):', err.message));
