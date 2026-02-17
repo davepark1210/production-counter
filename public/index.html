@@ -2233,6 +2233,11 @@
             Object.keys(hourlyRatesCache).forEach(key => delete hourlyRatesCache[key]);
             Object.keys(peakProductionCache).forEach(key => delete peakProductionCache[key]);
             updateFacilityGrid();
+            
+            // Reset state trackers to ensure animations play correctly on date changes
+            previousTotals = {}; 
+            facilities.forEach(facility => hasTriggeredStarburst[facility] = false);
+            previousRanking = [];
         }
 
         // Load historical dates with automatic retries
@@ -2396,20 +2401,22 @@
         
                 // Reorder DOM if ranks changed
                 const isFirstUpdate = previousRanking.length === 0;
-                const rankingChanged = Object.values(rankChanges).some(changed => changed);
-                if (rankingChanged || isFirstUpdate) {
-                    const facilityGridChildren = Array.from(facilityGrid.children);
-                    facilityGrid.innerHTML = '';
-                    facilityTotals.forEach(({ facility }) => {
-                        const card = facilityGridChildren.find(child => child.id === facility);
-                        if (card && rankChanges[facility]) {
-                            card.classList.add('rank-changed');
-                            setTimeout(() => card.classList.remove('rank-changed'), 800);
+                        const rankingChanged = Object.values(rankChanges).some(changed => changed);
+                        if (rankingChanged || isFirstUpdate) {
+                            facilityTotals.forEach(({ facility }, index) => {
+                                const card = document.getElementById(facility);
+                                if (card) {
+                                    // Update CSS order to visually rearrange grid items without DOM deletion
+                                    card.style.order = index; 
+                                    
+                                    if (rankChanges[facility]) {
+                                        card.classList.add('rank-changed');
+                                        setTimeout(() => card.classList.remove('rank-changed'), 800);
+                                    }
+                                }
+                            });
                         }
-                        if (card) facilityGrid.appendChild(card);
-                    });
-                }
-                previousRanking = currentRanking;
+                        previousRanking = currentRanking;
         
                 // Update facility data
                 facilities.forEach(facility => {
