@@ -12,7 +12,8 @@ if (!connectionString) {
 
 // === AUTOMATED DATA CLEANUP ===
 async function cleanupOldData() {
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 15000 });
+  // 🚀 INCREASED TIMEOUT TO 60 SECONDS FOR COLD STARTS
+  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
   try {
     await client.connect();
     await client.query(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days'`);
@@ -159,10 +160,11 @@ async function processBatchQueue() {
   const snapshot = { ...pendingWrites };
   for (const k of keys) delete pendingWrites[k]; 
 
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 15000 });
+  // 🚀 INCREASED TIMEOUT TO 60 SECONDS
+  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
 
   try {
-    await client.connect(); // Open the door ONCE
+    await client.connect(); 
 
     for (const key in snapshot) {
       const delta = snapshot[key];
@@ -179,12 +181,11 @@ async function processBatchQueue() {
     }
   } catch (err) {
     console.error('Batch connection failed, returning all to queue:', err.message);
-    // If the whole connection fails, safely return all clicks to the RAM queue
     for (const key in snapshot) {
       pendingWrites[key] = (pendingWrites[key] || 0) + snapshot[key];
     }
   } finally {
-    await client.end().catch(() => {}); // Close the door ONCE
+    await client.end().catch(() => {}); 
   }
 
   setTimeout(processBatchQueue, 3000); 
@@ -195,7 +196,8 @@ setTimeout(processBatchQueue, 3000);
 // === BACKGROUND DB POLLER ===
 // ============================================================================
 async function syncDatabaseToRAM() {
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 15000 });
+  // 🚀 INCREASED TIMEOUT TO 60 SECONDS
+  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
 
   try {
     await client.connect();
@@ -262,7 +264,6 @@ async function syncDatabaseToRAM() {
 setTimeout(syncDatabaseToRAM, 2000); 
 
 // === DATABASE HELPERS ===
-// Notice we now pass the 'client' into these functions so they share the single open door
 async function updateCount(client, facility, line, delta, date) {
   await client.query('BEGIN');
   try {
