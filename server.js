@@ -1,6 +1,7 @@
 const express = require('express');
 const WebSocket = require('ws');
-const { Pool } = require('pg');
+// 🚀 THE FIX: We fired the Pool. We are using standalone Clients now.
+const { Client } = require('pg');
 const app = express();
 
 // === ENVIRONMENT CHECK ===
@@ -10,41 +11,37 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// === 🚀 THE "NO-STALE" CONNECTION POOL ===
-const pool = new Pool({
-  connectionString,
-  ssl: { rejectUnauthorized: false },
-  max: 5,                             
-  // 🚀 THE MAGIC FIX: Forces Node to close the connection after 5 seconds of quiet time
-  idleTimeoutMillis: 5000,           
-  connectionTimeoutMillis: 60000,     // Still gives Supabase plenty of time to respond
-  keepAlive: true,                    // OS-level TCP keep-alive 
-  keepAliveInitialDelayMillis: 2000
-});
-
-pool.on('error', (err) => console.warn('Idle DB client error (safely evicted):', err.message));
-
-// === RETRY WRAPPER ===
+// === 🚀 THE "SERVERLESS" RETRY WRAPPER ===
+// This creates a brand new, fresh connection every single time, and destroys it instantly.
 async function queryWithRetry(sql, params = [], retries = 3) {
   let delay = 1000;
   for (let i = 1; i <= retries; i++) {
+    const client = new Client({
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 15000,
+      statement_timeout: 15000
+    });
+
     try {
-      const res = await pool.query(sql, params);
+      await client.connect();
+      const res = await client.query(sql, params);
+      await client.end(); // Safely close and destroy the connection
       return res;
     } catch (err) {
+      await client.end().catch(() => {}); // Force destruction even if it failed
       if (i === retries) throw err;
       const jitter = Math.floor(Math.random() * 500);
-      console.warn(`Query hiccup (${err.message}). Retrying in ${delay + jitter}ms...`);
+      console.warn(`Database hiccup (${err.message}). Retrying in ${delay + jitter}ms...`);
       await new Promise(r => setTimeout(r, delay + jitter));
       delay *= 2; 
     }
   }
 }
 
-// === AUTOMATED DATA CLEANUP (Events AND Counts) ===
+// === AUTOMATED DATA CLEANUP ===
 async function cleanupOldData() {
   try {
-    // Correctly purges both tables beyond 30 days
     await queryWithRetry(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days'`);
     await queryWithRetry(`DELETE FROM productioncounts WHERE date < NOW() - INTERVAL '30 days'`);
     console.log(`30-day database cleanup complete for events and counts.`);
@@ -117,7 +114,6 @@ facilities.forEach(f => SYSTEM_RAM.peaks[f] = { peakDay: 0, peakWeekly: 0 });
 app.use(express.static('public'));
 app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime() }));
 
-
 // ============================================================================
 // === DECOUPLED ENDPOINTS ===
 // ============================================================================
@@ -140,7 +136,6 @@ app.get('/getHistoricalData', (req, res) => {
   initRamForDate(date);
   res.json({ data: SYSTEM_RAM.historicalData[date] });
 });
-
 
 // ============================================================================
 // === INSTANT WRITE QUEUE ===
@@ -272,13 +267,18 @@ async function syncDatabaseToRAM() {
 }
 setTimeout(syncDatabaseToRAM, 2000); 
 
-
 // === DATABASE HELPERS ===
 async function updateCount(facility, line, delta, date) {
-  let client;
-  let hasError = false;
+  // 🚀 THE FIX: Create a fresh standalone client just for this transaction
+  const client = new Client({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 15000,
+    statement_timeout: 15000
+  });
+
   try {
-    client = await pool.connect();
+    await client.connect();
     await client.query('BEGIN');
     await client.query(
       `INSERT INTO productionevents (date, facility, line, delta, timestamp) VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
@@ -291,13 +291,10 @@ async function updateCount(facility, line, delta, date) {
     );
     await client.query('COMMIT');
   } catch (err) {
-    hasError = true;
-    if (client) {
-        try { await client.query('ROLLBACK'); } catch (rbErr) {}
-    }
+    await client.query('ROLLBACK').catch(() => {});
     throw err;
   } finally {
-    if (client) client.release(hasError);
+    await client.end().catch(() => {}); // Guarantee destruction
   }
 }
 
