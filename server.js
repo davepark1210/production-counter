@@ -1,6 +1,6 @@
 const express = require('express');
 const WebSocket = require('ws');
-const { Client } = require('pg');
+const { Pool } = require('pg'); // 🚀 BACK TO POOL!
 const app = express();
 
 // === ENVIRONMENT CHECK ===
@@ -10,19 +10,49 @@ if (!connectionString) {
   process.exit(1);
 }
 
+// === 🚀 THE "HEARTBEAT" CONNECTION POOL ===
+const pool = new Pool({
+  connectionString,
+  ssl: { rejectUnauthorized: false },
+  max: 3,                             // 3 lanes is incredibly safe and bypasses rate limits
+  idleTimeoutMillis: 0,               // 🚀 0: Never close idle connections automatically
+  connectionTimeoutMillis: 15000,     
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 2000
+});
+
+pool.on('error', (err) => console.warn('Idle DB client error (safely evicted):', err.message));
+
+// 🚀 THE HEARTBEAT: Sends a 1-byte pulse every 30 seconds so Supabase NEVER kills the connection
+setInterval(() => {
+  pool.query('SELECT 1').catch(() => {});
+}, 30000);
+
+// === RETRY WRAPPER ===
+async function queryWithRetry(sql, params = [], retries = 3) {
+  let delay = 1000;
+  for (let i = 1; i <= retries; i++) {
+    try {
+      const res = await pool.query(sql, params);
+      return res;
+    } catch (err) {
+      if (i === retries) throw err;
+      const jitter = Math.floor(Math.random() * 500);
+      console.warn(`Query hiccup (${err.message}). Retrying in ${delay + jitter}ms...`);
+      await new Promise(r => setTimeout(r, delay + jitter));
+      delay *= 2; 
+    }
+  }
+}
+
 // === AUTOMATED DATA CLEANUP ===
 async function cleanupOldData() {
-  // 🚀 INCREASED TIMEOUT TO 60 SECONDS FOR COLD STARTS
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
   try {
-    await client.connect();
-    await client.query(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days'`);
-    await client.query(`DELETE FROM productioncounts WHERE date < NOW() - INTERVAL '30 days'`);
+    await queryWithRetry(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days'`);
+    await queryWithRetry(`DELETE FROM productioncounts WHERE date < NOW() - INTERVAL '30 days'`);
     console.log(`30-day database cleanup complete for events and counts.`);
   } catch (err) {
     console.error('Scheduled Data Cleanup Error:', err.message);
-  } finally {
-    await client.end().catch(() => {});
   }
 }
 
@@ -149,7 +179,6 @@ app.post('/decrement', (req, res) => {
   res.json({ count: SYSTEM_RAM.historicalData[date][facility][line].count }); 
 });
 
-// 🚀 SINGLE-SESSION BATCH WORKER
 async function processBatchQueue() {
   const keys = Object.keys(pendingWrites);
   if (keys.length === 0) {
@@ -160,32 +189,18 @@ async function processBatchQueue() {
   const snapshot = { ...pendingWrites };
   for (const k of keys) delete pendingWrites[k]; 
 
-  // 🚀 INCREASED TIMEOUT TO 60 SECONDS
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
+  for (const key in snapshot) {
+    const delta = snapshot[key];
+    if (delta === 0) continue; 
+    const [facility, line, date] = key.split('|');
 
-  try {
-    await client.connect(); 
-
-    for (const key in snapshot) {
-      const delta = snapshot[key];
-      if (delta === 0) continue; 
-      const [facility, line, date] = key.split('|');
-
-      try {
-        await updateCount(client, facility, line, delta, date);
-        await checkAndUpdatePeaks(client, facility, date);
-      } catch (err) {
-        console.error(`Row failed, keeping delta for ${key}:`, err.message);
-        pendingWrites[key] = (pendingWrites[key] || 0) + delta;
-      }
+    try {
+      await updateCount(facility, line, delta, date);
+      await checkAndUpdatePeaks(facility, date);
+    } catch (err) {
+      console.error(`Batch write failed, keeping delta for ${key}:`, err.message);
+      pendingWrites[key] = (pendingWrites[key] || 0) + delta;
     }
-  } catch (err) {
-    console.error('Batch connection failed, returning all to queue:', err.message);
-    for (const key in snapshot) {
-      pendingWrites[key] = (pendingWrites[key] || 0) + snapshot[key];
-    }
-  } finally {
-    await client.end().catch(() => {}); 
   }
 
   setTimeout(processBatchQueue, 3000); 
@@ -196,11 +211,7 @@ setTimeout(processBatchQueue, 3000);
 // === BACKGROUND DB POLLER ===
 // ============================================================================
 async function syncDatabaseToRAM() {
-  // 🚀 INCREASED TIMEOUT TO 60 SECONDS
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
-
   try {
-    await client.connect();
     const activeDates = new Set();
     activeDates.add(getLocalDateString());
     wss.clients.forEach(c => { if (c.currentDate) activeDates.add(c.currentDate); });
@@ -208,14 +219,14 @@ async function syncDatabaseToRAM() {
 
     datesArray.forEach(initRamForDate);
 
-    const peakRes = await client.query('SELECT facility, peak_day, peak_weekly FROM peakproduction');
+    const peakRes = await queryWithRetry('SELECT facility, peak_day, peak_weekly FROM peakproduction');
     if (peakRes && peakRes.rows) {
       peakRes.rows.forEach(r => {
         SYSTEM_RAM.peaks[r.facility] = { peakDay: parseInt(r.peak_day) || 0, peakWeekly: parseInt(r.peak_weekly) || 0 };
       });
     }
 
-    const countRes = await client.query('SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', [datesArray]);
+    const countRes = await queryWithRetry('SELECT date, facility, line, count FROM productioncounts WHERE date = ANY($1::date[])', [datesArray]);
     if (countRes && countRes.rows) {
       countRes.rows.forEach(r => {
         const d = parseDbDate(r.date);
@@ -225,7 +236,7 @@ async function syncDatabaseToRAM() {
       });
     }
 
-    const hourlyRes = await client.query(
+    const hourlyRes = await queryWithRetry(
       `SELECT date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC') as hour, SUM(delta) as hourly_total 
        FROM productionevents WHERE date = ANY($1::date[]) 
        GROUP BY date, facility, line, EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')`, 
@@ -245,7 +256,7 @@ async function syncDatabaseToRAM() {
       });
     }
 
-    const totalsRes = await client.query('SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', [datesArray]);
+    const totalsRes = await queryWithRetry('SELECT date, SUM(count) as total FROM productioncounts WHERE date = ANY($1::date[]) GROUP BY date', [datesArray]);
     if (totalsRes && totalsRes.rows) {
       totalsRes.rows.forEach(r => {
         SYSTEM_RAM.totals[parseDbDate(r.date)] = parseInt(r.total);
@@ -257,16 +268,18 @@ async function syncDatabaseToRAM() {
   } catch (err) {
     console.error('Background Sync Error:', err.message); 
   } finally {
-    await client.end().catch(() => {});
     setTimeout(syncDatabaseToRAM, 15 * 60 * 1000); 
   }
 }
 setTimeout(syncDatabaseToRAM, 2000); 
 
 // === DATABASE HELPERS ===
-async function updateCount(client, facility, line, delta, date) {
-  await client.query('BEGIN');
+async function updateCount(facility, line, delta, date) {
+  let client;
+  let hasError = false;
   try {
+    client = await pool.connect();
+    await client.query('BEGIN');
     await client.query(
       `INSERT INTO productionevents (date, facility, line, delta, timestamp) VALUES ($1, $2, $3, $4, NOW() AT TIME ZONE 'UTC')`,
       [date, facility, line, delta]
@@ -278,12 +291,16 @@ async function updateCount(client, facility, line, delta, date) {
     );
     await client.query('COMMIT');
   } catch (err) {
-    await client.query('ROLLBACK').catch(() => {});
+    hasError = true;
+    if (client) await client.query('ROLLBACK').catch(() => {});
     throw err;
+  } finally {
+    // Passing true physically destroys the corrupted connection and tells the pool to spin up a fresh one!
+    if (client) client.release(hasError);
   }
 }
 
-async function checkAndUpdatePeaks(client, facility, date) {
+async function checkAndUpdatePeaks(facility, date) {
   const singleQuery = `
     WITH day_calc AS (
       SELECT COALESCE(SUM(count), 0) as total 
@@ -300,7 +317,7 @@ async function checkAndUpdatePeaks(client, facility, date) {
     FROM peakproduction WHERE facility = $1;
   `;
   
-  const result = await client.query(singleQuery, [facility, date]);
+  const result = await queryWithRetry(singleQuery, [facility, date]);
   if (!result || !result.rows.length) return;
 
   const row = result.rows[0];
@@ -323,7 +340,7 @@ async function checkAndUpdatePeaks(client, facility, date) {
   }
 
   if (updated) {
-    await client.query(
+    await queryWithRetry(
       'UPDATE peakproduction SET peak_day = $1, peak_weekly = $2 WHERE facility = $3',
       [newPeakDay, newPeakWeekly, facility]
     );
