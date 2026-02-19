@@ -12,14 +12,15 @@ if (!connectionString) {
 
 // === AUTOMATED DATA CLEANUP ===
 async function cleanupOldData() {
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 30000 });
+  // 🚀 INCREASED TIMEOUT TO 60 SECONDS FOR COLD STARTS
+  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
   try {
     await client.connect();
     await client.query(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days'`);
     await client.query(`DELETE FROM productioncounts WHERE date < NOW() - INTERVAL '30 days'`);
-    console.log(`30-day database cleanup complete.`);
+    console.log(`30-day database cleanup complete for events and counts.`);
   } catch (err) {
-    // Silently ignore cleanup timeouts
+    console.error('Scheduled Data Cleanup Error:', err.message);
   } finally {
     await client.end().catch(() => {});
   }
@@ -55,11 +56,8 @@ function getLocalDateString() {
 }
 
 // ============================================================================
-// === 🚀 THE SHIELDED RAM STATE ENGINE ===
+// === THE TRUE INSTANT RAM STATE ENGINE ===
 // ============================================================================
-// This flag prevents the server from broadcasting empty 0s while the DB wakes up!
-let isDatabaseSynced = false; 
-
 const SYSTEM_RAM = {
   historicalData: {}, 
   hourlyRates: {},    
@@ -96,7 +94,6 @@ app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime
 // === DECOUPLED ENDPOINTS ===
 // ============================================================================
 app.get('/getCount', (req, res) => {
-  if (!isDatabaseSynced) return res.status(503).json({ error: 'Database warming up' });
   const { facility, line, date = getLocalDateString() } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
   initRamForDate(date);
@@ -104,14 +101,12 @@ app.get('/getCount', (req, res) => {
 });
 
 app.get('/getHourlyRates', (req, res) => {
-  if (!isDatabaseSynced) return res.status(503).json({ error: 'Database warming up' });
   const { date = getLocalDateString() } = req.query;
   initRamForDate(date);
   res.json({ hourlyRates: SYSTEM_RAM.hourlyRates[date] });
 });
 
 app.get('/getHistoricalData', (req, res) => {
-  if (!isDatabaseSynced) return res.status(503).json({ error: 'Database warming up' });
   const { date } = req.query;
   if (!date) return res.status(400).json({ error: 'Date required' });
   initRamForDate(date);
@@ -124,7 +119,6 @@ app.get('/getHistoricalData', (req, res) => {
 const pendingWrites = {};
 
 app.post('/increment', (req, res) => {
-  if (!isDatabaseSynced) return res.status(503).json({ error: 'Database warming up' });
   const { facility, line, date } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
   if (!date) return res.status(400).json({ error: 'Date required' });
@@ -140,7 +134,6 @@ app.post('/increment', (req, res) => {
 });
 
 app.post('/decrement', (req, res) => {
-  if (!isDatabaseSynced) return res.status(503).json({ error: 'Database warming up' });
   const { facility, line, date } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
   if (!date) return res.status(400).json({ error: 'Date required' });
@@ -156,6 +149,7 @@ app.post('/decrement', (req, res) => {
   res.json({ count: SYSTEM_RAM.historicalData[date][facility][line].count }); 
 });
 
+// 🚀 SINGLE-SESSION BATCH WORKER
 async function processBatchQueue() {
   const keys = Object.keys(pendingWrites);
   if (keys.length === 0) {
@@ -166,10 +160,12 @@ async function processBatchQueue() {
   const snapshot = { ...pendingWrites };
   for (const k of keys) delete pendingWrites[k]; 
 
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 15000 });
+  // 🚀 INCREASED TIMEOUT TO 60 SECONDS
+  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
 
   try {
     await client.connect(); 
+
     for (const key in snapshot) {
       const delta = snapshot[key];
       if (delta === 0) continue; 
@@ -179,11 +175,12 @@ async function processBatchQueue() {
         await updateCount(client, facility, line, delta, date);
         await checkAndUpdatePeaks(client, facility, date);
       } catch (err) {
+        console.error(`Row failed, keeping delta for ${key}:`, err.message);
         pendingWrites[key] = (pendingWrites[key] || 0) + delta;
       }
     }
   } catch (err) {
-    // 🚀 Expected Free-Tier Rate Limit. Silently return clicks to the queue to try again in 3s.
+    console.error('Batch connection failed, returning all to queue:', err.message);
     for (const key in snapshot) {
       pendingWrites[key] = (pendingWrites[key] || 0) + snapshot[key];
     }
@@ -199,7 +196,8 @@ setTimeout(processBatchQueue, 3000);
 // === BACKGROUND DB POLLER ===
 // ============================================================================
 async function syncDatabaseToRAM() {
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 30000 });
+  // 🚀 INCREASED TIMEOUT TO 60 SECONDS
+  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
 
   try {
     await client.connect();
@@ -254,26 +252,16 @@ async function syncDatabaseToRAM() {
       });
     }
 
-    // 🚀 SUCCESS! The database is warm and the data is loaded. Unlock the doors!
-    if (!isDatabaseSynced) {
-      console.log('✅ Database is warm and synced! Broadcasting to screens.');
-    }
-    isDatabaseSynced = true; 
     executeBroadcast();
     
-    // Schedule the next normal background check for 15 minutes
-    setTimeout(syncDatabaseToRAM, 15 * 60 * 1000); 
-    
   } catch (err) {
-    // 🚀 IF IT FAILS: Do NOT wait 15 minutes! Try again in 5 seconds to wake up the DB.
-    console.warn('Database cold start delayed. Retrying sync in 5 seconds...');
-    setTimeout(syncDatabaseToRAM, 5000); 
+    console.error('Background Sync Error:', err.message); 
   } finally {
     await client.end().catch(() => {});
+    setTimeout(syncDatabaseToRAM, 15 * 60 * 1000); 
   }
 }
-// Start the initial sync
-setTimeout(syncDatabaseToRAM, 1000); 
+setTimeout(syncDatabaseToRAM, 2000); 
 
 // === DATABASE HELPERS ===
 async function updateCount(client, facility, line, delta, date) {
@@ -363,9 +351,6 @@ wss.on('connection', (ws) => {
 });
 
 function executeBroadcast() {
-  // 🚀 THE SHIELD: Do not broadcast anything if the database hasn't successfully synced!
-  if (!isDatabaseSynced) return;
-
   wss.clients.forEach(ws => {
     if (ws.readyState === WebSocket.OPEN && ws.currentDate) {
       const date = ws.currentDate;
