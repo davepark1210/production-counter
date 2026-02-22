@@ -1,6 +1,6 @@
 const express = require('express');
 const WebSocket = require('ws');
-const { Client } = require('pg');
+const { Pool } = require('pg');
 const app = express();
 
 // === ENVIRONMENT CHECK ===
@@ -10,19 +10,32 @@ if (!connectionString) {
   process.exit(1);
 }
 
+// === 🚀 THE "HEARTBEAT" CONNECTION POOL ===
+const pool = new Pool({
+  connectionString,
+  ssl: { rejectUnauthorized: false },
+  max: 3,                             // 3 permanent lanes bypasses rate limiting entirely
+  idleTimeoutMillis: 0,               // 0: Never close idle connections automatically
+  connectionTimeoutMillis: 15000,     
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 2000
+});
+
+pool.on('error', (err) => console.warn('Idle DB client error (safely evicted):', err.message));
+
+// 🚀 THE HEARTBEAT: Sends a 1-byte pulse every 30 seconds so the firewall NEVER kills the connection
+setInterval(() => {
+  pool.query('SELECT 1').catch(() => {});
+}, 30000);
+
 // === AUTOMATED DATA CLEANUP ===
 async function cleanupOldData() {
-  // 🚀 INCREASED TIMEOUT TO 60 SECONDS FOR COLD STARTS
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
   try {
-    await client.connect();
-    await client.query(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days'`);
-    await client.query(`DELETE FROM productioncounts WHERE date < NOW() - INTERVAL '30 days'`);
-    console.log(`30-day database cleanup complete for events and counts.`);
+    await pool.query(`DELETE FROM productionevents WHERE date < NOW() - INTERVAL '30 days'`);
+    await pool.query(`DELETE FROM productioncounts WHERE date < NOW() - INTERVAL '30 days'`);
+    console.log(`30-day database cleanup complete.`);
   } catch (err) {
-    console.error('Scheduled Data Cleanup Error:', err.message);
-  } finally {
-    await client.end().catch(() => {});
+    // Silently ignore cleanup timeouts
   }
 }
 
@@ -56,8 +69,10 @@ function getLocalDateString() {
 }
 
 // ============================================================================
-// === THE TRUE INSTANT RAM STATE ENGINE ===
+// === 🚀 THE SHIELDED RAM STATE ENGINE ===
 // ============================================================================
+let isDatabaseSynced = false; 
+
 const SYSTEM_RAM = {
   historicalData: {}, 
   hourlyRates: {},    
@@ -94,6 +109,7 @@ app.get('/health', (req, res) => res.json({ status: 'OK', uptime: process.uptime
 // === DECOUPLED ENDPOINTS ===
 // ============================================================================
 app.get('/getCount', (req, res) => {
+  if (!isDatabaseSynced) return res.status(503).json({ error: 'Database warming up' });
   const { facility, line, date = getLocalDateString() } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
   initRamForDate(date);
@@ -101,12 +117,14 @@ app.get('/getCount', (req, res) => {
 });
 
 app.get('/getHourlyRates', (req, res) => {
+  if (!isDatabaseSynced) return res.status(503).json({ error: 'Database warming up' });
   const { date = getLocalDateString() } = req.query;
   initRamForDate(date);
   res.json({ hourlyRates: SYSTEM_RAM.hourlyRates[date] });
 });
 
 app.get('/getHistoricalData', (req, res) => {
+  if (!isDatabaseSynced) return res.status(503).json({ error: 'Database warming up' });
   const { date } = req.query;
   if (!date) return res.status(400).json({ error: 'Date required' });
   initRamForDate(date);
@@ -119,6 +137,7 @@ app.get('/getHistoricalData', (req, res) => {
 const pendingWrites = {};
 
 app.post('/increment', (req, res) => {
+  if (!isDatabaseSynced) return res.status(503).json({ error: 'Database warming up' });
   const { facility, line, date } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
   if (!date) return res.status(400).json({ error: 'Date required' });
@@ -134,6 +153,7 @@ app.post('/increment', (req, res) => {
 });
 
 app.post('/decrement', (req, res) => {
+  if (!isDatabaseSynced) return res.status(503).json({ error: 'Database warming up' });
   const { facility, line, date } = req.query;
   if (!facilities.includes(facility) || !lines.includes(line)) return res.status(400).json({ error: 'Invalid input' });
   if (!date) return res.status(400).json({ error: 'Date required' });
@@ -149,7 +169,6 @@ app.post('/decrement', (req, res) => {
   res.json({ count: SYSTEM_RAM.historicalData[date][facility][line].count }); 
 });
 
-// 🚀 SINGLE-SESSION BATCH WORKER
 async function processBatchQueue() {
   const keys = Object.keys(pendingWrites);
   if (keys.length === 0) {
@@ -160,12 +179,9 @@ async function processBatchQueue() {
   const snapshot = { ...pendingWrites };
   for (const k of keys) delete pendingWrites[k]; 
 
-  // 🚀 INCREASED TIMEOUT TO 60 SECONDS
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
-
+  let client;
   try {
-    await client.connect(); 
-
+    client = await pool.connect(); 
     for (const key in snapshot) {
       const delta = snapshot[key];
       if (delta === 0) continue; 
@@ -175,17 +191,16 @@ async function processBatchQueue() {
         await updateCount(client, facility, line, delta, date);
         await checkAndUpdatePeaks(client, facility, date);
       } catch (err) {
-        console.error(`Row failed, keeping delta for ${key}:`, err.message);
         pendingWrites[key] = (pendingWrites[key] || 0) + delta;
       }
     }
   } catch (err) {
-    console.error('Batch connection failed, returning all to queue:', err.message);
+    // If getting a connection fails, safely return all clicks to RAM queue
     for (const key in snapshot) {
       pendingWrites[key] = (pendingWrites[key] || 0) + snapshot[key];
     }
   } finally {
-    await client.end().catch(() => {}); 
+    if (client) client.release(); 
   }
 
   setTimeout(processBatchQueue, 3000); 
@@ -196,11 +211,9 @@ setTimeout(processBatchQueue, 3000);
 // === BACKGROUND DB POLLER ===
 // ============================================================================
 async function syncDatabaseToRAM() {
-  // 🚀 INCREASED TIMEOUT TO 60 SECONDS
-  const client = new Client({ connectionString, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 60000 });
-
+  let client;
   try {
-    await client.connect();
+    client = await pool.connect();
     const activeDates = new Set();
     activeDates.add(getLocalDateString());
     wss.clients.forEach(c => { if (c.currentDate) activeDates.add(c.currentDate); });
@@ -252,16 +265,26 @@ async function syncDatabaseToRAM() {
       });
     }
 
+    // 🚀 SUCCESS! The database is warm and the data is loaded. Unlock the doors!
+    if (!isDatabaseSynced) {
+      console.log('✅ Database is warm and synced! Broadcasting to screens.');
+    }
+    isDatabaseSynced = true; 
     executeBroadcast();
     
-  } catch (err) {
-    console.error('Background Sync Error:', err.message); 
-  } finally {
-    await client.end().catch(() => {});
+    // Schedule the next normal background check for 15 minutes
     setTimeout(syncDatabaseToRAM, 15 * 60 * 1000); 
+    
+  } catch (err) {
+    // 🚀 IF IT FAILS: Do NOT wait 15 minutes! Try again in 5 seconds to aggressively wake up the DB.
+    console.warn('Database cold start delayed. Retrying sync in 5 seconds...');
+    setTimeout(syncDatabaseToRAM, 5000); 
+  } finally {
+    if (client) client.release();
   }
 }
-setTimeout(syncDatabaseToRAM, 2000); 
+// Start the initial sync
+setTimeout(syncDatabaseToRAM, 1000); 
 
 // === DATABASE HELPERS ===
 async function updateCount(client, facility, line, delta, date) {
@@ -351,6 +374,9 @@ wss.on('connection', (ws) => {
 });
 
 function executeBroadcast() {
+  // 🚀 THE SHIELD: Do not broadcast anything if the database hasn't successfully synced!
+  if (!isDatabaseSynced) return;
+
   wss.clients.forEach(ws => {
     if (ws.readyState === WebSocket.OPEN && ws.currentDate) {
       const date = ws.currentDate;
